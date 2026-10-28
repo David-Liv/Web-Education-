@@ -1,0 +1,15 @@
+node_modules
+.pnpm-store
+.data
+dist
+dist-pilot
+skills
+.agents
+.env
+.env.*
+!.env.example
+.git
+.codex
+tmp
+artifacts
+test-results

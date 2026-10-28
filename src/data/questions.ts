@@ -1,0 +1,80 @@
+import type { Question, QuestionKind } from '../types';
+export const questions:Question[]=[];
+function q(topicId:string,subjectId:string,paper:string,kind:QuestionKind,prompt:string,answer:string,explanation:string,options?:string[],extra:Partial<Question>={}) { const id=`${topicId}-q${questions.filter(x=>x.topicId===topicId).length+1}`; questions.push({id,subjectId,topicId,paper,kind,prompt,answer,explanation,options,marks:kind==='choice'?1:2,difficulty:'基礎',hint:'先找出題目中的關鍵條件，再連結這個知識點的核心概念。',original:true,...extra}); }
+q('maths-quadratic','maths','卷二','choice','方程 x² − 5x + 6 = 0 的兩個根是甚麼？','B','(x − 2)(x − 3) = 0，因此 x = 2 或 x = 3。',['1 和 6','2 和 3','−2 和 −3','−1 和 −6'],{hint:'找出兩個數，其乘積為 6，而和為 −5。'});
+q('maths-quadratic','maths','卷二','choice','若一元二次方程的判別式 Δ < 0，以下哪項正確？','C','判別式小於零時，沒有實根；不表示沒有複數根。',['有兩個不同實根','有兩個相等實根','沒有實根','必有一個根為零']);
+q('maths-quadratic','maths','卷一','numeric','方程 x² − 6x + 9 = 0 的重根是多少？','3','x² − 6x + 9 = (x − 3)²，因此重根為 3。');
+q('maths-quadratic','maths','卷二','choice','方程 2x² + 3x − 2 = 0 的判別式是多少？','D','Δ = b² − 4ac = 3² − 4(2)(−2) = 25。',['−7','7','17','25']);
+q('maths-quadratic','maths','卷一','numeric','已知 x² − 7x + k = 0 的其中一個根為 3，求 k。','12','代入 x = 3：9 − 21 + k = 0，所以 k = 12。');
+q('maths-trig','maths','卷二','choice','直角三角形中，θ 的對邊為 3，斜邊為 5。sin θ 是多少？','A','sin θ = 對邊 ÷ 斜邊 = 3/5。',['3/5','4/5','3/4','5/3']);
+q('maths-trig','maths','卷一','numeric','直角三角形兩條直角邊長為 6 cm 和 8 cm，求斜邊長（只輸入數值）。','10','由畢氏定理，斜邊 = √(6² + 8²) = 10 cm。');
+q('maths-trig','maths','卷二','choice','已知三角形兩邊及其夾角，要求第三邊，最直接用哪個方法？','B','兩邊及夾角（SAS）可用餘弦公式 c² = a² + b² − 2ab cos C。',['正弦公式','餘弦公式','中點公式','求根公式']);
+q('maths-trig','maths','卷二','choice','sin 30° 的值是多少？','B','30°、60°、90° 三角形的邊長比為 1 : √3 : 2。',['0','1/2','√3/2','1']);
+q('maths-trig','maths','卷一','numeric','一支垂直旗杆的影長為 10 m，太陽仰角為 45°。旗杆高多少米？','10','tan 45° = 高 ÷ 10 = 1，所以旗杆高 10 m。');
+q('maths-probability','maths','卷二','choice','擲一枚公平骰子，出現偶數的概率是多少？','B','六個等可能結果中，2、4、6 三個是偶數，概率為 3/6。',['1/6','1/2','2/3','1']);
+q('maths-probability','maths','卷二','choice','兩次獨立擲公平硬幣，兩次都是正面的概率是多少？','A','獨立事件的聯合概率為 (1/2) × (1/2) = 1/4。',['1/4','1/2','3/4','1']);
+q('maths-probability','maths','卷一','numeric','袋中有 3 個紅球、2 個藍球。隨機抽出一球，紅球數目佔所有球的百分比是多少？','60','紅球概率為 3/5，即 60%。');
+q('maths-m1-2','maths','M1','numeric','若 f(x) = 3x²，求 f′(2)。','12','f′(x) = 6x，所以 f′(2) = 12。');
+q('maths-m1-2','maths','M1','choice','函數的導數在某點為零，以下哪項必然正確？','B','導數為零表示該點切線斜率為零；仍需其他條件判斷極值。',['該點一定是極大值','該點切線水平','函數值為零','該點一定是極小值']);
+q('maths-m1-2','maths','M1','numeric','求 f(x) = x³ 在 x = 2 時的導數值。','12','f′(x) = 3x²，所以 f′(2) = 12。');
+q('maths-m2-8','maths','M2','numeric','矩陣 A = [[2, 1], [3, 4]] 的行列式是多少？','5','det A = 2×4 − 1×3 = 5。');
+q('maths-m2-8','maths','M2','choice','A 是 2×3 矩陣，B 是 3×4 矩陣，AB 的階數是甚麼？','C','內側維度相同，可以相乘；結果保留外側維度 2×4。',['3×3','4×2','2×4','不可相乘']);
+q('maths-m2-8','maths','M2','choice','對一般矩陣 A、B，以下哪項不一定成立？','A','矩陣乘法通常不可交換，因此 AB 不一定等於 BA。',['AB = BA','A + B = B + A（同階）','AI = A','A + 0 = A']);
+
+const chiPassage='放學後，阿晴仍留在課室。她把寫滿修改記號的講稿攤在桌上，反覆讀著第一段。窗外的球聲漸遠，她終於拿起筆，把「我不敢」三個字輕輕劃去，改成了「我想試試」。第二天，站上台前，她的手仍微微發抖，卻沒有再把講稿收進書包。';
+q('chi-reading','chi','卷一乙部','choice','文末阿晴的主要改變是甚麼？','B','她仍然緊張，但願意行動；「沒有再把講稿收進書包」呼應嘗試的決心。',['已完全不緊張','願意帶著緊張嘗試','決定放棄演講','不再需要講稿'],{passage:chiPassage});
+q('chi-reading','chi','卷一乙部','choice','「球聲漸遠」在這段文字中主要有甚麼作用？','C','球聲遠去與她仍留在課室形成對照，突出她持續準備的情境。',['說明球場關閉','暗示她討厭運動','襯托她留在課室持續準備','交代她已經離校'],{passage:chiPassage});
+q('chi-reading','chi','卷一乙部','choice','哪個細節最能直接支持「阿晴仍然緊張」？','A','「她的手仍微微發抖」是與緊張直接相關的動作描寫。',['她的手仍微微發抖','她拿起筆','講稿攤在桌上','窗外有球聲'],{passage:chiPassage});
+q('chi-reading','chi','卷一乙部','short','用「證據＋解釋」說明阿晴態度的變化。','她把「我不敢」改成「我想試試」，顯示由退縮轉為願意面對挑戰。','可選「劃去我不敢」或「沒有收起講稿」作證據，說明她仍緊張卻願意行動。此題提供示範回饋，待真實批改。',undefined,{passage:chiPassage});
+q('chi-reading','chi','卷一乙部','choice','概括這段文字，哪個標題最貼切？','D','重點是主角從不敢到願意嘗試的轉變。',['課室的窗','一場球賽','完美的演說','帶著緊張向前一步'],{passage:chiPassage});
+q('chi-classic-9','chi','卷一甲部','choice','「不以物喜，不以己悲」中的「以」可解作甚麼？','A','此處「以」是「因為」，指不因外物及個人得失而改變胸襟。',['因為','使用','以後','認為']);
+q('chi-classic-9','chi','卷一甲部','choice','作者寫「遷客騷人」兩種情緒，主要運用甚麼手法？','B','先寫覽物而喜、而悲的不同感受，與古仁人的胸襟作對比。',['倒敘','對比','擬人','雙關']);
+q('chi-classic-9','chi','卷一甲部','choice','「先天下之憂而憂」最能反映哪種胸襟？','C','將天下人的憂樂放在個人之前，表達以天下為己任。',['只追求個人快樂','逃避世事','以天下為己任','對景物沒有感情']);
+q('chi-practical','chi','卷二甲部','essay','你是學生會幹事，請寫一封給校長的建議信，提出一項改善校園閱讀氣氛的措施（約 200 字）。','清楚交代建議、理據、執行方法及預期效果，語氣尊重並配合建議信格式。','示範評閱維度：任務完成、資料運用、組織與語言。實際文章需真人或正式批改服務評閱。');
+q('chi-essay','chi','卷二乙部','essay','以「那一次，我願意再試」為題，寫一段開首及一段轉折，合共約 250 字。','以具體場景切入，讓轉折來自主角的選擇或發現，呼應「再試」。','示範評閱會指出立意、細節及段落銜接的可改進位置，不冒充正式 DSE 等級。');
+
+const engPassage='Last term, students at Harbour School started a repair corner. At first, Mei thought nobody would bring broken items to school. However, by Friday the table was covered with torn bags and loose bicycle lights. The volunteers could not repair everything, but they made a guide so that others could try at home. “Success is not just the number of things we fix,” Mei said. “It is helping someone feel able to begin.”';
+q('eng-inference','eng','卷一 A','choice','How did Mei’s expectation change?','B','She first expected little interest; the number of items showed that people were interested.',['She became less interested in repairs.','She realised more people were interested than she had expected.','She decided all items could be fixed.','She thought the school should cancel the project.'],{passage:engPassage});
+q('eng-inference','eng','卷一 A','choice','Why did the volunteers make a guide?','C','The guide enabled people to attempt repairs beyond the repair corner.',['To advertise a repair shop','To replace all the volunteers','To help others try repairs at home','To explain why they stopped'],{passage:engPassage});
+q('eng-inference','eng','卷一 A','choice','In the last sentence, “begin” most likely means…','A','The project gives people confidence to begin repairing things.',['start attempting a repair','start a bicycle race','open a shop','bring everything to school'],{passage:engPassage});
+q('eng-inference','eng','卷一 A','short','What does Mei consider a form of success besides fixing items?','Helping others feel confident enough to attempt repairs themselves.','Use the final quotation as evidence. Explain the confidence or independence it gives people. This is sample feedback, not automatic marking.',undefined,{passage:engPassage});
+q('eng-inference','eng','卷一 A','choice','Which word best describes the tone of the final quotation?','D','Mei focuses on encouraging people to try, which creates a hopeful and encouraging tone.',['Bitter','Mocking','Indifferent','Encouraging'],{passage:engPassage});
+q('eng-vocab','eng','卷一 A','choice','Choose the correct collocation: “We need to ___ a decision.”','B','The usual collocation is “make a decision”.',['do','make','take up','put']);
+q('eng-vocab','eng','卷一 A','choice','“The volunteers were reluctant at first.” What does “reluctant” mean?','C','Reluctant means unwilling or hesitant to do something.',['Very excited','Unable to hear','Unwilling or hesitant','Already finished']);
+q('eng-vocab','eng','卷一 A','choice','Which sentence is most appropriate in a formal proposal?','A','Formal proposals use respectful and clear language.',['We recommend extending library opening hours.','You guys should open it later.','Open it or else.','It’s, like, super boring.']);
+q('eng-writing','eng','卷二 B','essay','Write an opening and one developed paragraph for a speech encouraging students to join a school volunteering project (about 180 words).','Address your audience, explain one clear benefit and develop it with a relevant example.','Sample criteria: content, organisation and language. Your writing is saved; feedback is simulated and no official grade is awarded.');
+q('eng-listening','eng','卷三 A','choice','When should the volunteers meet?','B','The speaker says 8:30 a.m. The fair starts later, so distinguish meeting time from event time.',['8:00 a.m.','8:30 a.m.','9:00 a.m.','9:30 a.m.'],{audio:'/audio/listening-demo.wav'});
+q('eng-listening','eng','卷三 A','choice','Where should the volunteers meet?','C','The meeting point is the library, not the hall where the fair takes place.',['The school hall','The playground','The library','The laboratory'],{audio:'/audio/listening-demo.wav'});
+q('eng-listening','eng','卷三 A','choice','What should volunteers bring?','A','The speaker asks volunteers to bring a reusable water bottle.',['A reusable water bottle','A bicycle light','A sports uniform','A musical instrument'],{audio:'/audio/listening-demo.wav'});
+q('eng-integrated','eng','卷三 B1','short','Using the recording, write a brief reminder stating the meeting time, meeting place and one item to bring.','Meet in the library at 8:30 a.m. and bring a reusable water bottle.','Select only the information requested and adapt the tone to a short reminder. Recording assessment is simulated.',undefined,{audio:'/audio/listening-demo.wav'});
+q('eng-speaking','eng','卷四 B','audio','Your group is planning a school green fair. Explain which activity you would recommend and give one reason (about one minute).','A clear recommendation, a developed reason and an appropriate example.','Sample feedback covers clarity, development and language. The recording can be replayed; assessment is simulated.');
+
+q('chem-acids','chem','卷一 A','choice','哪一項正確描述「強酸」？','B','強酸在水中幾乎完全電離；這與溶液濃度是不同概念。',['溶液必定很濃','在水中幾乎完全電離','pH 永遠為零','不能被稀釋']);
+q('chem-acids','chem','卷一 A','choice','酸鹼中和反應的淨離子方程式是甚麼？','C','H⁺(aq) 與 OH⁻(aq) 反應生成水。',['Na⁺ + Cl⁻ → NaCl','H₂ + O₂ → H₂O','H⁺ + OH⁻ → H₂O','H⁺ + Cl⁻ → HCl']);
+q('chem-acids','chem','卷一 B','numeric','25.0 cm³、濃度 0.100 mol dm⁻³ 的 NaOH 含多少 mol？','0.0025','V = 25.0/1000 = 0.0250 dm³；n = cV = 0.100 × 0.0250 = 0.00250 mol。',undefined,{hint:'先把 cm³ 除以 1000，換成 dm³。'});
+q('chem-acids','chem','卷一 A','choice','滴定時，接近終點應怎樣加入滴定液？','A','逐滴加入並搖勻，可減少過量加入造成的誤差。',['逐滴加入並搖勻','一次快速倒入','停止搖動錐形瓶','加入額外指示劑以增加顏色']);
+q('chem-acids','chem','卷一 B','numeric','HCl + NaOH → NaCl + H₂O。中和 0.0030 mol NaOH 需要多少 mol HCl？','0.003','方程式摩爾比為 1:1，因此需要 0.0030 mol HCl。');
+q('chem-equilibrium','chem','卷一 A','choice','可逆反應達動態平衡時，甚麼必然相等？','B','動態平衡的定義是正、逆反應速率相等。',['反應物與生成物的濃度','正、逆反應的速率','各物質的質量','各物質的體積']);
+q('chem-equilibrium','chem','卷一 A','choice','加入催化劑對平衡位置有甚麼影響？','D','催化劑同時加快正、逆反應，只加快達至平衡。',['向右移','向左移','所有反應物耗盡','不改變平衡位置']);
+q('chem-equilibrium','chem','卷一 A','choice','平衡時反應物及生成物的濃度如何？','C','濃度維持不變，但數值不必相等。',['必定相等','必定為零','維持不變，但不必相等','不斷同時增加']);
+q('chem-equilibrium','chem','卷一 B','short','解釋為甚麼「動態平衡」的反應沒有停止。','正、逆反應持續進行且速率相等，所以宏觀濃度維持不變。','答案需同時提及「持續進行」與「速率相等」。此題提供示範回饋，待正式批改。');
+q('chem-equilibrium','chem','卷一 A','choice','對放熱的正反應，提高溫度通常令平衡向哪方移？','A','增加溫度令系統傾向吸熱方向，因此向反應物一方移動。',['反應物一方','生成物一方','必定不變','視催化劑而定']);
+q('chem-industrial','chem','卷二','choice','哈柏法製氨的原料是甚麼？','A','氮氣與氫氣按平衡方程式 N₂ + 3H₂ ⇌ 2NH₃ 反應。',['氮氣和氫氣','氧氣和氫氣','氮氣和氧氣','氨和水']);
+q('chem-industrial','chem','卷二','choice','工業選擇反應條件時，通常需要兼顧甚麼？','D','工業條件在產量、速率、安全和成本間作折衷。',['只考慮理論最大產量','只考慮最低溫度','只考慮最大壓力','產量、速率、成本及安全']);
+q('chem-industrial','chem','卷二','choice','催化劑對平衡常數 K 有甚麼影響？','C','相同溫度下，催化劑不改變平衡常數。',['必定增加','必定減少','沒有影響','令 K = 0']);
+q('chem-materials','chem','卷二','choice','加成聚合的單體通常含甚麼結構？','B','烯烴的碳碳雙鍵可打開形成聚合物主鏈。',['只有單鍵','碳碳雙鍵','必含苯環','只有離子鍵']);
+q('chem-materials','chem','卷二','choice','縮合聚合可能同時產生甚麼？','A','縮合聚合常伴隨生成水等小分子。',['水等小分子','大量金屬','只有氧氣','不會有其他產物']);
+q('chem-materials','chem','卷二','choice','選擇物料時，最合理的做法是甚麼？','C','把結構與性質連結到產品的實際用途和限制。',['只看顏色','只選價格最高者','按用途比較性質及限制','所有聚合物都可以互換']);
+q('chem-analytical','chem','卷二','numeric','色譜中，斑點移動 3 cm，溶劑前沿移動 6 cm，Rf 值是多少？','0.5','Rf = 3/6 = 0.5，沒有單位。');
+q('chem-analytical','chem','卷二','choice','比較兩個樣品的 Rf 值時，應如何進行？','A','Rf 受溶劑及固定相等條件影響，須在相同條件下比較。',['使用相同實驗條件','任意使用不同溶劑','只比較斑點顏色','不必記錄溶劑前沿']);
+q('chem-analytical','chem','卷二','choice','色譜法主要可用於甚麼？','D','色譜利用不同組分對兩相的親和力差異分離混合物。',['製造金屬','測量電流','提高反應溫度','分離混合物中的組分']);
+
+// Selected multi-step original items provide an actual advanced filter.
+questions.forEach(question=>{if(['maths-quadratic-q5','maths-trig-q5','chem-acids-q5','chem-equilibrium-q5','maths-m2-8-q3'].includes(question.id))question.difficulty='進階'});
+
+q('chi-rhetoric','chi','卷一乙部','choice','「路燈像一顆顆靜候的星星」主要運用甚麼修辭？','A','以「像」把路燈比作星星，是明喻。',['明喻','反問','排比','誇張']);
+q('chi-rhetoric','chi','卷一乙部','choice','「風輕輕敲著窗，催我們出門」主要運用甚麼修辭？','B','把風寫成有敲窗、催促等人的動作，是擬人。',['借代','擬人','反語','對偶']);
+q('chi-rhetoric','chi','卷一乙部','choice','分析描寫的表達效果，哪種作答最完整？','C','手法名稱須連結具體語句、描寫內容及情感或主旨。',['只列出手法名稱','抄錄整段，不作解釋','引用細節，說明如何呈現內容或情感','加入原文沒有的情節']);
+q('chi-classical','chi','卷一甲部','choice','「不以物喜」的「以」在這句中解作甚麼？','B','須按語境理解；這裡的「以」是「因為」。',['以後','因為','拿著','認為']);
+q('chi-classical','chi','卷一乙部','choice','翻譯文言句子前，哪一步最合適？','A','先掌握上下文，辨別字詞在當句的意義及被省略的成分。',['理解上下文及句子結構','每個字只套用一個固定意思','不看語境直接重排字序','加入自己的評語']);
+q('chi-classical','chi','卷一乙部','choice','文言文省略主語時，應如何翻譯？','C','根據前文的人物和動作，補回能由文本支持的主語。',['一律譯成我','刪掉整句','按上下文補出合理主語','加入一位新人物']);
