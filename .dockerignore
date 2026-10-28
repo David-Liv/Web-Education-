@@ -11,5 +11,8 @@ skills
 .git
 .codex
 tmp
+*.sqlite
+*.sqlite-*
+secret.key
 artifacts
 test-results

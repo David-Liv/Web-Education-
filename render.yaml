@@ -1,0 +1,31 @@
+# Review the paid service + disk total in Render before applying this Blueprint.
+services:
+  - type: web
+    name: hokse-study
+    runtime: docker
+    repo: https://github.com/David-Liv/Web-Education-
+    branch: main
+    region: singapore
+    plan: 0.5c-512mb
+    numInstances: 1
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    autoDeployTrigger: commit
+    healthCheckPath: /api/v1/auth/status
+    disk:
+      name: hokse-data
+      mountPath: /app/.data
+      sizeGB: 1
+    envVars:
+      - key: HOST
+        value: 0.0.0.0
+      - key: PORT
+        value: "3001"
+      - key: HOKSE_STATIC_DIR
+        value: /app/dist-pilot
+      - key: HOKSE_DATABASE
+        value: /app/.data/pilot.sqlite
+      - key: HOKSE_ALLOW_SETUP
+        value: "false"
+      - key: HOKSE_SECURE_COOKIE
+        value: "true"

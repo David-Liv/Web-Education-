@@ -1,0 +1,19 @@
+services:
+  app:
+    build: .
+    image: hokse-pilot:local
+    ports:
+      - "127.0.0.1:3001:3001"
+    environment:
+      HOST: 0.0.0.0
+      PORT: "3001"
+      HOKSE_ORIGIN: http://127.0.0.1:3001
+      HOKSE_STATIC_DIR: /app/dist-pilot
+      HOKSE_DATABASE: /app/.data/pilot.sqlite
+      HOKSE_ALLOW_SETUP: "false"
+      HOKSE_SECURE_COOKIE: "false"
+    volumes:
+      - hokse-data:/app/.data
+    restart: unless-stopped
+volumes:
+  hokse-data:

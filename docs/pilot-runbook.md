@@ -85,7 +85,9 @@ node scripts/backup-pilot.mjs .data/backups/my-pilot-backup
 
 按步驟分享給學生，見 [上線與帳戶分享指南](deployment-guide.md)：包含Docker托管、持久磁盤、公開HTTPS來源、私下導入初始帳戶、跨帳戶與重啟驗證。這是操作說明，尚未建立或支付雲服務。
 
-已提供 Dockerfile，使用單個 Node 服務提供 `dist-pilot/` 和同源 API。這次尚未執行 Docker build 或部署遠程環境。
+已提供 Dockerfile及Compose，使用單個 Node 服務提供 `dist-pilot/` 和同源 API。2026-10-28已在本機完成Docker構建與隔離容器啟動；遠程Render環境仍待部署，不能將本機結果當作已上線。
+
+空庫可在私有Shell執行`node server/bootstrap-admin.ts`建立首位開發者，密碼不回顯；已有帳戶時拒絕初始化，且在資料庫交易內再次檢查空庫。此命令沒有新增公網初始化接口。Docker本機用法見部署指南。
 
 正式運行前：先在本機建立開發者帳戶，完成適用內容復核，將完整資料目錄以持久卷掛載至 `/app/.data`；容器預設關閉首次設定。用 HTTPS 反向代理，設定 `HOKSE_ORIGIN` 為實際網站來源並啟用 `HOKSE_SECURE_COOKIE=true`。資料卷需要可寫及可備份，不使用短暫磁碟保存學生記錄。
 

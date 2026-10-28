@@ -8,6 +8,8 @@
 
 已有兩種運行模式：原有瀏覽器演示，以及新增的邀請制真實模式。**真實模式可雙擊 `start-pilot.cmd` 或執行 `pnpm dev:pilot`**；首次在本機建立開發者帳戶，再分配復核者及學生。Node 需 24.12+。內容預設為待復核草稿；模型服務在開發者頁設定。
 
+Docker Desktop已可用`docker compose up -d --build`啟動，再以`docker compose exec app node server/bootstrap-admin.ts`私下建立空庫首位開發者，開啟`http://127.0.0.1:3001`。首次GitHub推送已完成；Render選項與持久磁盤操作見上線指南，雲端地址尚未建立。
+
 真實模式包含 SQLite、帳戶隔離、兩個單元、獨立／隔時證據、內容審校、版本日曆與模型接入。詳見 [操作說明](docs/pilot-runbook.md)、[本次驗證](docs/pilot-verification.md) 及 [58 個真實 API 操作](public/openapi-pilot.json)。實際人工審校、使用者 API、遠程部署和學生試用尚待完成。下列原有說明適用於**演示模式**。
 
 面向香港中學生的可操作前端示範，預設使用繁體中文、2028 備試人物及 2028-02-14 示範時鐘。React + TypeScript + Vite，MSW 提供瀏覽器內 mock API；不用 AI key 或後端服務。

@@ -11,6 +11,8 @@
     "typecheck": "tsc -b",
     "dev:pilot": "node scripts/dev-pilot.mjs",
     "server": "node server/main.ts",
+    "admin:init": "node server/bootstrap-admin.ts",
+    "check:bootstrap": "node scripts/check-bootstrap.mjs",
     "build:pilot": "node scripts/build-pilot.mjs",
     "typecheck:server": "tsc -p server/tsconfig.json",
     "test:server": "node --test server/pilot.check.ts",

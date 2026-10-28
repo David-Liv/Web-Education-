@@ -43,9 +43,9 @@ export class Store {
   close(){this.db.close()}
   transaction<T>(fn:()=>T):T{this.db.exec('BEGIN IMMEDIATE');try{const result=fn();this.db.exec('COMMIT');return result}catch(e){this.db.exec('ROLLBACK');throw e}}
   userCount(){return Number((this.db.prepare('SELECT count(*) as n FROM users').get() as any).n)}
-  createUser(username:string,password:string,name:string,role:Role):Identity{
+  createUser(username:string,password:string,name:string,role:Role,firstUserOnly=false):Identity{
     const id=crypto.randomUUID();const hash=passwordHash(password);
-    return this.transaction(()=>{this.db.prepare('INSERT INTO users VALUES(?,?,?,?,?)').run(id,username.toLowerCase(),name,role,hash);this.db.prepare('INSERT INTO students VALUES(?,?,?)').run(id,0,JSON.stringify(newState(name)));return {id,username:username.toLowerCase(),name,role}});
+    return this.transaction(()=>{if(firstUserOnly&&this.userCount()!==0)throw new Error('已有帳戶，拒絕重新初始化或覆寫管理員。');this.db.prepare('INSERT INTO users VALUES(?,?,?,?,?)').run(id,username.toLowerCase(),name,role,hash);this.db.prepare('INSERT INTO students VALUES(?,?,?)').run(id,0,JSON.stringify(newState(name)));return {id,username:username.toLowerCase(),name,role}});
   }
   authenticate(username:string,password:string):Identity|null{const row=this.db.prepare('SELECT * FROM users WHERE username=?').get(username.toLowerCase()) as any;if(!row||!passwordMatches(password,row.password))return null;return {id:row.id,username:row.username,name:row.name,role:row.role}}
   session(user:Identity){const token=randomBytes(32).toString('hex');this.db.prepare('DELETE FROM sessions WHERE expires<?').run(Date.now());this.db.prepare('INSERT INTO sessions VALUES(?,?,?)').run(digest(token),user.id,Date.now()+7*86400000);return token}
