@@ -85,9 +85,9 @@ node scripts/backup-pilot.mjs .data/backups/my-pilot-backup
 
 費用與免費額度見 [托管費用說明](hosting-costs.md)。保持 Render Free／Hobby 和 Supabase Free；自動部署關閉，手動發布前核對剩餘構建分鐘，額外構建支出設 US$0／月。此上限不控制流量費。
 
-按步驟分享給學生，見 [上線與帳戶分享指南](deployment-guide.md)：現採 Render Free Docker＋Supabase Free PostgreSQL，無付費磁盤。雲端連線、私有資料表與首位管理員已建立；Render 公開 HTTPS 部署仍待驗證，不把本機結果當作已上線。
+按步驟分享給學生，見 [上線與帳戶分享指南](deployment-guide.md)：現採 Render Free Docker＋Supabase Free PostgreSQL，無付費磁盤。雲端連線、私有資料表與首位管理員已建立；公開 HTTPS、資料隔離與重啟保存已有獨立驗收，見部署驗證。
 
-已提供 Dockerfile及Compose，使用單個 Node 服務提供 `dist-pilot/` 和同源 API。2026-10-28已在本機完成Docker構建與隔離容器啟動；遠程Render環境仍待部署，不能將本機結果當作已上線。
+已提供 Dockerfile及Compose，使用單個 Node 服務提供 `dist-pilot/` 和同源 API。2026-10-28完成本機 Docker 構建與隔離啟動，2026-10-30另完成乾淨 Git 版本的 Linux 構建及實際 Render 公網驗收；本機與雲端證據分開記錄。
 
 空庫可在私有Shell執行`node server/bootstrap-admin.ts`建立首位開發者，密碼不回顯；已有帳戶時拒絕初始化，且在資料庫交易內再次檢查空庫。此命令沒有新增公網初始化接口。Docker本機用法見部署指南。
 

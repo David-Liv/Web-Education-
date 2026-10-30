@@ -10,7 +10,7 @@
 
 已有兩種運行模式：原有瀏覽器演示，以及新增的邀請制真實模式。**真實模式可雙擊 `start-pilot.cmd` 或執行 `pnpm dev:pilot`**；首次在本機建立開發者帳戶，再分配復核者及學生。Node 需 24.12+。內容預設為待復核草稿；模型服務在開發者頁設定。
 
-Docker Desktop可用`docker compose up -d --build`啟動，再以`docker compose exec app node server/bootstrap-admin.ts`私下建立空庫首位開發者，開啟`http://127.0.0.1:3001`。本機 SQLite 保留；雲端使用 PostgreSQL、固定密鑰及 Supabase 官方 CA。私有配置在被忽略的`.data/cloud.env`，可用`node --env-file=.data/cloud.env server/bootstrap-admin.ts`直接私下初始化雲端空庫，不需要開公網設定入口。`render.yaml`已改為免費服務、法蘭克福及無持久磁盤。
+Docker Desktop可用`docker compose up -d --build`啟動，再以`docker compose exec app node server/bootstrap-admin.ts`私下建立空庫首位開發者，開啟`http://127.0.0.1:3001`。本機 SQLite 保留；雲端使用 PostgreSQL、固定密鑰及 Supabase 官方 CA。私有配置在被忽略的`.data/cloud.env`，可用`node --env-file=.data/cloud.env server/bootstrap-admin.ts`直接私下初始化雲端空庫，不需要開公網設定入口。`render.yaml`與使用者已建立的 Ohio 免費服務一致，無持久磁盤。
 
 真實模式包含 SQLite／PostgreSQL、帳戶隔離、兩個單元、獨立／隔時證據、內容審校、版本日曆與模型接入。`pnpm check:postgres`會以獨立臨時 Docker PostgreSQL 驗證相同 API 流程、交易回滾、並行寫入及備份恢復，不連到真實學生庫。詳見 [操作說明](docs/pilot-runbook.md)、[部署驗證](docs/deployment-verification.md) 及 [58 個真實 API 操作](public/openapi-pilot.json)。遠程部署已驗收；實際人工審校、使用者 AI API 和學生試用尚待完成。下列原有說明適用於**演示模式**。
 
