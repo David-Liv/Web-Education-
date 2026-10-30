@@ -1,13 +1,16 @@
 import { createInterface } from 'node:readline/promises';
 import { Writable } from 'node:stream';
 import { resolve } from 'node:path';
+import { existsSync } from 'node:fs';
 import { Store } from './store.ts';
 
 // First-owner creation is a private operator command, never a public HTTP route.
-const store = new Store(process.env.HOKSE_DATABASE ?? resolve('.data/pilot.sqlite'));
+if(existsSync('.env'))process.loadEnvFile('.env');
+const store = new Store(process.env.HOKSE_DATABASE ?? resolve('.data/pilot.sqlite'),{databaseUrl:process.env.DATABASE_URL,encryptionKey:process.env.HOKSE_ENCRYPTION_KEY});
 let terminal: ReturnType<typeof createInterface> | undefined;
 try {
-  if (store.userCount() !== 0) throw new Error('已有帳戶，拒絕重新初始化或覆寫管理員。請使用現有帳戶登入。');
+  await store.ready;
+  if (await store.userCount() !== 0) throw new Error('已有帳戶，拒絕重新初始化或覆寫管理員。請使用現有帳戶登入。');
   let input: { username?: unknown; name?: unknown; password?: unknown };
   if (process.argv.includes('--stdin')) {
     let text = '';
@@ -33,9 +36,9 @@ try {
   }
   const username = String(input.username ?? '').trim().toLowerCase(), name = String(input.name ?? '').trim();
   if (!/^[a-z0-9_.-]{3,40}$/.test(username) || !name || name.length > 30 || typeof input.password !== 'string' || input.password.length < 10 || input.password.length > 200) throw new Error('帳戶需3–40個英數字元；名字需1–30字元；密碼需10–200字元。');
-  const user = store.createUser(username, input.password, name, 'developer', true);
+  const user = await store.createUser(username, input.password, name, 'developer', true);
   console.log(`已建立首位開發者：${user.username}。請到網站登入；之後可在「邀請帳戶」建立學生。`);
 } catch (error) {
-  console.error(error instanceof Error ? error.message : '初始化未完成。');
+  console.error(error instanceof Error && !process.env.DATABASE_URL ? error.message : '雲端初始化未完成；請檢查連線／密鑰，或確認是否已有帳戶。');
   process.exitCode = 1;
-} finally { terminal?.close(); store.close(); }
+} finally { terminal?.close(); await store.close(); }

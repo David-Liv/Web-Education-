@@ -13,6 +13,7 @@
     "server": "node server/main.ts",
     "admin:init": "node server/bootstrap-admin.ts",
     "check:bootstrap": "node scripts/check-bootstrap.mjs",
+    "check:postgres": "node scripts/check-postgres.mjs",
     "build:pilot": "node scripts/build-pilot.mjs",
     "typecheck:server": "tsc -p server/tsconfig.json",
     "test:server": "node --test server/pilot.check.ts",
@@ -24,6 +25,7 @@
     "katex": "^0.16.22",
     "lucide-react": "^0.468.0",
     "msw": "^2.12.0",
+    "pg": "^8.23.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.9.5"
@@ -32,6 +34,7 @@
     "@tailwindcss/vite": "^4.1.17",
     "@types/katex": "^0.16.7",
     "@types/node": "26.6.5",
+    "@types/pg": "^8.23.1",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^5.1.0",

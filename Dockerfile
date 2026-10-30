@@ -5,6 +5,7 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 COPY . .
 RUN node scripts/build-pilot.mjs
+RUN pnpm prune --prod
 
 FROM node:24-bookworm-slim
 WORKDIR /app
@@ -12,6 +13,7 @@ ENV NODE_ENV=production HOST=0.0.0.0 PORT=3001 HOKSE_STATIC_DIR=/app/dist-pilot 
 COPY --from=build /app/dist-pilot ./dist-pilot
 COPY --from=build /app/server ./server
 COPY --from=build /app/src ./src
+COPY --from=build /app/node_modules ./node_modules
 RUN mkdir -p /app/.data && chown -R node:node /app
 USER node
 VOLUME ["/app/.data"]

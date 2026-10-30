@@ -53,7 +53,7 @@ AI 用於講解、候選錯因及解釋規則生成的日曆方案。錯因結�
 
 ## 記錄與時間
 
-- 預設 SQLite：`.data/pilot.sqlite`；附件實際二進位亦存於此資料庫。`.data/` 已加入忽略清單。
+- 本機預設 SQLite：`.data/pilot.sqlite`；設定 `DATABASE_URL` 的雲端模式使用 PostgreSQL 私有 `hokse` schema。附件二進位存於對應資料庫，雲端全站附件上限為 100 MiB；`.data/` 已加入忽略清單。
 - 服務端香港日期是正式記錄時間。2028 是目標考試年；不導入演示考期。官方時間表仍待核實。
 - 初步／較穩定掌握有不同證據條件；提示、答案曝光、同題重做及待批改不作新的獨立證據。初始參數見 `src/pilot-types.ts`；內容包的 `skills[].policy` 可保存各技能經復核的門檻覆寫，變更需新內容版本及驗收。
 - 14 天計劃避開今天已過時段，保留鎖定／完成任務和總預算；不把空閒時間強行填滿未有證據支持的教學。
@@ -83,13 +83,15 @@ node scripts/backup-pilot.mjs .data/backups/my-pilot-backup
 
 ## 部署準備
 
-按步驟分享給學生，見 [上線與帳戶分享指南](deployment-guide.md)：包含Docker托管、持久磁盤、公開HTTPS來源、私下導入初始帳戶、跨帳戶與重啟驗證。這是操作說明，尚未建立或支付雲服務。
+按步驟分享給學生，見 [上線與帳戶分享指南](deployment-guide.md)：現採 Render Free Docker＋Supabase Free PostgreSQL，無付費磁盤。雲端連線、私有資料表與首位管理員已建立；Render 公開 HTTPS 部署仍待驗證，不把本機結果當作已上線。
 
 已提供 Dockerfile及Compose，使用單個 Node 服務提供 `dist-pilot/` 和同源 API。2026-10-28已在本機完成Docker構建與隔離容器啟動；遠程Render環境仍待部署，不能將本機結果當作已上線。
 
 空庫可在私有Shell執行`node server/bootstrap-admin.ts`建立首位開發者，密碼不回顯；已有帳戶時拒絕初始化，且在資料庫交易內再次檢查空庫。此命令沒有新增公網初始化接口。Docker本機用法見部署指南。
 
-正式運行前：先在本機建立開發者帳戶，完成適用內容復核，將完整資料目錄以持久卷掛載至 `/app/.data`；容器預設關閉首次設定。用 HTTPS 反向代理，設定 `HOKSE_ORIGIN` 為實際網站來源並啟用 `HOKSE_SECURE_COOKIE=true`。資料卷需要可寫及可備份，不使用短暫磁碟保存學生記錄。
+雲端使用 `.data/cloud.env` 保存 `DATABASE_URL` 與固定 `HOKSE_ENCRYPTION_KEY`，以 `node --env-file=.data/cloud.env server/bootstrap-admin.ts` 從本機直接初始化遠程空庫。Render 以私有變數或 `hokse.env` Secret File 注入，不將密鑰烘焙到鏡像，也不寫入 `VITE_` 前端變數。使用 `HOKSE_ALLOW_SETUP=false` 與 `HOKSE_SECURE_COOKIE=true`；Render 缺少雲端連線時拒絕啟動。本機 Compose 的 SQLite 持久卷繼續保留，與雲端不自動同步。
+
+雲端備份使用 `node --env-file=.data/cloud.env scripts/backup-pilot.mjs`，產生私有壓縮快照；加密密鑰另行保管。恢復需指定另一個全新空庫、同一密鑰與 `--restore 備份檔 --empty-target`，拒絕覆寫已有帳戶。完整命令及免費休眠／容量限制見部署指南；不要把免費方案當作已有自動備份。
 
 本機不使用 Docker 也能驗證正式產物：
 

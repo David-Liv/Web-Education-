@@ -1,5 +1,16 @@
 # GitHub與Docker部署準備驗證
 
+## 2026-10-30：免費雲端改造
+
+- 已改為 Render Free、法蘭克福、無磁盤；外部資料庫為使用者建立的 Supabase Free 歐洲北部項目。網站仍待推送、部署及公網驗收，不能宣稱已上線。
+- 已用完整 TLS 憑證／主機名驗證連到實際 Supabase Session pooler；建表前確認 `hokse` schema 無既有表，之後私下初始化首位開發者。憑證僅保存於忽略的 `.data/`，沒有提交到代碼或日誌。
+- 原有 14 項後端測試在真實隔離 PostgreSQL 通過，另 3 項雲端整合測試涵蓋兩連線並行保存、回滾、版本衝突、固定密鑰、session／附件重開、兩個首位管理員競爭、私有 schema、公網 setup 關閉，以及備份與空庫還原。測試內容／審校身分沒有匯入真正學生資料庫。
+- 30 項前端測試、兩端 TypeScript、正式產物及私有題庫／mock 種子排除檢查已通過。Docker PostgreSQL 驅動與正式產物鏡像構建通過；最後配置及公網驗收仍需完成。
+- Supabase 官方 CA 取自官方 CLI `v2.54.11`，有效至 2031-04-26，SHA-256：`80:70:25:AD:50:D4:ED:21:9D:2C:9C:7D:29:9C:00:4F:82:4E:B0:0C:F7:F6:5A:FE:F6:07:D0:7B:72:E6:CA:FA`。沒有關閉 TLS 驗證。
+- 本輪附件保存在 PostgreSQL，計入 500 MB 資料庫額度；單檔 20 MiB、全站附件 100 MiB。沒有實作 Supabase Storage、整卷 PDF OCR 或公開註冊；沒有購買付費資源。
+
+以下為先前本機部署階段的歷史記錄；其中付費 Blueprint 已被新的免費配置取代。
+
 日期：2026-10-28。遠端倉庫：`David-Liv/Web-Education-`，公開，分支`main`。
 
 ## 已完成
