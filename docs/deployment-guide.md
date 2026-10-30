@@ -1,6 +1,6 @@
 # 把學序上線並分享給學生
 
-更新：2026-10-30。當前採用 **Render Free Web Service＋Supabase Free PostgreSQL**。Supabase 連線、私有資料表及首位管理員已建立；Render 公開網址須完成部署與驗證後才分享。沒有購買付費服務。
+更新：2026-10-30。當前採用 **Render Free Web Service＋Supabase Free PostgreSQL**。已完成部署及公開 HTTPS、帳戶隔離與重啟保存驗證，入口為 [web-education.onrender.com](https://web-education.onrender.com)。沒有購買付費服務；綁卡後流量超額仍可能產生費用。
 
 ## 架構與免費限制
 

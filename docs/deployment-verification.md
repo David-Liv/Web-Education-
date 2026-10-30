@@ -2,6 +2,15 @@
 
 ## 2026-10-30：免費雲端改造
 
+- **已上線並驗收**：`https://web-education.onrender.com`，服務 `srv-dbi62sqjnfac73cu251g`。業務版本 `0e6fd1d958becdabe6481a4b10e68f9f39d36db2` 的部署 `dep-dbi67hajnfac73cue9sg` 已回報 live；其後的文檔提交不會自動觸發構建。
+- 真實公網 HTTPS 已驗證管理員登入、HttpOnly／Secure Cookie、拒絕錯誤 Origin、公網初始化關閉、學生不能進管理端、兩個學生的目標／筆記／日曆隔離，以及附件本人可讀而另一帳戶 404。前端資源確認有壓縮、immutable 快取及 ETag／304，未包含本機私有連線或密鑰。
+- 官方 restart 命令已執行，Render 事件 `evt-dbi6qrfb9u1s73d9bc5g` 確認 server_restarted；之後原本兩個學生的登入會話、目標、筆記、日曆及附件仍可讀。兩個自動化臨時驗證帳戶與其附件已清除，沒有假審校或測驗證據留在真實庫。
+- 真實 Supabase 複核：只餘網站管理員一個帳戶，已發布內容包 0、模型未配置；anon／authenticated 角色均無私有 schema 存取權。學生試用前仍需真實內容復核及模型配置，沒有聲稱已完成學生試用。
+- 最終資源讀回：一個 Free Web Service，Starter build、自動部署 off、預覽 off、健康路徑 `/api/v1/auth/status`；沒有 Render Postgres 或 Key Value。構建 US$0 上限依使用者在正確帳號貼出的設定確認，流量沒有聲稱已硬性封頂。
+- 使用乾淨 Git archive 的 Linux Docker 構建及實際 Secret File 掛載再次驗證：可連真實 Supabase、可登入、Secure Cookie 生效且不產生 `/app/.data/pilot.sqlite`。原有 CSV LF 構建失敗已修復。學生指南已核對並隨功能更新；本次收尾僅補充部署與費用驗收記錄。
+
+下列為本次工作中途的準備與限制記錄；其中「待驗證」已由上述實際結果補足。
+
 - 使用者在正確帳號建立了 `srv-dbi62sqjnfac73cu251g`（Web-Education-／Ohio／Free）。已讀回確認自動部署關閉、健康路徑 `/api/v1/auth/status`、預覽關閉，保留 Free。首次構建失敗定位於 CSV 檢查固定使用 CRLF；已改為兼容 Git 在 Linux 檢出的 LF，待乾淨提交構建與公網驗證。
 - 已改為 Render Free、法蘭克福、無磁盤；外部資料庫為使用者建立的 Supabase Free 歐洲北部項目。網站仍待推送、部署及公網驗收，不能宣稱已上線。
 - 已用完整 TLS 憑證／主機名驗證連到實際 Supabase Session pooler；建表前確認 `hokse` schema 無既有表，之後私下初始化首位開發者。憑證僅保存於忽略的 `.data/`，沒有提交到代碼或日誌。

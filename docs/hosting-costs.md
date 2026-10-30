@@ -28,6 +28,8 @@ Free 每月 750 運行小時耗盡會暫停，不會自動升級成付費伺服�
 
 在 Render Workspace Settings → Build Pipeline → Set spend limit 設 US$0／月，維持 Starter pipeline。這只停止新的超額構建，不會停止網站流量。目前連接工具／CLI 不支援修改這項工作區設定，未取得確認前不聲稱已完成。
 
+本次使用者已在正確帳號的 My Workspace 貼出設定：Starter、Includes 500 free minutes、`$0 monthly spend limit`。據此確認構建上限已設零；不是透過連接工具讀取的結果。頁面的 `$5 / 1,000 min` 為補充分鐘標價，不代表已購買；零支出上限會在免費額度耗盡後阻止繼續購買。
+
 官方資料沒有提供同等的流量硬性支出上限，不能保證綁卡後任何用量都絕不扣款。通知不是停止計費的開關。在 [Billing](https://dashboard.render.com/billing) 查看共用額度；接近 5 GB 時先暫停分享或停止服務。
 
 沒有建立自動監控或定期喚醒；不要持續 ping 避免休眠。先邀請 3–5 位學生，按實際用量再擴大。

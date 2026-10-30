@@ -4,7 +4,7 @@
 
 學生操作見 [使用指南](docs/user-guide.md)，網站側欄與頁尾亦可開啟 `/help`。此檔是站內指南的唯一內容來源；每次影響使用者的更新須同時修訂相關段落與更新紀錄，見 [專案維護約定](AGENTS.md)。
 
-分享給其他學生及不同帳戶的使用方式，見 [上線與帳戶分享指南](docs/deployment-guide.md)。現採 Render Free＋Supabase Free，資料庫已連線並私下初始化管理員，公開網站仍待部署驗證；沒有公開自行註冊。
+試用入口：[web-education.onrender.com](https://web-education.onrender.com)。現採 Render Free＋Supabase Free，已驗證公開 HTTPS 登入、資料隔離、日曆／附件與重啟持久性；沒有公開自行註冊。分享與不同帳戶見 [上線與帳戶分享指南](docs/deployment-guide.md)。
 
 數學外部資料見 [By Topic 提取說明](docs/research/maths-index-extraction.md)。已整理 585 道歷屆卷二題與 23 道牛津樣本練習的元資料，另有 73 個課題文件連結；可從「學習資源 → 數學 By Topic 題目索引」篩選與下載 CSV。外部索引未匯入正式測驗題庫。
 
@@ -12,7 +12,7 @@
 
 Docker Desktop可用`docker compose up -d --build`啟動，再以`docker compose exec app node server/bootstrap-admin.ts`私下建立空庫首位開發者，開啟`http://127.0.0.1:3001`。本機 SQLite 保留；雲端使用 PostgreSQL、固定密鑰及 Supabase 官方 CA。私有配置在被忽略的`.data/cloud.env`，可用`node --env-file=.data/cloud.env server/bootstrap-admin.ts`直接私下初始化雲端空庫，不需要開公網設定入口。`render.yaml`已改為免費服務、法蘭克福及無持久磁盤。
 
-真實模式包含 SQLite／PostgreSQL、帳戶隔離、兩個單元、獨立／隔時證據、內容審校、版本日曆與模型接入。`pnpm check:postgres`會以獨立臨時 Docker PostgreSQL 驗證相同 API 流程、交易回滾、並行寫入及備份恢復，不連到真實學生庫。詳見 [操作說明](docs/pilot-runbook.md)、[部署驗證](docs/deployment-verification.md) 及 [58 個真實 API 操作](public/openapi-pilot.json)。實際人工審校、使用者 AI API、遠程部署驗收和學生試用尚待完成。下列原有說明適用於**演示模式**。
+真實模式包含 SQLite／PostgreSQL、帳戶隔離、兩個單元、獨立／隔時證據、內容審校、版本日曆與模型接入。`pnpm check:postgres`會以獨立臨時 Docker PostgreSQL 驗證相同 API 流程、交易回滾、並行寫入及備份恢復，不連到真實學生庫。詳見 [操作說明](docs/pilot-runbook.md)、[部署驗證](docs/deployment-verification.md) 及 [58 個真實 API 操作](public/openapi-pilot.json)。遠程部署已驗收；實際人工審校、使用者 AI API 和學生試用尚待完成。下列原有說明適用於**演示模式**。
 
 面向香港中學生的可操作前端示範，預設使用繁體中文、2028 備試人物及 2028-02-14 示範時鐘。React + TypeScript + Vite，MSW 提供瀏覽器內 mock API；不用 AI key 或後端服務。
 
