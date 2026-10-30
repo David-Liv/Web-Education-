@@ -2,6 +2,7 @@
 
 ## 2026-10-30：免費雲端改造
 
+- 使用者在正確帳號建立了 `srv-dbi62sqjnfac73cu251g`（Web-Education-／Ohio／Free）。已讀回確認自動部署關閉、健康路徑 `/api/v1/auth/status`、預覽關閉，保留 Free。首次構建失敗定位於 CSV 檢查固定使用 CRLF；已改為兼容 Git 在 Linux 檢出的 LF，待乾淨提交構建與公網驗證。
 - 已改為 Render Free、法蘭克福、無磁盤；外部資料庫為使用者建立的 Supabase Free 歐洲北部項目。網站仍待推送、部署及公網驗收，不能宣稱已上線。
 - 已用完整 TLS 憑證／主機名驗證連到實際 Supabase Session pooler；建表前確認 `hokse` schema 無既有表，之後私下初始化首位開發者。憑證僅保存於忽略的 `.data/`，沒有提交到代碼或日誌。
 - 原有 14 項後端測試在真實隔離 PostgreSQL 通過，另 3 項雲端整合測試涵蓋兩連線並行保存、回滾、版本衝突、固定密鑰、session／附件重開、兩個首位管理員競爭、私有 schema、公網 setup 關閉，以及備份與空庫還原。測試內容／審校身分沒有匯入真正學生資料庫。

@@ -11,7 +11,7 @@ React 正式產物和 Node 24 API 由同一個 Render Docker 服務提供。Rend
 - Render 免費服務閒置 15 分鐘休眠，下一次訪問約需一分鐘啟動；重新部署及休眠不會清空外部 PostgreSQL。
 - Supabase Free 有容量、流量及不活躍暫停限制；目前公開額度為 500 MB 資料庫，連續一周不活躍可能暫停。免費方案不提供無限容量或可用性保證。
 - 不使用 30 天後到期的 Render Free Postgres，也不附加付費持久磁盤。AI 提供方用量與網站托管分開計費。
-- 當前 Supabase 位於歐洲北部，因此 Render 使用法蘭克福，減少服務端跨洲查詢。未做大規模併發測試。
+- Supabase 位於歐洲北部；沿用使用者已建立的 Ohio 免費服務，避免重複建站。地區差異可能影響查詢延遲，先以小規模試用驗證，未做大規模併發測試。
 
 官方限制：[Render Free](https://render.com/docs/free)、[Supabase Free](https://supabase.com/pricing)。
 
@@ -50,7 +50,7 @@ node --env-file=.data/cloud.env server/bootstrap-admin.ts
 |---|---|
 | 倉庫／分支 | `David-Liv/Web-Education-`／`main` |
 | Language | Docker |
-| Region | Frankfurt |
+| Region | Ohio（沿用已建立服務） |
 | Compute | Free |
 | Root Directory | 留空 |
 | Dockerfile | `./Dockerfile` |
@@ -61,6 +61,8 @@ node --env-file=.data/cloud.env server/bootstrap-admin.ts
 | 一般環境變數 | `HOST=0.0.0.0`、`PORT=3001`、`HOKSE_STATIC_DIR=/app/dist-pilot`、`HOKSE_ALLOW_SETUP=false`、`HOKSE_SECURE_COOKIE=true` |
 
 私有配置可作為名為 `hokse.env` 的 Render Secret File 提供。程式從 `/etc/secrets/hokse.env` 載入；不要把密鑰放進 `VITE_` 變數或 Docker build arguments。Render 自帶網址透過 `RENDER_EXTERNAL_URL` 作同源驗證；自訂域名另設 `HOKSE_ORIGIN`。
+
+現有服務 ID 為 `srv-dbi62sqjnfac73cu251g`，網址為 `https://web-education.onrender.com`；網址建立不等於部署已成功。修復時沿用此服務，不再套用 Blueprint 建立第二個服務。已有服務的 CLI 更新不支援 Secret File；到該服務 Environment → Secret Files 加入 `hokse.env`，內容複製本機私有配置，再儲存。私有配置同時設定 `HOKSE_SECURE_COOKIE=true` 與 `HOKSE_ALLOW_SETUP=false`。
 
 也可使用官方 Render CLI 的 `--secret-file hokse.env:.data/cloud.env`，讓 CLI 直接讀取私有檔案，避免在命令參數中展開資料庫密碼。CLI 需另行瀏覽器授權；插件 OAuth 不等於 CLI 已登入。CLI 驗證、部署接受、狀態 live、公網功能驗證是不同階段。
 

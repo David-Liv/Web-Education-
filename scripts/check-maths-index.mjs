@@ -24,5 +24,5 @@ assert.equal(new Set(data.collections.map(c=>c.id)).size,76);
 for(const c of data.collections){assert.equal(c.questionCount,null);assert.equal(c.difficulty,'待標註');assert.equal(c.officialDseLevel,null);assert.deepEqual(c.yearRange,[2012,2017]);if(c.url)assert.equal(new URL(c.url).hostname,'drive.google.com');}
 assert.equal(data.audit.overlappingDifficultyQuestions,past.filter(q=>q.sourceDifficultyLabels.length>1).length);
 assert.equal(data.audit.questionContentCopied,false);assert.equal(data.audit.formalQuestionBankChanged,false);
-for(const [file,expected] of [['maths-questions.csv',609],['maths-collections.csv',77]]){const content=await readFile(new URL('../public/data/'+file,import.meta.url),'utf8');assert.equal(content.split('\r\n').length,expected);assert.ok(content.startsWith('\uFEFF'));}
+for(const [file,expected] of [['maths-questions.csv',609],['maths-collections.csv',77]]){const content=await readFile(new URL('../public/data/'+file,import.meta.url),'utf8');assert.equal(content.trimEnd().split(/\r?\n/).length,expected);assert.ok(content.startsWith('\uFEFF'));}
 console.log(JSON.stringify({checked:true,pastQuestions:past.length,publisherExercises:publisher.length,levels:levelCounts,collectionLinks:73,missingCollectionLinks:3,overlap:data.audit.overlappingDifficultyQuestions}));

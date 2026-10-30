@@ -2,11 +2,11 @@
 # Never add a disk or change the plan without explicit approval.
 services:
   - type: web
-    name: hokse-study
+    name: Web-Education-
     runtime: docker
     repo: https://github.com/David-Liv/Web-Education-
     branch: main
-    region: frankfurt
+    region: ohio
     plan: free
     numInstances: 1
     dockerfilePath: ./Dockerfile
