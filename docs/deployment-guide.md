@@ -15,6 +15,8 @@ React 正式產物和 Node 24 API 由同一個 Render Docker 服務提供。Rend
 
 官方限制：[Render Free](https://render.com/docs/free)、[Supabase Free](https://supabase.com/pricing)。
 
+固定配置為免費，不代表綁卡後超額流量也免費。完整條件、構建零支出上限及減費措施見 [托管費用說明](hosting-costs.md)。
+
 ## 私有配置
 
 實際配置放在被 Git 和 Docker 忽略的 `.data/cloud.env`，不要提交或貼到聊天：
@@ -55,7 +57,7 @@ node --env-file=.data/cloud.env server/bootstrap-admin.ts
 | Health Check Path | `/api/v1/auth/status` |
 | Pre-deploy／額外 Start Command | 留空 |
 | Persistent Disk | 不建立 |
-| Auto-deploy | On Commit（需 GitHub 連接） |
+| Auto-deploy | Off；需要發布時手動部署，避免反覆構建 |
 | 一般環境變數 | `HOST=0.0.0.0`、`PORT=3001`、`HOKSE_STATIC_DIR=/app/dist-pilot`、`HOKSE_ALLOW_SETUP=false`、`HOKSE_SECURE_COOKIE=true` |
 
 私有配置可作為名為 `hokse.env` 的 Render Secret File 提供。程式從 `/etc/secrets/hokse.env` 載入；不要把密鑰放進 `VITE_` 變數或 Docker build arguments。Render 自帶網址透過 `RENDER_EXTERNAL_URL` 作同源驗證；自訂域名另設 `HOKSE_ORIGIN`。

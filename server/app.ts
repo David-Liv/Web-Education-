@@ -1,4 +1,6 @@
 import { createServer } from 'node:http';
+import { createHash } from 'node:crypto';
+import { gzipSync } from 'node:zlib';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { resolve, extname, sep } from 'node:path';
 import { existsSync, readFileSync, statSync } from 'node:fs';
@@ -24,6 +26,7 @@ const active=new Map<string,AbortController>();
 export function createPilot(options:Options={}){
   const store=new Store(options.database??resolve('.data/pilot.sqlite'),{databaseUrl:options.databaseUrl,encryptionKey:options.encryptionKey});
   const attempts=new Map<string,{n:number;until:number}>();
+  const assets=new Map<string,{mtime:number;bytes:Buffer;gzip?:Buffer;etag:string}>();
   function bodyLimit(req:IncomingMessage,max=3*1024*1024):Promise<Buffer>{return new Promise((resolve,reject)=>{const chunks:Buffer[]=[];let size=0;req.on('data',c=>{size+=c.length;if(size>max){reject(Object.assign(new Error('內容超過允許大小'),{status:413}));req.pause();return}chunks.push(c)});req.on('end',()=>resolve(Buffer.concat(chunks)));req.on('error',reject)})}
   const server=createServer(async(req,res)=>{
     const send=(data:unknown,status=200)=>{if(!res.headersSent){res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});res.end(JSON.stringify(data))}};
@@ -37,7 +40,13 @@ export function createPilot(options:Options={}){
         if(candidate!==root&&!candidate.startsWith(root+sep))reject('無法讀取',404);
         const file=existsSync(candidate)&&statSync(candidate).isFile()?candidate:resolve(root,'index.html');
         if(!existsSync(file))reject('請先建立正式前端',503);
-        res.writeHead(200,{'Content-Type':MIME[extname(file)]??'application/octet-stream','X-Content-Type-Options':'nosniff','Cache-Control':'no-cache'});res.end(method==='HEAD'?undefined:readFileSync(file));return;
+        const mtime=statSync(file).mtimeMs,type=MIME[extname(file)]??'application/octet-stream';
+        let asset=assets.get(file);if(!asset||asset.mtime!==mtime){const bytes=readFileSync(file);asset={mtime,bytes,etag:`W/"${createHash('sha256').update(bytes).digest('base64url')}"`};assets.set(file,asset)}
+        const headers:Record<string,string>={'Content-Type':type,'X-Content-Type-Options':'nosniff','Cache-Control':file!==resolve(root,'index.html')&&url.pathname.startsWith('/assets/')?'public, max-age=31536000, immutable':'no-cache',ETag:asset.etag,Vary:'Accept-Encoding'};
+        if(req.headers['if-none-match']?.split(',').some(tag=>tag.trim()===asset.etag||tag.trim()==='*')){res.writeHead(304,headers);res.end();return}
+        let bytes=asset.bytes;
+        if(asset.bytes.length>1024&&/text\/|javascript|json|svg/.test(type)&&/\bgzip\b/.test(req.headers['accept-encoding']??'')){asset.gzip??=gzipSync(asset.bytes);bytes=asset.gzip;headers['Content-Encoding']='gzip'}
+        headers['Content-Length']=String(bytes.length);res.writeHead(200,headers);res.end(method==='HEAD'?undefined:bytes);return;
       }
       if(method!=='GET'){
         const origin=options.origin??`${options.secureCookie?'https':'http'}://${req.headers.host}`;

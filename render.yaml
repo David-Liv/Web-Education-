@@ -11,7 +11,7 @@ services:
     numInstances: 1
     dockerfilePath: ./Dockerfile
     dockerContext: .
-    autoDeployTrigger: commit
+    autoDeployTrigger: off
     healthCheckPath: /api/v1/auth/status
     envVars:
       - key: HOST

@@ -83,6 +83,8 @@ node scripts/backup-pilot.mjs .data/backups/my-pilot-backup
 
 ## 部署準備
 
+費用與免費額度見 [托管費用說明](hosting-costs.md)。保持 Render Free／Hobby 和 Supabase Free；自動部署關閉，手動發布前核對剩餘構建分鐘，額外構建支出設 US$0／月。此上限不控制流量費。
+
 按步驟分享給學生，見 [上線與帳戶分享指南](deployment-guide.md)：現採 Render Free Docker＋Supabase Free PostgreSQL，無付費磁盤。雲端連線、私有資料表與首位管理員已建立；Render 公開 HTTPS 部署仍待驗證，不把本機結果當作已上線。
 
 已提供 Dockerfile及Compose，使用單個 Node 服務提供 `dist-pilot/` 和同源 API。2026-10-28已在本機完成Docker構建與隔離容器啟動；遠程Render環境仍待部署，不能將本機結果當作已上線。
