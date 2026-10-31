@@ -6,10 +6,12 @@ import { dirname, join } from 'node:path';
 import type { Database, Quiz } from '../src/types.ts';
 import type { ContentPack, Cycle, ErrorCase, Identity, PilotEvidence, Role, VersionedPreview } from '../src/pilot-types.ts';
 import { initialPacks } from './content.ts';
-import { hkToday } from '../src/domain.ts';
+import { hkToday, buildWeekGoals } from '../src/domain.ts';
+import type { StudioState } from './studio-state.ts';
 
 export interface PrivateQuiz extends Quiz { snapshot: ContentPack['questions']; blueprints?:Pick<ContentPack,'id'|'version'|'topicId'|'skills'>[]; contentVersions:string[]; purpose:'formal'|'practice'; manualContinue?:boolean; response?:unknown; independence?:Record<string,boolean> }
-export interface StudentState extends Omit<Database,'quizzes'|'evidence'> {
+export interface StudentState extends Omit<Database,'quizzes'|'evidence'|'studio'> {
+  studio?:StudioState;
   revision:number; quizzes:PrivateQuiz[]; evidence:PilotEvidence[]; assists:{questionId:string;at:string;kind:string;quizId:string}[];
   errors:ErrorCase[]; cycles:Cycle[]; appliedPreviews:string[];
   reorders?:{taskId:string;before:string;after:string;at:string}[];
@@ -68,7 +70,7 @@ export class Store {
   async identity(token:string):Promise<Identity|null>{const row=await this.db.prepare('SELECT u.id,u.username,u.name,u.role FROM users u JOIN sessions s ON s.user_id=u.id WHERE s.token=? AND s.expires>?').get(digest(token),Date.now());return row as Identity??null}
   async logout(token:string){await this.db.prepare('DELETE FROM sessions WHERE token=?').run(digest(token))}
   async state(userId:string):Promise<StudentState>{const lock=this.db.kind==='postgres'&&this.db.inTransaction()?' FOR UPDATE':'';const row=await this.db.prepare('SELECT body FROM students WHERE user_id=?'+lock).get(userId);if(!row)throw new Error('Student missing');const data=JSON.parse(row.body);data.profile.date=hkToday();return data}
-  async save(userId:string,state:StudentState){const expected=state.revision,next=expected+1;const result=await this.db.prepare('UPDATE students SET body=?,revision=? WHERE user_id=? AND revision=?').run(JSON.stringify({...state,revision:next}),next,userId,expected);if(result.changes!==1)throw Object.assign(new Error('資料版本衝突，請重新載入'),{status:409,code:'STALE_STATE'});state.revision=next}
+  async save(userId:string,state:StudentState){state.weeks=buildWeekGoals(state.tasks,state.profile.date);const expected=state.revision,next=expected+1;const result=await this.db.prepare('UPDATE students SET body=?,revision=? WHERE user_id=? AND revision=?').run(JSON.stringify({...state,revision:next}),next,userId,expected);if(result.changes!==1)throw Object.assign(new Error('資料版本衝突，請重新載入'),{status:409,code:'STALE_STATE'});state.revision=next}
   async packs(publishedOnly=false):Promise<ContentPack[]>{const rows=await this.db.prepare('SELECT body FROM packs ORDER BY id,version DESC').all();return rows.map(r=>JSON.parse(r.body) as ContentPack).filter(p=>!publishedOnly||p.status==='published')}
   async latestPacks(publishedOnly=true){const seen=new Set<string>();return (await this.packs(publishedOnly)).filter(p=>{if(seen.has(p.id))return false;seen.add(p.id);return true})}
   async putPack(pack:ContentPack){await this.db.prepare('INSERT INTO packs VALUES(?,?,?) ON CONFLICT(id,version) DO UPDATE SET body=excluded.body').run(pack.id,pack.version,JSON.stringify(pack))}

@@ -1,7 +1,8 @@
 import { Fragment, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
-import { Link } from 'react-router-dom';
-import guide from '../../docs/user-guide.md?raw';
+import { Link, useSearchParams } from 'react-router-dom';
+import chineseGuide from '../../docs/user-guide.md?raw';
+import englishGuide from '../../docs/user-guide.en.md?raw';
 import { Badge, Icon, PageHeading } from '../components';
 
 // A deliberately small, text-only renderer for the project's trusted guide.
@@ -25,11 +26,12 @@ function blocks(text: string) {
     return <p key={i}>{inline(block)}</p>;
   });
 }
-const [intro, ...parts] = guide.split(/^## /m);
-const sections = parts.map((text,i) => { const end = text.indexOf('\n'); return { id:`guide-${i+1}`, title:text.slice(0,end).trim(), text:text.slice(end+1) }; });
-
 export function UserGuidePage() {
+  const [params,setParams]=useSearchParams();
+  const english=params.get('lang')==='en',guide=english?englishGuide:chineseGuide;
+  const [intro,...parts]=guide.split(/^## /m);
+  const sections=parts.map((text,i)=>{const end=text.indexOf('\n');return {id:`guide-${i+1}`,title:text.slice(0,end).trim(),text:text.slice(end+1)}});
   const [download, setDownload] = useState('');
-  useEffect(() => { const url=URL.createObjectURL(new Blob([guide],{type:'text/markdown;charset=utf-8'}));setDownload(url);return()=>URL.revokeObjectURL(url); },[]);
-  return <div className="page-enter user-guide"><PageHeading eyebrow="A LITTLE GUIDANCE, YOUR OWN PACE" title="學序使用指南" description="從設定目標到每天溫習，按自己的需要找下一步。" action={<a className="btn secondary" href={download||undefined} download="HOKSE-使用指南.md"><Icon name="arrowDown" size={16}/>下載指南</a>}/><div className="guide-intro card">{blocks(intro.replace(/^# .*\r?\n/,''))}<Badge tone="green">與目前版本同步維護</Badge></div><div className="guide-layout"><nav className="card guide-contents" aria-label="使用指南目錄"><strong>快速找到需要的說明</strong>{sections.map(s=><a key={s.id} href={`#${s.id}`}>{s.title}</a>)}</nav><article className="guide-article">{sections.map(s=><section className="card guide-section" id={s.id} key={s.id}><h2>{s.title}</h2>{blocks(s.text)}</section>)}</article></div></div>;
+  useEffect(() => { const url=URL.createObjectURL(new Blob([guide],{type:'text/markdown;charset=utf-8'}));setDownload(url);return()=>URL.revokeObjectURL(url); },[guide]);
+  return <div className="page-enter user-guide"><PageHeading eyebrow="A LITTLE GUIDANCE, YOUR OWN PACE" title={english?'HOKSE User Guide':'學序使用指南'} description={english?'Start small, find the tools you need, and study at your own pace.':'從第一個小步驟開始，直白了解各項功能。'} action={<><div className="segmented" aria-label="Guide language"><button className={!english?'active':''} aria-pressed={!english} onClick={()=>{if(english){setDownload('');setParams({})}}}>中文</button><button className={english?'active':''} aria-pressed={english} onClick={()=>{if(!english){setDownload('');setParams({lang:'en'})}}}>English</button></div><a className="btn secondary" href={download||undefined} download={english?'HOKSE-User-Guide-English.md':'HOKSE-使用指南-中文.md'}><Icon name="arrowDown" size={16}/>{english?'Download guide':'下載指南'}</a></>}/><div className="guide-intro card">{blocks(intro.replace(/^# .*\r?\n/,''))}<Badge tone="green">{english?'Maintained with this version':'與目前版本同步維護'}</Badge></div><div className="guide-layout"><nav className="card guide-contents" aria-label={english?'Guide contents':'使用指南目錄'}><strong>{english?'Find what you need':'快速找到需要的說明'}</strong>{sections.map(s=><a key={s.id} href={`#${s.id}`}>{s.title}</a>)}</nav><article className="guide-article">{sections.map(s=><section className="card guide-section" id={s.id} key={s.id}><h2>{s.title}</h2>{blocks(s.text)}</section>)}</article></div></div>;
 }

@@ -25,7 +25,7 @@ try {
     let hidden = false;
     const output = new Writable({ write(chunk, encoding, callback) { if (!hidden) process.stdout.write(chunk, encoding as BufferEncoding); callback(); } });
     terminal = createInterface({ input: process.stdin, output, terminal: true });
-    const username = await terminal.question('開發者帳戶名稱（3–40個英數字元）: ');
+    const username = await terminal.question('開發者帳戶名稱（2–40個英數字元）: ');
     const name = await terminal.question('顯示名字: ');
     process.stdout.write('密碼（至少10字元，輸入不顯示）: '); hidden = true;
     const password = await terminal.question(''); hidden = false; process.stdout.write('\n');
@@ -35,7 +35,7 @@ try {
     input = { username, name, password };
   }
   const username = String(input.username ?? '').trim().toLowerCase(), name = String(input.name ?? '').trim();
-  if (!/^[a-z0-9_.-]{3,40}$/.test(username) || !name || name.length > 30 || typeof input.password !== 'string' || input.password.length < 10 || input.password.length > 200) throw new Error('帳戶需3–40個英數字元；名字需1–30字元；密碼需10–200字元。');
+  if (!/^[a-z0-9_.-]{2,40}$/.test(username) || !name || name.length > 30 || typeof input.password !== 'string' || input.password.length < 10 || input.password.length > 200) throw new Error('帳戶需2–40個英數字元；名字需1–30字元；密碼需10–200字元。');
   const user = await store.createUser(username, input.password, name, 'developer', true);
   console.log(`已建立首位開發者：${user.username}。請到網站登入；之後可在「邀請帳戶」建立學生。`);
 } catch (error) {

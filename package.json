@@ -16,7 +16,7 @@
     "check:postgres": "node scripts/check-postgres.mjs",
     "build:pilot": "node scripts/build-pilot.mjs",
     "typecheck:server": "tsc -p server/tsconfig.json",
-    "test:server": "node --test server/pilot.check.ts server/static.check.ts",
+    "test:server": "node --test server/pilot.check.ts server/static.check.ts server/studio.check.ts",
     "extract:maths-index": "node scripts/extract-maths-metadata.mjs",
     "check:maths-index": "node scripts/check-maths-index.mjs",
     "backup:pilot": "node scripts/backup-pilot.mjs"

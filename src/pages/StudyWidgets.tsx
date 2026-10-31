@@ -1,0 +1,12 @@
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { useApp } from '../state';
+import { Badge, Modal, Icon } from '../components';
+import type { Task } from '../types';
+
+export function StudyReportButton(){const {db}=useApp();const [open,setOpen]=useState(false);const r=db.studio?.report;if(!r)return null;
+ return <><button className="btn secondary" onClick={()=>setOpen(true)}><Icon name="trend" size={16}/>雙周學習回顧</button>{open&&<Modal title="看見最近兩週的小進步" subtitle={`${r.from} — ${r.to} · 實際有紀錄 ${r.activeDays} 天`} wide onClose={()=>setOpen(false)}><p>{r.message}</p><div className="report-numbers"><div><strong>{r.learningEvents}</strong><span>學習活動</span></div><div><strong>{r.reviewEvents}</strong><span>復習活動</span></div><div><strong>{r.tasksDone}</strong><span>完成任務</span></div></div><p className="small muted">{r.attempts} 次作答 · {r.independent} 次無提示且未重複的獨立作答 · {r.disputed} 項待糾正 · {r.tasksPending} 項待辦。活動用時是安排／記錄值，不是有效專注時間。</p>{r.skills.map(s=><div className="pilot-list-row" key={s.id}><strong>{s.name}</strong><Badge>{s.label}</Badge><span>{s.score===null?'未知':`${s.score}% 參考`}</span></div>)}<div className="info-callout"><p>暫定狀態依本平台練習與AI參考回饋計算，不等於整科DSE等級。資料少時不繪製可靠進步曲線。</p></div><Link to="/studio" className="btn primary" onClick={()=>setOpen(false)}>選下一個小步驟</Link></Modal>}</>;
+}
+export function CalendarTools({date,onSelect}:{date:string;onSelect:(t:Task)=>void}){const {db,mutate,toast}=useApp();const [busy,setBusy]=useState(false);if(!db.studio)return null;const rest=db.profile.restDates?.includes(date),floating=db.tasks.filter(t=>t.schedule==='floating'&&t.status==='pending');
+ return <section className="card pilot-card"><div className="row-between"><div><h3>{rest?'今天先休息，也是一種安排':'清單與日曆，是同一份任務'}</h3><p className="small muted">待辦保留預計時間，選定時段後才佔用日曆。休息只影響 {date}，不改每週預算。</p></div><button className="btn secondary" disabled={busy} onClick={async()=>{setBusy(true);try{await mutate('/studio/rest','POST',{date,rest:!rest});toast(rest?'已恢復當天可用時間；待辦可自行重新安排':'未鎖定待辦已留在清單，沒有追繳到明天')}catch{}finally{setBusy(false)}}}>{rest?'恢復安排':'這一天先休息'}</button></div>{floating.length?floating.map(t=><div className="pilot-list-row" key={t.id}><strong>{t.title}</strong><small>{t.date} · 約{t.minutes}分鐘 · 待安排</small><button className="btn ghost" onClick={()=>onSelect(t)}>安排／調整</button><button className="btn ghost" onClick={()=>void mutate(`/tasks/${t.id}`,'PATCH',{status:'done'}).catch(()=>{})}>已完成</button></div>):<p className="small muted">暫無待安排任務。新增任務時可選擇「先放清單」。</p>}</section>;
+}

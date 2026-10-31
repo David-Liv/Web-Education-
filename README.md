@@ -2,7 +2,7 @@
 
 費用觸發條件與控制見 [托管費用說明](docs/hosting-costs.md)：Free 不代表綁卡後流量超額也免費；自動部署關閉，額外構建支出建議設 US$0。
 
-學生操作見 [使用指南](docs/user-guide.md)，網站側欄與頁尾亦可開啟 `/help`。此檔是站內指南的唯一內容來源；每次影響使用者的更新須同時修訂相關段落與更新紀錄，見 [專案維護約定](AGENTS.md)。
+學生操作見 [中文使用指南](docs/user-guide.md)／[English User Guide](docs/user-guide.en.md)，網站側欄與頁尾亦可開啟 `/help`，英文直達 `/help?lang=en`。站內直接渲染這兩份Markdown；每次影響使用者的更新須同步修訂兩個版本與更新紀錄，見 [專案維護約定](AGENTS.md)。邀請訊息和帳戶密碼只保存在被忽略的私有目錄，不得寫入指南或公開程式碼。帳戶名稱支援2–40個英文字母、數字、句點、底線或連字號，不分大小寫。
 
 試用入口：[web-education.onrender.com](https://web-education.onrender.com)。現採 Render Free＋Supabase Free，已驗證公開 HTTPS 登入、資料隔離、日曆／附件與重啟持久性；沒有公開自行註冊。分享與不同帳戶見 [上線與帳戶分享指南](docs/deployment-guide.md)。
 
@@ -12,7 +12,7 @@
 
 Docker Desktop可用`docker compose up -d --build`啟動，再以`docker compose exec app node server/bootstrap-admin.ts`私下建立空庫首位開發者，開啟`http://127.0.0.1:3001`。本機 SQLite 保留；雲端使用 PostgreSQL、固定密鑰及 Supabase 官方 CA。私有配置在被忽略的`.data/cloud.env`，可用`node --env-file=.data/cloud.env server/bootstrap-admin.ts`直接私下初始化雲端空庫，不需要開公網設定入口。`render.yaml`與使用者已建立的 Ohio 免費服務一致，無持久磁盤。
 
-真實模式包含 SQLite／PostgreSQL、帳戶隔離、兩個單元、獨立／隔時證據、內容審校、版本日曆與模型接入。`pnpm check:postgres`會以獨立臨時 Docker PostgreSQL 驗證相同 API 流程、交易回滾、並行寫入及備份恢復，不連到真實學生庫。詳見 [操作說明](docs/pilot-runbook.md)、[部署驗證](docs/deployment-verification.md) 及 [58 個真實 API 操作](public/openapi-pilot.json)。遠程部署已驗收；實際人工審校、使用者 AI API 和學生試用尚待完成。下列原有說明適用於**演示模式**。
+真實模式包含 SQLite／PostgreSQL、帳戶隔離、兩個原有單元、三科自主輔導入口、內容審校、版本日曆與模型接入。`pnpm check:postgres`會以獨立臨時 Docker PostgreSQL 驗證相同 API 流程、交易回滾、並行寫入及備份恢復，不連到真實學生庫。詳見 [操作說明](docs/pilot-runbook.md)、[部署驗證](docs/deployment-verification.md)、[P1驗證](docs/p1-verification.md) 及 [67 個真實 API 操作](public/openapi-pilot.json)。遠程部署與本地P1驗收分開記錄；實際人工審校、使用者 AI API 和學生試用尚待完成。下列原有說明適用於**演示模式**。
 
 面向香港中學生的可操作前端示範，預設使用繁體中文、2028 備試人物及 2028-02-14 示範時鐘。React + TypeScript + Vite，MSW 提供瀏覽器內 mock API；不用 AI key 或後端服務。
 
@@ -95,5 +95,7 @@ node node_modules/vite/bin/vite.js build
 來源、年份及數據缺口見 [docs/data-sources.md](docs/data-sources.md)。實際檢查範圍見 [docs/verification.md](docs/verification.md)。
 
 下一階段的已確認決策、待決問題和後續功能備註見 [產品規劃](docs/product-plan.md)，學習 prompt 的採用與調整見 [導師邏輯](docs/tutor-logic.md)。這些文件是規劃紀錄，不代表功能已實現。
+
+2026-10-31 三科自主輔導與P1已接通本地版本，入口 `/studio`；只有AI獨立測驗生成使用完整檢查／有限返工，聊天與導讀後練習以速度優先。範圍見 [P1實施清單](docs/p1-learning-platform-plan.md)，契約見 [AI輸出規範v2](docs/ai-output-contract.md)，已跑檢查與未驗證邊界見 [P1驗證](docs/p1-verification.md)。本輪尚未推送或部署公網。
 
 首期範圍、後端接口遷移、初始規則及試用驗收，見 [已批准的實施方案](docs/pilot-implementation-plan.md)。本地代碼及檢查見本次驗證；3–5 人兩周試用須待實際內容、模型及部署條件完成後安排。

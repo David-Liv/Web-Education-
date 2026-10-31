@@ -31,6 +31,13 @@ test('setup closes after first account and requires same-site marker',async()=>{
   assert.equal((await fetch(base+'/api/v1/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:'developer',password})})).status,403);
   assert.equal((await call('/bootstrap')).status,401);
 });
+
+test('two-character UV invite can sign in case-insensitively without gaining admin access',async()=>{
+  const created=await call('/admin/users',admin,'POST',{username:'UV',name:'UV',password,role:'student'});assert.equal(created.status,201);
+  const login=await call('/auth/login','','POST',{username:'UV',password});assert.equal(login.status,200);assert.equal(login.data.username,'uv');
+  assert.equal((await call('/bootstrap',login.cookie)).data.profile.name,'UV');assert.equal((await call('/admin/users',login.cookie)).status,403);
+  assert.equal((await call('/admin/users',admin,'POST',{username:'x',name:'Too short',password,role:'student'})).status,400);
+});
 test('draft bank refuses formal quizzes and needs two actual review identities per question',async()=>{
   const {cookie}=await student();assert.equal((await call('/quizzes',cookie,'POST',{subjectId:'maths',count:5})).status,422);
   for(const p of (await app.store.latestPacks(false))){

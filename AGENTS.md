@@ -3,6 +3,7 @@
 ## Keep the user guide current
 
 - The user explicitly requires the usage guide to be updated alongside every product update. The canonical student guide is `docs/user-guide.md`, rendered directly by `/help`; do not maintain a separate copy of its text in a component.
+- The English student guide is `docs/user-guide.en.md`, shown at `/help?lang=en`. Maintain both languages together, with matching feature availability, limits and dated change logs. Credentials and individual invitations must stay in ignored private files, never in either public guide.
 - For changes to behavior, navigation, configuration, data coverage, difficulty labels, limits, or feature availability, update the relevant guide sections and its dated change log in the same task. For internal-only changes, inspect guide accuracy and state in the task handoff when no user-facing change is needed.
 - Keep `README.md` and `docs/pilot-runbook.md` aligned when developer launch, setup, review, model, backup, or deployment steps change. Link the guide from the README and in-app help.
 - Verify guide claims against current code and actual check evidence. Keep demo, real implementation, reviewed content, real provider validation, and proposed work distinct. Do not write planned exam OCR or diagnostic exemptions as implemented.
