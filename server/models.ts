@@ -8,7 +8,9 @@ export function validateModel(input:any,previous:ModelConfig|null):ModelConfig{
   if(url.protocol==='http:'&&!['localhost','127.0.0.1','[::1]'].includes(url.hostname))reject('遠端 API 請使用 HTTPS；本機服務可用 HTTP');
   if(!['openai-chat','openai-responses'].includes(input.protocol))reject('請選擇服務實際支援的協議');
   const model=String(input.model??'').trim();if(model.length>200)reject('模型 ID 過長');
-  return {id:'default',name:String(input.name??'我的模型服務').slice(0,80),baseUrl:url.toString().replace(/\/$/,''),secret:input.clearKey?'':typeof input.apiKey==='string'&&input.apiKey?input.apiKey:previous?.baseUrl===url.toString().replace(/\/$/,'')?previous.secret:'',model,protocol:input.protocol,enabled:input.enabled!==false,models:previous?.baseUrl===url.toString().replace(/\/$/,'')?previous.models:undefined};
+  const baseUrl=url.toString().replace(/\/$/,''),secret=input.clearKey?'':typeof input.apiKey==='string'&&input.apiKey?input.apiKey:previous?.baseUrl===baseUrl?previous.secret:'';
+  const sameConnection=previous?.baseUrl===baseUrl&&previous.secret===secret&&previous.protocol===input.protocol;
+  return {id:'default',name:String(input.name??'我的模型服務').slice(0,80),baseUrl,secret,model,protocol:input.protocol,enabled:input.enabled!==false,models:sameConnection?previous.models:undefined,tested:sameConnection&&previous.model===model?previous.tested:undefined};
 }
 async function provider(config:ModelConfig,path:string,body?:unknown,signal?:AbortSignal){
   const result=await fetch(`${config.baseUrl}/${path}`,{method:body?'POST':'GET',headers:{...(config.secret?{Authorization:`Bearer ${config.secret}`} :{}),...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify(body):undefined,signal:signal?AbortSignal.any([signal,AbortSignal.timeout(45000)]):AbortSignal.timeout(45000),redirect:'error'});

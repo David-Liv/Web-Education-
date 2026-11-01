@@ -8,6 +8,8 @@
 
 指定試用帳戶可使用負責人私下分配的短密碼；一般邀請／首次設定仍至少10字元。登入、重設後重新登入及最新邀請說明已同步至中英文指南；密碼不在公開文件中列出。
 
+管理員可在`/developer?tab=model`輸入API URL／Key、獲取清單、測試所選草稿，再明確套用至全部使用者。列表及測試不會切換生效模型。2026-11-01已保存使用者指定服務並實際取得24個模型，待管理員選擇及啟用；未代選或逐一呼叫。詳見 [全站模型設定](docs/developer-model-settings.md)。
+
 數學外部資料見 [By Topic 提取說明](docs/research/maths-index-extraction.md)。已整理 585 道歷屆卷二題與 23 道牛津樣本練習的元資料，另有 73 個課題文件連結；可從「學習資源 → 數學 By Topic 題目索引」篩選與下載 CSV。外部索引未匯入正式測驗題庫。
 
 已有兩種運行模式：原有瀏覽器演示，以及新增的邀請制真實模式。**真實模式可雙擊 `start-pilot.cmd` 或執行 `pnpm dev:pilot`**；首次在本機建立開發者帳戶，再分配復核者及學生。Node 需 24.12+。內容預設為待復核草稿；模型服務在開發者頁設定。
@@ -98,6 +100,6 @@ node node_modules/vite/bin/vite.js build
 
 下一階段的已確認決策、待決問題和後續功能備註見 [產品規劃](docs/product-plan.md)，學習 prompt 的採用與調整見 [導師邏輯](docs/tutor-logic.md)。這些文件是規劃紀錄，不代表功能已實現。
 
-2026-10-31 三科自主輔導與P1已接通本地版本，入口 `/studio`；只有AI獨立測驗生成使用完整檢查／有限返工，聊天與導讀後練習以速度優先。範圍見 [P1實施清單](docs/p1-learning-platform-plan.md)，契約見 [AI輸出規範v2](docs/ai-output-contract.md)，已跑檢查與未驗證邊界見 [P1驗證](docs/p1-verification.md)。本輪尚未推送或部署公網。
+2026-10-31 三科自主輔導與P1已接通，入口 `/studio`；只有AI獨立測驗生成使用完整檢查／有限返工，聊天與導讀後練習以速度優先。範圍見 [P1實施清單](docs/p1-learning-platform-plan.md)，契約見 [AI輸出規範v2](docs/ai-output-contract.md)，本地檢查與邊界見 [P1驗證](docs/p1-verification.md)。後續已部署公網，實際版本與驗收見 [部署記錄](docs/deployment-verification.md)；真實模型品質及學生試用另行驗收。
 
 首期範圍、後端接口遷移、初始規則及試用驗收，見 [已批准的實施方案](docs/pilot-implementation-plan.md)。本地代碼及檢查見本次驗證；3–5 人兩周試用須待實際內容、模型及部署條件完成後安排。

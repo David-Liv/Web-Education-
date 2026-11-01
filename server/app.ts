@@ -123,12 +123,14 @@ export function createPilot(options:Options={}){
         reject('找不到此內容操作',404);
       });return}
       if(path==='/admin/model'){
-        role(['developer']);if(method==='GET'){send(publicModel((await store.model())));return}if(method==='PUT'){const config=validateModel(input,(await store.model()));(await store.putModel(config));send(publicModel(config));return}
+        role(['developer']);if(method==='GET'){send(publicModel((await store.model())));return}if(method==='PUT'){const config=validateModel(input,(await store.model()));if(config.enabled&&!config.model)reject('請先選擇模型，再套用至全部使用者；也可停用後只保存服務設定');(await store.putModel(config));send(publicModel(config));return}
       }
       if(path.startsWith('/admin/model/')&&method==='POST'){
-        role(['developer']);const config=(await store.model())??reject('請先保存 API 設定');
-        if(path.endsWith('/models')){config.models=await listModels(config);(await store.putModel(config));send({models:config.models});return}
-        if(path.endsWith('/test')){const text=await generate(config,[{role:'user',content:'請用一句簡短繁體中文確認你可回覆文字。'}]);config.tested={at:new Date().toISOString(),model:config.model,ok:true};(await store.putModel(config));send({ok:true,text,capabilities:{text:true,images:'未測試',nativeStreaming:'未測試',structuredOutput:'未測試'}});return}
+        role(['developer']);const previous=await store.model(),draft=Object.hasOwn(input,'config');
+        if(draft&&(!input.config||typeof input.config!=='object'||Array.isArray(input.config)))reject('請提供有效的模型設定草稿');
+        const config=draft?validateModel(input.config,previous):previous??reject('請先保存 API 設定');
+        if(path.endsWith('/models')){const models=await listModels(config);if(!draft){config.models=models;(await store.putModel(config))}send({models,scope:draft?'draft':'saved'});return}
+        if(path.endsWith('/test')){const text=await generate({...config,enabled:true},[{role:'user',content:'請用一句簡短繁體中文確認你可回覆文字。'}]);const tested={at:new Date().toISOString(),model:config.model,ok:true};if(!draft){config.tested=tested;(await store.putModel(config))}send({ok:true,text,tested,scope:draft?'draft':'saved',capabilities:{text:true,images:'未測試',nativeStreaming:'未測試',structuredOutput:'未測試'}});return}
       }
       if(path==='/catalog'&&method==='GET'){const topicIds=new Set(packs.map(p=>p.topicId));send({...catalog,topics:allTopics.map(t=>{const p=packs.find(p=>p.topicId===t.id),u=units.find(u=>u.topicId===t.id);return {...t,ready:topicIds.has(t.id)||!!u,summary:p?.lessons.map(l=>l.text)??(u?[u.lesson]:[]),example:undefined,formula:undefined,misconception:undefined,source:p?.source??(u?'本平台原創自主輔導參考；不是已審校題庫':t.source)}}),sources:[...catalog.sources,{label:'首期真實內容',url:'/pilot',note:'只對已完成內容復核的二次方程、酸鹼與滴定開放正式診斷'}]});return}
       if(path.startsWith('/content/')&&method==='GET'){const p=(packs.find(p=>p.topicId===path.split('/')[2])??coaching.find(p=>p.topicId===path.split('/')[2]))??reject('此內容尚未發布',404);send({topicId:p.topicId,title:p.title,version:'version' in p?p.version:1,lessons:p.lessons,skills:p.skills});return}

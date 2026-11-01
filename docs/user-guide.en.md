@@ -6,7 +6,7 @@ Website: [Open HOKSE](https://web-education.onrender.com). Sign in with the acco
 
 Share the cloud website link above. The organiser's computer does not need to stay on, and you can turn yours off when you finish.
 
-**AI features require an administrator to configure a model.** Without one, you can still use fixed practice, notes, goals and the calendar. Subjective answers show reference points rather than invented scores. The free website may take longer to open after being idle.
+**AI features require an administrator to select and enable a global model.** Saving a URL/key or fetching the model list does not activate AI. Until then, fixed practice, notes, goals and the calendar remain available; subjective answers show reference points rather than invented scores. The free website may take longer to open after being idle.
 
 The app interface is mainly Hong Kong Traditional Chinese. This guide includes the Chinese button names so you can find them.
 
@@ -152,10 +152,12 @@ Attachments support specified images/audio, up to 20 MiB per file and a 100 MiB 
 Students do not enter API keys. In Personal Settings, an administrator can open the content/developer workspace:
 
 1. Use Invite Accounts to add students. Give reviewer access only to people who need content-review duties.
-2. In Model Service, enter the provider Base URL, protocol and key; fetch models, select one and test it.
-3. A text connection test is not a teaching-quality test. Try a few representative learning questions.
-4. Original reviewed packs still require different reviewer accounts before publication. Coaching does not wait for that process.
-5. Share only each person's own invitation, not the administrator account or API key.
+2. In Model Service (模型服務), enter the API Base URL, protocol and key, then fetch the model list (獲取模型列表). This reads the list without selecting or testing every model.
+3. Select a global model (選擇全站模型), then test it (測試此模型). Discovery and testing use a draft and do not replace the active model. A manual Model ID is also available.
+4. Enable it and save/apply to all users (儲存並套用至全部使用者). Every account's subsequent AI requests use that model; students need no key and cannot change it. Requests already running and historical records retain their original model. Untick enable and apply to pause AI globally.
+5. Leave the key blank to retain it for the same URL. Enter a new key when changing URLs. A text test does not verify teaching quality, image reading or paper OCR.
+6. Original reviewed packs still require different reviewer accounts before publication. Coaching does not wait for that process.
+7. Share only each person's own invitation, not the administrator account or API key.
 
 School/parent/tutoring-organisation portals, payments, mentor matching, social features and round-the-clock psychological support are not part of this version.
 
@@ -173,7 +175,7 @@ Useful trial feedback says what you were trying to do, where you got stuck and w
 
 ## 15. Change log
 
-- 1 November 2026: sign-in accepts short trial passwords assigned privately by the organiser. After a reset, sign in again using the latest invitation. New accounts still require at least 10 characters. Clarifies direct sharing of the cloud link without keeping the organiser's computer on.
+- 1 November 2026: explicit global model selection/application, with draft discovery/tests that do not change the active model. All students share the administrator's selected model. Short privately assigned trial passwords are accepted; new accounts still need 10 characters. Clarifies cloud sharing without keeping the organiser's computer on.
 - 31 October 2026: plain-language Chinese/English guides, in-app language switching/downloads and two-character usernames. Documents the implemented coaching, fast/quiz routing, provisional skills, corrections, checklist, rest, weekly milestones and two-week reports. Real model quality and student trials are separate checks; AI configuration is still the administrator's responsibility.
 - 30 October 2026: free cloud storage, account isolation and guidance on sleep, attachments and costs.
 - 28 October 2026: user guide, external maths index and source/difficulty explanations.

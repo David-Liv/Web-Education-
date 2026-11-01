@@ -49,8 +49,9 @@ route('/chats/{id}/messages','post','Idempotent provider-backed teaching; assess
 paths['/chats/{id}/messages'].post.responses[200]={description:'SSE start/delta/done events; HTTP errors before stream',content:{'text/event-stream':{schema:str}}};
 for(const path of ['/admin/users','/admin/content','/admin/model','/admin/grading'])route(path,'get','Role-protected developer/reviewer view',null);
 route('/admin/users','post','Developer assigns invite account',obj({...credentials(10).properties,role:{enum:['student','reviewer','developer']}},['username','password','name','role']));
-route('/admin/model','put','Developer saves encrypted server-side provider configuration',obj({name:str,baseUrl:str,apiKey:str,clearKey:{type:'boolean'},model:str,protocol:{enum:['openai-chat','openai-responses']},enabled:{type:'boolean'}},['baseUrl','protocol']));
-for(const action of ['models','test'])route(`/admin/model/${action}`,'post','Fetch provider models / test selected model text',obj({}));
+const modelDraft=obj({name:str,baseUrl:str,apiKey:str,clearKey:{type:'boolean'},model:str,protocol:{enum:['openai-chat','openai-responses']},enabled:{type:'boolean'}},['baseUrl','protocol']);
+route('/admin/model','put','Apply one encrypted global provider configuration to all users; enabled configurations require a selected model',modelDraft);
+for(const action of ['models','test'])route(`/admin/model/${action}`,'post','Discover models or test a selected draft without applying it; an empty body uses the saved configuration',obj({config:modelDraft}));
 route('/admin/content/import','post','Validate preview, then import new draft JSON or CSV version',obj({pack:{type:'object'},csv:str,metadata:{type:'object'},preview:{type:'boolean'}}));
 route('/admin/content/{id}/{version}/review','post','Save one actual reviewer receipt for one question',obj({questionId:str,method:{type:'string',minLength:8},confirmed:{const:true}},['questionId','method','confirmed']));
 route('/admin/content/{id}/{version}/publish','post','Publish after validation and two distinct reviewers per question',obj({}));

@@ -6106,7 +6106,7 @@
         "parameters": []
       },
       "put": {
-        "summary": "Developer saves encrypted server-side provider configuration",
+        "summary": "Apply one encrypted global provider configuration to all users; enabled configurations require a selected model",
         "security": [
           {
             "session": []
@@ -6449,7 +6449,7 @@
     },
     "/admin/model/models": {
       "post": {
-        "summary": "Fetch provider models / test selected model text",
+        "summary": "Discover models or test a selected draft without applying it; an empty body uses the saved configuration",
         "security": [
           {
             "session": []
@@ -6471,7 +6471,41 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "properties": {},
+                "properties": {
+                  "config": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "baseUrl": {
+                        "type": "string"
+                      },
+                      "apiKey": {
+                        "type": "string"
+                      },
+                      "clearKey": {
+                        "type": "boolean"
+                      },
+                      "model": {
+                        "type": "string"
+                      },
+                      "protocol": {
+                        "enum": [
+                          "openai-chat",
+                          "openai-responses"
+                        ]
+                      },
+                      "enabled": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "baseUrl",
+                      "protocol"
+                    ]
+                  }
+                },
                 "required": []
               }
             }
@@ -6553,7 +6587,7 @@
     },
     "/admin/model/test": {
       "post": {
-        "summary": "Fetch provider models / test selected model text",
+        "summary": "Discover models or test a selected draft without applying it; an empty body uses the saved configuration",
         "security": [
           {
             "session": []
@@ -6575,7 +6609,41 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "properties": {},
+                "properties": {
+                  "config": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "baseUrl": {
+                        "type": "string"
+                      },
+                      "apiKey": {
+                        "type": "string"
+                      },
+                      "clearKey": {
+                        "type": "boolean"
+                      },
+                      "model": {
+                        "type": "string"
+                      },
+                      "protocol": {
+                        "enum": [
+                          "openai-chat",
+                          "openai-responses"
+                        ]
+                      },
+                      "enabled": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "baseUrl",
+                      "protocol"
+                    ]
+                  }
+                },
                 "required": []
               }
             }
