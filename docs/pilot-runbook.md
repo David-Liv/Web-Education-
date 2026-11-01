@@ -93,15 +93,17 @@ node scripts/backup-pilot.mjs .data/backups/my-pilot-backup
 
 按步驟分享給學生，見 [上線與帳戶分享指南](deployment-guide.md)：現採 Render Free Docker＋Supabase Free PostgreSQL，無付費磁盤。雲端連線、私有資料表與首位管理員已建立；公開 HTTPS、資料隔離與重啟保存已有獨立驗收，見部署驗證。
 
-已提供 Dockerfile及Compose，使用單個 Node 服務提供 `dist-pilot/` 和同源 API。2026-10-28完成本機 Docker 構建與隔離啟動，2026-10-30另完成乾淨 Git 版本的 Linux 構建及實際 Render 公網驗收；本機與雲端證據分開記錄。
+Render依保留的Dockerfile構建單個Node服務，提供`dist-pilot/`和同源API。2026-11-01已移除本機Compose及臨時隧道分享腳本；日常分享雲端網址即可，本機開發用Node。先前Docker驗證保留為歷史證據，見部署驗證。
 
-空庫可在私有Shell執行`node server/bootstrap-admin.ts`建立首位開發者，密碼不回顯；已有帳戶時拒絕初始化，且在資料庫交易內再次檢查空庫。此命令沒有新增公網初始化接口。Docker本機用法見部署指南。
+空庫可在私有Shell執行`node server/bootstrap-admin.ts`建立首位開發者，密碼不回顯；已有帳戶時拒絕初始化，且在資料庫交易內再次檢查空庫。此命令沒有新增公網初始化接口。Node本機開發用法見部署指南。
 
-雲端使用 `.data/cloud.env` 保存 `DATABASE_URL` 與固定 `HOKSE_ENCRYPTION_KEY`，以 `node --env-file=.data/cloud.env server/bootstrap-admin.ts` 從本機直接初始化遠程空庫。Render 以私有變數或 `hokse.env` Secret File 注入，不將密鑰烘焙到鏡像，也不寫入 `VITE_` 前端變數。使用 `HOKSE_ALLOW_SETUP=false` 與 `HOKSE_SECURE_COOKIE=true`；Render 缺少雲端連線時拒絕啟動。本機 Compose 的 SQLite 持久卷繼續保留，與雲端不自動同步。
+雲端使用 `.data/cloud.env` 保存 `DATABASE_URL` 與固定 `HOKSE_ENCRYPTION_KEY`，以 `node --env-file=.data/cloud.env server/bootstrap-admin.ts` 從本機直接初始化遠程空庫。Render 以私有變數或 `hokse.env` Secret File 注入，不將密鑰烘焙到鏡像，也不寫入 `VITE_` 前端變數。使用 `HOKSE_ALLOW_SETUP=false` 與 `HOKSE_SECURE_COOKIE=true`；Render 缺少雲端連線時拒絕啟動。既有本機SQLite及舊Docker資料卷僅保留資料，與雲端不自動同步；不要把清理部署工具當作刪除學習資料。
 
 雲端備份使用 `node --env-file=.data/cloud.env scripts/backup-pilot.mjs`，產生私有壓縮快照；加密密鑰另行保管。恢復需指定另一個全新空庫、同一密鑰與 `--restore 備份檔 --empty-target`，拒絕覆寫已有帳戶。完整命令及免費休眠／容量限制見部署指南；不要把免費方案當作已有自動備份。
 
 本機不使用 Docker 也能驗證正式產物：
+
+一般`pnpm test:server`使用本機隔離測試，不需Docker；`pnpm check:postgres`只供已有Docker的維護者／CI選擇執行PostgreSQL整合測試。
 
 ```powershell
 pnpm build:pilot

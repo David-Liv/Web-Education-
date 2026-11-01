@@ -1,5 +1,14 @@
 # GitHub與Docker部署準備驗證
 
+## 2026-11-01：移除本機部署與臨時分享
+
+- 已移除`compose.yaml`、本機臨時分享入口／閘道／檢查腳本及四個share相關package命令。分享使用既有雲端網址，本機Node開發保留。沒有只為本機部署而新增的npm套件；前端工具、`pg`、SQLite支持及備份工具仍有用途。
+- 讀回確認Render仍為Free Docker服務，依`./Dockerfile`構建；保留Dockerfile、`.dockerignore`及`render.yaml`，沒有改動雲端服務或觸發部署。
+- 本機Docker原為停止狀態；臨時啟動後核對Compose工作目錄為本專案，只移除`webeducation-app-1`、空的`webeducation_default`網絡、三個`hokse-pilot`鏡像及無容器使用的`postgres:17-alpine`隔離測試鏡像。
+- 從本專案`build-pilot.mjs`及`dist-pilot`步驟追蹤依賴，只按69個已核對的cache ID定向清理。Docker報告回收2.743 GB；這是Docker內部回收量，不是Windows磁盤立即增加的測量。未做全局prune；6項無法確定來源的source cache（共7.221 MB）保留。
+- 全部3個既有資料卷、原有SQLite、密鑰、雲端配置及帳戶邀請資料保留。Docker Desktop是原先已安裝的系統軟件，未卸載；清理後恢復停止。可選`check:postgres`只供有Docker的維護者／CI做隔離測試，不是日常依賴。
+- 無Docker的正式構建、TypeScript、外部數學索引、67個OpenAPI操作及產物私有資料排除檢查通過。雲端`/api/v1/auth/status`實際回應200、未登入身分為null、公網setup關閉。中英文使用指南與開發／部署說明同步維護；本次沒有新增功能測試或聲稱重新部署。
+
 ## 2026-11-01：指定試用帳戶短密碼
 
 - 業務提交 `a34f102b5e927cbf2fb4cc7e5c9e12934b452cc3` 已推送，既有Free服務部署 `dep-dbjh2f8ae00c73e76nsg` 於10:16:09 UTC回報live。未新建資源或調整免費方案。

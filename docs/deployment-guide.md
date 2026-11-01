@@ -1,6 +1,6 @@
 # 把學序上線並分享給學生
 
-更新：2026-10-30。當前採用 **Render Free Web Service＋Supabase Free PostgreSQL**。已完成部署及公開 HTTPS、帳戶隔離與重啟保存驗證，入口為 [web-education.onrender.com](https://web-education.onrender.com)。沒有購買付費服務；綁卡後流量超額仍可能產生費用。
+更新：2026-11-01。當前採用 **Render Free Web Service＋Supabase Free PostgreSQL**。已完成部署及公開 HTTPS、帳戶隔離與重啟保存驗證，入口為 [web-education.onrender.com](https://web-education.onrender.com)。沒有購買付費服務；綁卡後流量超額仍可能產生費用。費用與額度的核對日期見托管費用說明。
 
 ## 架構與免費限制
 
@@ -88,15 +88,17 @@ node --env-file=.data/新的空庫配置.env scripts/backup-pilot.mjs --restore 
 
 先驗證恢復結果，再切換服務連線。資料庫或模型密碼需要變更時，私下更新對應配置並重新部署，不要把憑證貼到公開日誌。
 
-## 本機仍可繼續開發
+## 本機開發，不用Docker
 
-未設定 `DATABASE_URL` 的本機模式繼續使用 SQLite。原有 `start-pilot.cmd`、`pnpm dev:pilot` 及 Docker Compose 保留：
+網站分享已改為固定雲端網址，不再使用本機Compose或Cloudflare臨時隧道；相關Compose及分享腳本已移除。Render仍依`Dockerfile`、`.dockerignore`和`render.yaml`構建，所以保留這三個雲端文件。學生和負責人的電腦都不需要持續運行Docker。
+
+開發者仍可使用Node 24.12+。未設定`DATABASE_URL`時，本機開發模式使用SQLite；與雲端帳戶、進度分開。執行：
 
 ```powershell
-docker compose up -d --build
-docker compose exec app node server/bootstrap-admin.ts
+pnpm install
+pnpm dev:pilot
 ```
 
-本機入口 `http://127.0.0.1:3001` 不能直接發給其他同學。`docker compose stop` 停止、`docker compose start` 繼續；不要執行 `docker compose down -v`，它會刪除本機資料卷。雲端部署完成後，學生只需瀏覽器，你的電腦不必持續開機。
+也可雙擊`start-pilot.cmd`。保留開發依賴、SQLite支持、備份工具和本機既有資料，方便之後開發與還原。`pnpm check:postgres`僅為維護者／CI保留可選Docker隔離測試，不是日常使用或一般開發的先決條件。本機網址只用於開發，不發給同學；學生直接使用雲端網址。
 
 學生流程見 [使用指南](user-guide.md)，內容復核與模型配置見 [試用操作說明](pilot-runbook.md)，當次驗證範圍見 [部署驗證](deployment-verification.md)。

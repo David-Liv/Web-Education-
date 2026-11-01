@@ -4,6 +4,8 @@ Updated: 1 November 2026. HOKSE helps you plan, understand and review your own l
 
 Website: [Open HOKSE](https://web-education.onrender.com). Sign in with the account sent to you privately. You do not need to register, install software or run Docker. Switch between 中文 and English on the guide page, or download either guide.
 
+Share the cloud website link above. The organiser's computer does not need to stay on, and you can turn yours off when you finish.
+
 **AI features require an administrator to configure a model.** Without one, you can still use fixed practice, notes, goals and the calendar. Subjective answers show reference points rather than invented scores. The free website may take longer to open after being idle.
 
 The app interface is mainly Hong Kong Traditional Chinese. This guide includes the Chinese button names so you can find them.
@@ -171,7 +173,7 @@ Useful trial feedback says what you were trying to do, where you got stuck and w
 
 ## 15. Change log
 
-- 1 November 2026: sign-in accepts short trial passwords assigned privately by the organiser. After a reset, sign in again using the latest invitation. New accounts still require at least 10 characters.
+- 1 November 2026: sign-in accepts short trial passwords assigned privately by the organiser. After a reset, sign in again using the latest invitation. New accounts still require at least 10 characters. Clarifies direct sharing of the cloud link without keeping the organiser's computer on.
 - 31 October 2026: plain-language Chinese/English guides, in-app language switching/downloads and two-character usernames. Documents the implemented coaching, fast/quiz routing, provisional skills, corrections, checklist, rest, weekly milestones and two-week reports. Real model quality and student trials are separate checks; AI configuration is still the administrator's responsibility.
 - 30 October 2026: free cloud storage, account isolation and guidance on sleep, attachments and costs.
 - 28 October 2026: user guide, external maths index and source/difficulty explanations.
