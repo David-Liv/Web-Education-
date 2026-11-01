@@ -1,6 +1,6 @@
 # HOKSE Trial User Guide
 
-Updated: 31 October 2026. HOKSE helps you plan, understand and review your own learning. It is a personal study assistant, not a school grading system.
+Updated: 1 November 2026. HOKSE helps you plan, understand and review your own learning. It is a personal study assistant, not a school grading system.
 
 Website: [Open HOKSE](https://web-education.onrender.com). Sign in with the account sent to you privately. You do not need to register, install software or run Docker. Switch between 中文 and English on the guide page, or download either guide.
 
@@ -139,6 +139,8 @@ Content Awaiting Review does not block the whole platform: use supported coachin
 
 Use your own account; goals, chat, notes and calendar records stay separate. Usernames are case-insensitive and support 2–40 characters. Passwords must match exactly. There is no public self-registration or self-service password reset; contact the organiser for help.
 
+Selected trial accounts can receive a private 3–5-character password from the organiser. Use the latest invitation. A reset invalidates the old password and sessions, so sign in again; your learning records remain. Normal invitations and first setup still require at least 10 characters. Keep administrator credentials private.
+
 Export your records and sign out in Personal Settings. Sign out on shared computers. The older demonstration version uses browser storage and is separate from real account records.
 
 Attachments support specified images/audio, up to 20 MiB per file and a 100 MiB shared attachment cap in the free cloud pilot. They are visible to their owner or an authorised review process. The current AI receives text only. PDF paper OCR, marked-paper import and automatic diagnostic exemptions are not implemented.
@@ -169,6 +171,7 @@ Useful trial feedback says what you were trying to do, where you got stuck and w
 
 ## 15. Change log
 
+- 1 November 2026: sign-in accepts short trial passwords assigned privately by the organiser. After a reset, sign in again using the latest invitation. New accounts still require at least 10 characters.
 - 31 October 2026: plain-language Chinese/English guides, in-app language switching/downloads and two-character usernames. Documents the implemented coaching, fast/quiz routing, provisional skills, corrections, checklist, rest, weekly milestones and two-week reports. Real model quality and student trials are separate checks; AI configuration is still the administrator's responsibility.
 - 30 October 2026: free cloud storage, account isolation and guidance on sleep, attachments and costs.
 - 28 October 2026: user guide, external maths index and source/difficulty explanations.

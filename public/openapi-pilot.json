@@ -91,7 +91,7 @@
     },
     "/auth/setup": {
       "post": {
-        "summary": "Create local first developer / sign in",
+        "summary": "Create local first developer",
         "parameters": [
           {
             "in": "header",
@@ -114,7 +114,8 @@
                   },
                   "password": {
                     "type": "string",
-                    "minLength": 10
+                    "minLength": 10,
+                    "maxLength": 200
                   },
                   "name": {
                     "type": "string"
@@ -204,7 +205,7 @@
     },
     "/auth/login": {
       "post": {
-        "summary": "Create local first developer / sign in",
+        "summary": "Sign in with existing credentials, including privately assigned short trial passwords",
         "parameters": [
           {
             "in": "header",
@@ -227,7 +228,8 @@
                   },
                   "password": {
                     "type": "string",
-                    "minLength": 10
+                    "minLength": 3,
+                    "maxLength": 200
                   },
                   "name": {
                     "type": "string"
@@ -5840,7 +5842,8 @@
                   },
                   "password": {
                     "type": "string",
-                    "minLength": 10
+                    "minLength": 10,
+                    "maxLength": 200
                   },
                   "name": {
                     "type": "string"

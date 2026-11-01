@@ -3,9 +3,10 @@ const str={type:'string'},obj=(properties,required=[])=>({type:'object',properti
 const response=schema=>({description:'Success',content:{'application/json':{schema}}});
 const paths={};
 function route(path,method,summary,request,reply={type:'object'}){paths[path]??={};paths[path][method]={summary,...(path.startsWith('/auth/')?{}:{security:[{session:[]}]}),...(method==='get'?{}:{parameters:[{in:'header',name:'X-Hokse-Client',required:true,schema:{const:'1'}}]}),...(request?{requestBody:{required:true,content:{'application/json':{schema:request}}}}:{}),responses:{200:response(reply),400:response(ref('Error')),401:response(ref('Error')),403:response(ref('Error')),409:response(ref('Error')),422:response(ref('Error')),502:response(ref('Error'))}}}
-const credentials=obj({username:str,password:{type:'string',minLength:10},name:str},['username','password']);
+const credentials=minimum=>obj({username:str,password:{type:'string',minLength:minimum,maxLength:200},name:str},['username','password']);
 route('/auth/status','get','Current identity and local first-setup availability',null);
-for(const path of ['/auth/setup','/auth/login'])route(path,'post','Create local first developer / sign in',credentials,ref('Identity'));
+route('/auth/setup','post','Create local first developer',credentials(10),ref('Identity'));
+route('/auth/login','post','Sign in with existing credentials, including privately assigned short trial passwords',credentials(3),ref('Identity'));
 route('/auth/logout','post','End this session',obj({}));
 for(const path of ['/bootstrap','/catalog','/profile','/question-options','/daily-review','/learning-state'])route(path,'get','Authenticated student-scoped view',null);
 route('/profile','patch','Update allowed goals, grades and time fields; demo clock is rejected',ref('ProfilePatch'));
@@ -47,7 +48,7 @@ for(const action of ['stop','save-summary'])route(`/chats/{id}/${action}`,'post'
 route('/chats/{id}/messages','post','Idempotent provider-backed teaching; assessed work assistance recorded',obj({content:str,requestId:str,attachmentIds:{type:'array',items:str}},['content','requestId']));
 paths['/chats/{id}/messages'].post.responses[200]={description:'SSE start/delta/done events; HTTP errors before stream',content:{'text/event-stream':{schema:str}}};
 for(const path of ['/admin/users','/admin/content','/admin/model','/admin/grading'])route(path,'get','Role-protected developer/reviewer view',null);
-route('/admin/users','post','Developer assigns invite account',obj({...credentials.properties,role:{enum:['student','reviewer','developer']}},['username','password','name','role']));
+route('/admin/users','post','Developer assigns invite account',obj({...credentials(10).properties,role:{enum:['student','reviewer','developer']}},['username','password','name','role']));
 route('/admin/model','put','Developer saves encrypted server-side provider configuration',obj({name:str,baseUrl:str,apiKey:str,clearKey:{type:'boolean'},model:str,protocol:{enum:['openai-chat','openai-responses']},enabled:{type:'boolean'}},['baseUrl','protocol']));
 for(const action of ['models','test'])route(`/admin/model/${action}`,'post','Fetch provider models / test selected model text',obj({}));
 route('/admin/content/import','post','Validate preview, then import new draft JSON or CSV version',obj({pack:{type:'object'},csv:str,metadata:{type:'object'},preview:{type:'boolean'}}));

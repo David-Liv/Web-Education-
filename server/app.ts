@@ -62,7 +62,8 @@ export function createPilot(options:Options={}){
       if(path==='/auth/status'&&method==='GET'){send({identity,setupRequired:(await store.userCount())===0&&options.allowSetup!==false});return}
       if((path==='/auth/login'||path==='/auth/setup')&&method==='POST'){
         const username=String(input.username??'').trim().toLowerCase(),password=String(input.password??'');
-        if(!/^[a-z0-9_.-]{2,40}$/.test(username)||password.length<10||password.length>200)reject('帳戶需 2–40 個英數字元；密碼至少 10 字元');
+        const minimumPasswordLength=path==='/auth/setup'?10:3;
+        if(!/^[a-z0-9_.-]{2,40}$/.test(username)||password.length<minimumPasswordLength||password.length>200)reject(`帳戶需 2–40 個英數字元；密碼至少 ${minimumPasswordLength} 字元`);
         const ip=req.socket.remoteAddress??'unknown',key=ip+':'+username,rate=attempts.get(key);
         if(rate&&rate.until>Date.now()&&rate.n>=12)reject('嘗試次數較多，請十分鐘後再試',429);
         attempts.set(key,{n:rate&&rate.until>Date.now()?rate.n+1:1,until:Date.now()+600000});

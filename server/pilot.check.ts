@@ -38,6 +38,20 @@ test('two-character UV invite can sign in case-insensitively without gaining adm
   assert.equal((await call('/bootstrap',login.cookie)).data.profile.name,'UV');assert.equal((await call('/admin/users',login.cookie)).status,403);
   assert.equal((await call('/admin/users',admin,'POST',{username:'x',name:'Too short',password,role:'student'})).status,400);
 });
+
+test('existing short trial credentials can sign in while setup and new invites still require ten characters',async()=>{
+  for(const short of ['a1b','c2de','f3ghi']){
+    const role=short.length===5?'developer':'student',username=`short_trial_${short.length}`;
+    const user=await app.store.createUser(username,short,'Short trial fixture',role);
+    const login=await call('/auth/login','','POST',{username,password:short});assert.equal(login.status,200);assert.equal(login.data.id,user.id);
+    assert.equal((await call('/admin/users',login.cookie)).status,role==='developer'?200:403);
+    assert.equal((await call('/auth/login','','POST',{username,password:'wrong'})).status,401);
+    assert.equal((await call('/auth/logout',login.cookie,'POST',{})).status,200);
+    assert.equal((await call('/admin/users',admin,'POST',{username:`invite_${short.length}`,name:'No short invite',password:short,role})).status,400);
+    assert.equal((await call('/auth/setup','','POST',{username:'no_short_setup',name:'No short setup',password:short})).status,400);
+  }
+  assert.equal((await call('/auth/login','','POST',{username:'developer',password:'ab'})).status,400);
+});
 test('draft bank refuses formal quizzes and needs two actual review identities per question',async()=>{
   const {cookie}=await student();assert.equal((await call('/quizzes',cookie,'POST',{subjectId:'maths',count:5})).status,422);
   for(const p of (await app.store.latestPacks(false))){
