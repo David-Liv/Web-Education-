@@ -1,6 +1,7 @@
 import type { ModelConfig } from './store.ts';
 import { reject } from './learning.ts';
 import { beginProvider, normalizeTokens, recordProvider } from './billing.ts';
+import { isAllowedModel } from '../src/model-catalog.ts';
 
 export function publicModel(config:ModelConfig|null){if(!config)return null;const {secret,...pub}=config;return {...pub,hasKey:!!secret}}
 export function validateModel(input:any,previous:ModelConfig|null):ModelConfig{
@@ -9,6 +10,7 @@ export function validateModel(input:any,previous:ModelConfig|null):ModelConfig{
   if(url.protocol==='http:'&&!['localhost','127.0.0.1','[::1]'].includes(url.hostname))reject('遠端 API 請使用 HTTPS；本機服務可用 HTTP');
   if(!['openai-chat','openai-responses'].includes(input.protocol))reject('請選擇服務實際支援的協議');
   const model=String(input.model??'').trim();if(model.length>200)reject('模型 ID 過長');
+  if(input.enabled!==false&&model&&!isAllowedModel(model))reject('只可使用抗截斷模型；此模型不可用',403,'MODEL_NOT_ALLOWED');
   const baseUrl=url.toString().replace(/\/$/,''),secret=input.clearKey?'':typeof input.apiKey==='string'&&input.apiKey?input.apiKey:previous?.baseUrl===baseUrl?previous.secret:'';
   const sameConnection=previous?.baseUrl===baseUrl&&previous.secret===secret&&previous.protocol===input.protocol;
   return {id:'default',name:String(input.name??'我的模型服務').slice(0,80),baseUrl,secret,model,protocol:input.protocol,enabled:input.enabled!==false,models:sameConnection?previous.models:undefined,tested:sameConnection&&previous.model===model?previous.tested:undefined};
@@ -19,10 +21,11 @@ async function provider(config:ModelConfig,path:string,body?:unknown,signal?:Abo
   if(Number(result.headers.get('content-length')??0)>4*1024*1024)reject('模型服務回應過大',502);
   try{return await result.json() as any}catch{reject('模型服務未返回有效 JSON',502,'PROTOCOL_ERROR')}
 }
-export async function listModels(config:ModelConfig){const result=await provider(config,'models');if(!Array.isArray(result.data))reject('此服務未提供相容模型清單，可手動填寫 model ID',502,'NO_MODEL_LIST');return [...new Set<string>(result.data.map((m:any)=>m.id).filter((id:any)=>typeof id==='string'&&id.length<=200))].slice(0,1000)}
+export async function listModels(config:ModelConfig){const result=await provider(config,'models');if(!Array.isArray(result.data))reject('此服務未提供相容模型清單，可手動填寫 model ID',502,'NO_MODEL_LIST');return [...new Set<string>(result.data.map((m:any)=>m.id).filter((id:any)=>isAllowedModel(id)&&id.length<=200))].slice(0,1000)}
 export async function generate(config:ModelConfig,messages:{role:string;content:string}[],signal?:AbortSignal){
   if(!config.enabled||!config.model)reject('開發者尚未啟用模型或選擇模型 ID',503,'MODEL_NOT_CONFIGURED');
   const scoped=await beginProvider(config);config=scoped.config;
+  if(!isAllowedModel(config.model))reject('只可使用抗截斷模型；此模型不可用',403,'MODEL_NOT_ALLOWED');
   signal=signal&&scoped.signal?AbortSignal.any([signal,scoped.signal]):signal??scoped.signal;
   const payload=config.protocol==='openai-chat'?{model:config.model,messages,max_tokens:2400}:{model:config.model,input:messages,max_output_tokens:2400};
   const start=Date.now(),endpoint=new URL(config.baseUrl).pathname.replace(/\/$/,'')+'/'+(config.protocol==='openai-chat'?'chat/completions':'responses');

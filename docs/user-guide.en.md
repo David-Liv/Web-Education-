@@ -157,9 +157,13 @@ Open **Plan & Billing** in the sidebar to see your used, reserved and available 
 
 | Plan | Simulated monthly price | Monthly credits | Default model | Initial operation prices |
 | --- | --- | --- | --- | --- |
-| Free | HK$0 | 500 | PGGO anti-truncation 3.5 Flash Lite | Lite 2, Flash 5 |
-| Plus | HK$39 | 2,000 | PGGO anti-truncation 3.8 Flash | Lite 2, Flash 5 |
-| Pro | HK$79 | 5,000 | PGGO anti-truncation 4 Argon | Lite 2, Flash 5, Argon 20 |
+| Free | HK$0 | 500 | gemini-3.5-flash-lite | Lite 2, Flash 5 |
+| Plus | HK$39 | 2,000 | gemini-3.8-flash | Lite 2, Flash 5 |
+| Pro | HK$79 | 5,000 | gemini-4-argon | Lite 2, Flash 5, Argon 20 |
+
+**Three separate defaults:** save a model for **quizzes**, **conversations** and **assessment**. Changing one leaves the other two unchanged. Independent quiz generation and its internal repairs use the quiz model; conversations, guided reading, quick exercises and plan explanations use the conversation model; marking and error analysis use the assessment model. Rule-only marking remains free. The price notice shows the model for the relevant action.
+
+Model menus show the base model name and credit price. Only approved anti-truncation routes can be called; other routes are blocked by the server, including admin tests. Existing shared selections are carried across to all three defaults when allowed; discontinued routes are replaced with the permitted equivalent or the plan default. Existing usage is retained. Technical request summaries and exports keep the exact provider model ID for troubleshooting.
 
 These are initial settings. Administrators can change prices, allowances, model access and operation prices; the page shows current rules. Free includes Flash. Configuring access does not mean every provider model has passed a real generation or teaching-quality check.
 
@@ -182,7 +186,7 @@ Students do not enter API keys. Open the content/developer workspace from Person
 
 1. Create student accounts under Invite Accounts. Grant reviewer access only for content-review duties.
 2. Under Model Service, enter the shared API Base URL, protocol and key, then fetch the model list. Discovery does not test every model.
-3. Select an admin test model and test it. Tests use the actual provider API but do not deduct student credits. Enable/apply the shared connection, then manage plan defaults, allowed models and prices under **Plan settings**.
+3. Select an admin test model and test it. Tests use the actual provider API but do not deduct student credits. Enable/apply the shared connection, then manage separate quiz, conversation and assessment defaults, allowed models and prices under **Plan settings**.
 4. Existing students start on Free with no retrospective charges. Change assignments under **User plans & credits**. Plan changes do not erase this month's used/reserved credits. Changes retain the actor, time and before/after values.
 5. Newly discovered models are not automatically available. Add, price and enable them, then grant plan access. Replace plan defaults before disabling a model. Students can select allowed models but cannot read the API key. A blank key retains it for the same URL; changing URLs requires a new key.
 6. **AI usage logs** support user/model search, status and Hong Kong date filters, paging and refresh. The eye icon shows request summaries, tokens, errors and settlement. Response text is available only in single JSON or filtered JSONL exports; keep exports private. Reviewers cannot read admin logs or edit billing rules.
@@ -205,6 +209,8 @@ Website updates run automated tests, security checks and a build before being pu
 Useful trial feedback says what you were trying to do, where you got stuck and what you expected. You do not have to try every feature first.
 
 ## 15. Change log
+
+- 2 November 2026: added separate quiz, conversation and assessment model defaults, simplified model labels, and server-enforced model-route restrictions. Prior usage and prices are preserved.
 
 - 2 November 2026: updates now publish automatically after main-branch checks pass. Students keep using the same address; there is no separate test environment yet.
 - 2 November 2026: Free/Plus/Pro plans, monthly credits, allowed-model selection, complete simulated checkout and admin AI usage logs. Mock payments make no AI calls. Documents charging, released reservations, month-end changes, missing tokens and administrator access to exported response text.

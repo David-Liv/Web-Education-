@@ -115,3 +115,5 @@ Render 設為 **After CI Checks Pass**，不需要把 Render 或 AI Key 放到 A
 本機一次設定 `git config core.hooksPath .githooks`，提交前和推送前會檢查 Git 內容，避免 CI 在推送後才發現秘密。執行 `pnpm check:secrets`、`pnpm test:security` 可單獨檢查；掃描只報位置和規則，不打印密鑰。支援常見 token、私鑰、資料庫密碼及加密 key 格式；不能保證識別所有編碼和第三方格式。不要把真實值寫入 `.env.example` 或 `VITE_*`；實際私有設定留在被忽略的 `.data/`／`.env`，雲端 Key 留在後端設定。
 
 首次 GitHub／Render 執行結果見 [CI 與自動發布驗證](docs/ci-verification.md)。
+
+學生可在「套餐與帳單」分別設定測驗、普通對話及評估模型。所有生成只允許指定抗截斷路線；界面顯示基礎名稱和 credit，實際 ID 保留在技術日誌。接口、舊帳戶兼容與路由說明見 [試用維護手冊](docs/pilot-runbook.md#接自己的模型服務)。

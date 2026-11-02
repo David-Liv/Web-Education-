@@ -51,6 +51,8 @@ pnpm dev:pilot
 
 在 `/developer?tab=model` 設共用 URL／協議／Key，獲取清單，再用管理測試模型驗證連線。模型測試實際消耗提供方 API，但屬 Platform 日誌，不扣學生 credit。啟用／保存共用連線後，實際學生型號由 `/developer?tab=billing` 的套餐權限與學生 `/billing` 選擇決定；全站停用仍會阻擋所有生成。新模型不自動定價或開放。密鑰同 URL 留空保留，換 URL 必須另填。
 
+模型只允許 `pggo-抗截断-*`，發現清單、套餐管理、學生選擇及最終生成（包括管理測試）均限制；界面標籤去掉渠道前後綴，技術摘要與匯出保留原 ID。`PUT /billing/model` 接受 `{purpose: "quiz" | "chat" | "evaluation", model: "實際ID"}`；缺省 purpose 僅更改 chat 以兼容舊客戶端。套餐 `defaultModels` 和帳戶 `models` 按三個用途保存；`defaultModel`／`model` 保留作 chat 兼容欄位。舊 JSON 按允許路線兼容讀取，首次讀取帳戶時保存三項選擇，無需 DDL 變更。新帳戶沿用對應套餐的三項預設；既有有效選擇不因套餐預設改變而被覆蓋。獨立出題（assessment）及返工用 quiz；快速題、聊天、導讀及排程說明用 chat；submit 批改及 analyse 錯因分析用 evaluation。一次操作啟動後固定模型及價格，操作間才採用新選擇。
+
 Free/Plus/Pro 初始 500/2000/5000 credit，香港月初惰性重置。學生舊帳戶不補扣歷史。只有模型生成操作才預留；一次操作含最多三次題目返工只收一次，失敗／無效／取消釋放。學習結果與扣點在同一短交易保存，提供方等待期間不持有交易；無結果孤立預留五分鐘後回收。模型／價格快照和請求 ID 持久化在 `credit_operations`，不能靠刪日誌修復餘額。
 
 模擬訂單是獨立 provider 路徑，不處理卡號或真實金流，不能當作真實付費憑證。實際金流、webhook 驗簽、退款、年付、充值、優惠券及供應方成本對帳列為後續工作。修改規則會留下 `billing_audit`，升級不重新派發月度額度，學生降級／取消月底生效。舊待付款單在規則改動後須重新建立。

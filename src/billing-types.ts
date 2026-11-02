@@ -1,8 +1,9 @@
+import type { ModelPurpose } from './model-catalog.ts';
 export type PlanId = 'Free' | 'Plus' | 'Pro';
-export interface PlanRule { price: number; credits: number; models: string[]; defaultModel: string }
+export interface PlanRule { price: number; credits: number; models: string[]; defaultModel: string; defaultModels?: Record<ModelPurpose, string> }
 export interface ModelRule { credits: number; enabled: boolean }
 export interface BillingPolicy { version: number; plans: Record<PlanId, PlanRule>; models: Record<string, ModelRule> }
-export interface BillingAccount { plan: PlanId; period: string; renewal: boolean; pendingPlan: PlanId | null; model: string; updatedAt: string }
+export interface BillingAccount { plan: PlanId; period: string; renewal: boolean; pendingPlan: PlanId | null; model: string; models: Record<ModelPurpose, string>; updatedAt: string }
 export interface CreditUsage { id: string; period: string; status: 'held' | 'charged' | 'released'; cost: number; createdAt: string; updatedAt: string; purpose: string; model: string; plan: string; tokens: TokenUsage; reason?: string }
 export interface TokenUsage { input: number | null; output: number | null; total: number | null }
 export interface BillingOrder { id: string; requestId: string; target: PlanId; from: PlanId; amount: number; currency: 'HKD'; status: 'pending' | 'mock-paid' | 'scheduled'; channel: string | null; createdAt: string; paidAt?: string; period: string; effectiveAt: string; credits: number; policyVersion: number; simulation: true }

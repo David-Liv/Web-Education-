@@ -8084,7 +8084,7 @@
     },
     "/billing/model": {
       "put": {
-        "summary": "Select a model allowed by the current plan",
+        "summary": "Select a plan-allowed default for quizzes, conversations or assessment",
         "security": [
           {
             "session": []
@@ -8108,7 +8108,18 @@
                 "type": "object",
                 "properties": {
                   "model": {
-                    "type": "string"
+                    "type": "string",
+                    "pattern": "^pggo-抗截断-",
+                    "description": "Exact provider ID; display labels are not accepted"
+                  },
+                  "purpose": {
+                    "enum": [
+                      "quiz",
+                      "chat",
+                      "evaluation"
+                    ],
+                    "default": "chat",
+                    "description": "Omitted purpose changes conversations only for compatibility"
                   }
                 },
                 "required": [

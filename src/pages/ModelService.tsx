@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { api } from '../api/client';
 import { Badge } from '../components';
 import { useApp } from '../state';
+import { isAllowedModel, modelDisplayName } from '../model-catalog';
 interface SavedModel {
     name: string;
     baseUrl: string;
@@ -50,11 +51,11 @@ export function ModelServiceSettings() {
         setBusy('');
     } }
     const sameService = !!saved && normalUrl(draft.baseUrl) === normalUrl(saved.baseUrl), keySaved = sameService && saved.hasKey && !draft.clearKey;
-    const validService = !!draft.baseUrl.trim(), validSelection = validService && !!draft.model.trim();
+    const validService = !!draft.baseUrl.trim(), validSelection = validService && isAllowedModel(draft.model.trim());
     if (loading)
         return <section className="card pilot-card"><p role="status">{ui("正在讀取全站模型設定…")}</p></section>;
     return <section className="card pilot-card model-service"><div className="row-between"><h2>{ui("共用 AI 服務")}</h2><Badge tone={saved?.enabled && saved.model ? 'green' : 'amber'}>{saved?.enabled && saved.model ? ui("已啟用") : ui("尚未啟用")}</Badge></div>
-  <div className="model-active" aria-label={ui("目前全站模型")}><strong>{ui("全部使用者共用服務地址及密鑰")}</strong><p>{saved?.enabled && saved.model ? `${saved.name} · ${saved.model}` : ui("尚未啟用模型。學生仍可使用固定練習。")}</p>{saved?.model && !saved.enabled && <small>{ui("已保存的模型：{0}（停用中）", [saved.model])}</small>}<p className="small muted">{ui("這裡設定共用連線與管理測試模型。學生實際使用套餐允許的模型，預設模型與單價請到「套餐設定」調整。獲取列表與測試不會更換學生模型。")}</p></div>
+  <div className="model-active" aria-label={ui("目前全站模型")}><strong>{ui("全部使用者共用服務地址及密鑰")}</strong><p>{saved?.enabled && saved.model ? `${saved.name} · ${modelDisplayName(saved.model)}` : ui("尚未啟用模型。學生仍可使用固定練習。")}</p>{saved?.model && !saved.enabled && <small>{ui("已保存的模型：{0}（停用中）", [modelDisplayName(saved.model)])}</small>}<p className="small muted">{ui("這裡設定共用連線與管理測試模型。學生實際使用套餐允許的模型，預設模型與單價請到「套餐設定」調整。獲取列表與測試不會更換學生模型。")}</p></div>
   <fieldset className="model-settings-fields" disabled={!!busy}><div className="form-grid">
    <label className="field"><span>{ui("服務名稱")}</span><input value={draft.name} maxLength={80} onChange={e => edit({ name: e.target.value })}/></label>
    <label className="field"><span>API Base URL</span><input type="url" value={draft.baseUrl} onChange={e => edit({ baseUrl: e.target.value })} placeholder={ui("https://你的提供方/v1")} autoComplete="off"/></label>
@@ -64,7 +65,7 @@ export function ModelServiceSettings() {
   <div className="pilot-actions"><button className="btn secondary" disabled={!!busy || !validService} onClick={() => void run('models', async () => { const result = await api<{
         models: string[];
     }>('/admin/model/models', 'POST', { config: draft }); setModels(result.models); setNotice(`已取得 ${result.models.length} 個模型。請選擇一個；沒有自動測試或啟用任何模型。`); })}>{busy === 'models' ? ui("正在獲取…") : ui("獲取模型列表")}</button><span className="small muted">{ui("只取得清單，不逐一呼叫模型生成內容。")}</span></div>
-  <label className="field"><span>{ui("選擇管理測試模型")}</span><select value={draft.model} onChange={e => edit({ model: e.target.value, enabled: !!e.target.value })}><option value="">{ui("請選擇模型")}</option>{draft.model && !models.includes(draft.model) && <option value={draft.model}>{ui("目前／手填：{0}", [draft.model])}</option>}{models.map(id => <option key={id} value={id}>{id}</option>)}</select></label>
+  <label className="field"><span>{ui("選擇管理測試模型")}</span><select value={draft.model} onChange={e => edit({ model: e.target.value, enabled: !!e.target.value })}><option value="">{ui("請選擇模型")}</option>{draft.model && !models.includes(draft.model) && <option value={draft.model}>{ui("目前／手填：{0}", [modelDisplayName(draft.model)])}</option>}{models.filter(isAllowedModel).map(id => <option key={id} value={id}>{modelDisplayName(id)}</option>)}</select></label>
   <details className="model-manual"><summary>{ui("清單沒有需要的模型？手動填入 Model ID")}</summary><label className="field"><span>{ui("手動 Model ID")}</span><input value={draft.model} maxLength={200} onChange={e => edit({ model: e.target.value, enabled: !!e.target.value.trim() })}/></label></details>
   <label className="checkbox-label"><input type="checkbox" checked={draft.enabled} onChange={e => edit({ enabled: e.target.checked })}/>{ui("啟用共用 AI 服務")}</label>
   {sameService && saved.hasKey && <label className="checkbox-label"><input type="checkbox" checked={draft.clearKey} onChange={e => edit({ clearKey: e.target.checked })}/>{ui("套用時清除已保存的 API Key")}</label>}

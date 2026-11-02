@@ -12,6 +12,21 @@ import { exportCloud, restoreCloud } from './cloud-data.ts';
 const databaseUrl=process.env.HOKSE_CHECK_DATABASE_URL!;
 if(!databaseUrl||new URL(databaseUrl).hostname!=='127.0.0.1'||!new URL(databaseUrl).pathname.startsWith('/hokse_check'))throw new Error('Use isolated localhost hokse_check database only.');
 const encryptionKey=process.env.HOKSE_CHECK_ENCRYPTION_KEY!;
+
+test('PostgreSQL preserves separate purpose choices across instances and concurrent saves',async()=>{
+  const first=new Store(':memory:',{databaseUrl,encryptionKey});await first.ready;
+  const second=new Store(':memory:',{databaseUrl,encryptionKey});await second.ready;
+  try {
+    const user=await first.createUser('routing-student','fixture-password','Routing fixture','student');
+    const a=new Billing(first),b=new Billing(second);
+    await a.adminAccount(user.id,user.id,'Pro');
+    await Promise.all([a.selectModel(user.id,defaults[0],'quiz'),b.selectModel(user.id,defaults[1],'evaluation')]);
+    const expected={quiz:defaults[0],chat:defaults[2],evaluation:defaults[1]};
+    assert.deepEqual((await a.view(user.id)).account.models,expected);
+    assert.deepEqual((await b.view(user.id)).account.models,expected);
+    assert.equal((await b.view(user.id)).spent,0);
+  } finally {await first.close();await second.close()}
+});
 test('PostgreSQL serializes cross-instance credits, atomically saves learning/charge, and restores all new tables plus legacy archives',async()=>{
   const first=new Store(':memory:',{databaseUrl,encryptionKey});await first.ready;const second=new Store(':memory:',{databaseUrl,encryptionKey});await second.ready;
   const owner=await first.createUser('billing-owner','fixture-password','Fixture owner','developer');const a=new Billing(first),b=new Billing(second);const p=await a.policy();p.plans.Free.credits=2;await a.updatePolicy(owner.id,p);

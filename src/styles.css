@@ -61,3 +61,10 @@ html[lang=en] .pilot-card .row-between>.btn{flex-shrink:0}
 .billing-page,.billing-admin{grid-template-columns:minmax(0,1fr)}.billing-page>section,.billing-admin>section{min-width:0}.billing-simulation>div{min-width:0}.billing-page .row-between{flex-wrap:wrap;gap:12px}.usage-panel{min-width:0}
 
 .usage-table th:last-child,.usage-table td:last-child{position:sticky;right:0;background:#fff;box-shadow:-5px 0 8px #283c3508}.usage-table th:last-child{background:#f4f6f3}
+.billing-model-defaults { border: 0; padding: 0; margin: 24px 0 16px; min-width: 0; }
+.billing-model-defaults legend { font-weight: 600; margin-bottom: 8px; }
+.billing-model-defaults .form-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.billing-model-defaults .field { min-width: 0; }
+.billing-model-defaults select { width: 100%; }
+.billing-model-defaults .field small { line-height: 1.5; }
+@media (max-width: 900px) { .billing-model-defaults .form-grid { grid-template-columns: 1fr; } }

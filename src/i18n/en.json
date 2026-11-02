@@ -2161,5 +2161,15 @@
   "日誌不存在或已過保留期": "Log not found or retention period expired.",
   "此功能僅供管理員使用": "This feature is for administrators only.",
   "找不到此套餐接口": "Billing endpoint not found.",
-  "缺少 AI 操作請求 ID": "An AI operation request ID is required."
+  "缺少 AI 操作請求 ID": "An AI operation request ID is required.",
+  "測驗預設模型": "Default model for quizzes",
+  "普通對話預設模型": "Default model for conversations",
+  "評估預設模型": "Default model for assessment",
+  "按用途分別保存預設模型；更改一項不會更改其他項。": "Save a separate default for each purpose. Changing one does not change the others.",
+  "獨立測驗出題（包括內部檢查與返工）": "Independent quiz generation, including internal checks and repairs",
+  "聊天、導讀、隨堂練習及計劃講解": "Conversations, guided reading, quick exercises and plan explanations",
+  "作答評估、批改及錯因分析": "Answer assessment, marking and error analysis",
+  "只可使用抗截斷模型；此模型不可用": "Only approved anti-truncation models are allowed. This model is unavailable.",
+  "請選擇有效的模型用途": "Select a valid model purpose.",
+  "請為每個用途選擇套餐允許的預設模型": "Choose a plan-allowed default model for each purpose."
 }

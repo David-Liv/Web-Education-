@@ -60,7 +60,7 @@ route('/admin/grading','post','Record manual scoring, critical conditions and re
 route('/admin/grading/attachments/{id}','get','Reviewer reads only an attachment on a currently pending answer',null);
 const plan={enum:['Free','Plus','Pro']};
 route('/billing','get','Own plan, HK monthly balance, recent operations and simulated orders; no provider secrets',null);
-route('/billing/model','put','Select a model allowed by the current plan',obj({model:str},['model']));
+route('/billing/model','put','Select a plan-allowed default for quizzes, conversations or assessment',obj({model:{type:'string',pattern:'^pggo-抗截断-',description:'Exact provider ID; display labels are not accepted'},purpose:{enum:['quiz','chat','evaluation'],default:'chat',description:'Omitted purpose changes conversations only for compatibility'}},['model']));
 route('/billing/subscription','post','Cancel renewal at month end or restore/undo a scheduled change',obj({action:{enum:['cancel','restore']}},['action']));
 route('/billing/orders','post','Create an owned idempotent simulated order with server-side prorated amount',obj({target:plan,requestId:str},['target','requestId']));
 route('/billing/orders/{id}/pay','post','Mock-only provider: immediately succeed without collecting payment details or calling AI',obj({channel:{enum:['mock-card','mock-alipay','mock-fps']}},['channel']));

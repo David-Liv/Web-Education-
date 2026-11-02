@@ -231,7 +231,7 @@ export function createPilot(options:Options={}){
           let existing=chat.messages.find(m=>m.requestId===requestId&&m.role==='assistant');
           if(existing?.status==='complete'){res.writeHead(200,{'Content-Type':'text/event-stream','Cache-Control':'no-store'});res.end(`event: delta\ndata: ${JSON.stringify({text:existing.content})}\n\nevent: done\ndata: ${JSON.stringify({id:existing.id})}\n\n`);return}
           if(!config.enabled||!config.model)reject('開發者尚未啟用模型或選擇模型 ID',503,'MODEL_NOT_CONFIGURED');
-          await beginProvider(config);
+          config=(await beginProvider(config)).config;
           const assistantId=existing?.id??crypto.randomUUID();
           (await change(data=>{for(const q of data.quizzes.filter(q=>!q.submittedAt&&q.topicIds.includes(chat.topicId)))for(const questionId of q.questionIds)data.assists.push({questionId,quizId:q.id,kind:'chat-assistance',at:new Date().toISOString()});const c=findChat(data);if(!c.messages.some(m=>m.requestId===requestId&&m.role==='user'))c.messages.push({id:crypto.randomUUID(),role:'user',content,status:'complete',attachmentIds:attachments,requestId});const a=c.messages.find(m=>m.id===assistantId);if(a){a.content='';a.status='streaming'}else c.messages.push({id:assistantId,role:'assistant',content:'',status:'streaming',requestId});c.updatedAt=new Date().toISOString();}));
           let done=false;
