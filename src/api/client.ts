@@ -3,7 +3,13 @@ import type { Catalog, Database, DailyReview, PublicQuestion, Quiz } from '../ty
 const base=import.meta.env.VITE_API_BASE_URL??'/api/v1';
 export class ApiError extends Error{constructor(message:string,public code:string,public status:number){super(message)}}
 export const realMode=import.meta.env.VITE_API_MODE==='real';
-export async function api<T=any>(path:string,method='GET',body?:unknown,signal?:AbortSignal):Promise<T>{const result=await fetch(base+path,{method,credentials:'same-origin',headers:{...(body?{'Content-Type':'application/json'}:{}),'X-Hokse-Client':'1'},body:body?JSON.stringify(body):undefined,signal});const data=await result.json();if(!result.ok){if(result.status===401&&realMode&&!path.startsWith('/auth/'))window.dispatchEvent(new Event('hokse:unauthorized'));throw new ApiError(ui(data.error?.message??'暫時未能完成操作，請再試一次'),data.error?.code??'UNKNOWN',result.status)}return data;}
+const pendingAI=new Map<string,string>();
+function operationKey(path:string,body:unknown){
+  if(!realMode||!(/\/test$|\/analyse$|\/explain$|\/submit$/.test(path)||path==='/studio/quizzes'))return '';
+  const signature=path+JSON.stringify(body);let code=2166136261;for(const c of signature)code=Math.imul(code^c.charCodeAt(0),16777619);
+  const storage='hokse.ai.pending.'+(code>>>0).toString(16);let id=pendingAI.get(signature)??sessionStorage.getItem(storage)??crypto.randomUUID();pendingAI.set(signature,id);sessionStorage.setItem(storage,id);return {id,signature,storage};
+}
+export async function api<T=any>(path:string,method='GET',body?:unknown,signal?:AbortSignal):Promise<T>{const operation=method==='POST'?operationKey(path,body):'';const result=await fetch(base+path,{method,credentials:'same-origin',headers:{...(body?{'Content-Type':'application/json'}:{}),'X-Hokse-Client':'1',...(operation?{'X-Hokse-Request-ID':operation.id}:{})},body:body?JSON.stringify(body):undefined,signal});const data=await result.json();if(!result.ok){if(result.status===401&&realMode&&!path.startsWith('/auth/'))window.dispatchEvent(new Event('hokse:unauthorized'));throw new ApiError(ui(data.error?.message??'暫時未能完成操作，請再試一次'),data.error?.code??'UNKNOWN',result.status)}if(operation){pendingAI.delete(operation.signature);sessionStorage.removeItem(operation.storage)}return data;}
 export const getBootstrap=()=>api<Database>('/bootstrap');
 export const getCatalog=()=>api<Catalog>('/catalog');
 export const getDailyReview=()=>api<DailyReview>('/daily-review');

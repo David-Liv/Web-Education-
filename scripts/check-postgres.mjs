@@ -17,7 +17,8 @@ try{
  const port=docker(['port',name,'5432/tcp']).split(':').at(-1),encryptionKey=randomBytes(32).toString('base64');
  docker(['exec',name,'createdb','-U','postgres','hokse_check_race']);
  docker(['exec',name,'createdb','-U','postgres','hokse_check_restore']);
- for(const [database,file] of [['hokse_check_suite','server/pilot.check.ts'],['hokse_check_store','server/postgres.check.ts']]){
+ for(const database of ['hokse_check_billing_restore','hokse_check_billing_legacy'])docker(['exec',name,'createdb','-U','postgres',database]);
+ for(const [database,file] of [['hokse_check_suite','server/pilot.check.ts'],['hokse_check_store','server/postgres.check.ts'],['hokse_check_billing','server/billing-postgres.check.ts']]){
   if(database!=='hokse_check_suite')docker(['exec',name,'createdb','-U','postgres',database]);
   const result=spawnSync(process.execPath,['--test',file],{stdio:'inherit',windowsHide:true,env:{...process.env,HOKSE_CHECK_DATABASE_URL:`postgresql://postgres:${password}@127.0.0.1:${port}/${database}`,HOKSE_CHECK_ENCRYPTION_KEY:encryptionKey}});
   if(result.status)throw new Error(`PostgreSQL checks failed: ${file}`);

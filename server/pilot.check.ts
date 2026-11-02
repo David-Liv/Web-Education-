@@ -10,11 +10,12 @@ import { packCSV, packFromCSV } from './csv.ts';
 import { validatePack } from '../src/pilot-rules.ts';
 import { dailyCapacity, hasConflict } from '../src/domain.ts';
 import { reconcileToday } from './planner.ts';
+import { Billing } from './billing.ts';
 import { newState } from './store.ts';
 
 const password='fixture-password-123';
 const app=createPilot({database:':memory:',databaseUrl:process.env.HOKSE_CHECK_DATABASE_URL,encryptionKey:process.env.HOKSE_CHECK_ENCRYPTION_KEY});let base='',admin='',reviewer='';
-async function call(path:string,cookie='',method='GET',body?:unknown){const r=await fetch(base+'/api/v1'+path,{method,headers:{'X-Hokse-Client':'1',...(cookie?{Cookie:cookie}:{}),...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify(body):undefined});const data=await r.json();return {status:r.status,data,cookie:r.headers.get('set-cookie')?.split(';')[0]??''}}
+async function call(path:string,cookie='',method='GET',body?:unknown){const r=await fetch(base+'/api/v1'+path,{method,headers:{'X-Hokse-Client':'1','X-Hokse-Request-ID':crypto.randomUUID(),...(cookie?{Cookie:cookie}:{}),...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify(body):undefined});const data=await r.json();return {status:r.status,data,cookie:r.headers.get('set-cookie')?.split(';')[0]??''}}
 async function student(){const username='s'+crypto.randomUUID().slice(0,8);const r=await call('/admin/users',admin,'POST',{username,name:'測試學生',password,role:'student'});assert.equal(r.status,201);const login=await call('/auth/login','','POST',{username,password});assert.equal(login.status,200);return {cookie:login.cookie,id:r.data.id}}
 async function quiz(cookie:string,input:any={}){const r=await call('/quizzes',cookie,'POST',{subjectId:'maths',topicIds:['maths-quadratic'],kind:'diagnostic',count:5,...input});assert.equal(r.status,201,JSON.stringify(r.data));return r.data}
 async function answersFor(q:any,correct=true){const original=(await app.store.packs()).flatMap(p=>p.questions);return Object.fromEntries(q.questions.map((item:any)=>[item.id,{value:correct?original.find(x=>x.id===item.id)!.answer:'999999',hinted:false}]))}
@@ -149,6 +150,7 @@ test('configured provider is actually fetched, keys stay server-side, chat reque
     assert.equal((await call('/admin/model',admin,'PUT',{name:'本機測試服務',baseUrl:`http://127.0.0.1:${port}/v1`,apiKey:'test-only-key',model:'fixture-model',protocol:'openai-chat',enabled:true})).status,200);
     const models=await call('/admin/model/models',admin,'POST',{});assert.deepEqual(models.data.models,['fixture-model']);
     assert.equal((await call('/admin/model/test',admin,'POST',{})).data.ok,true);assert.ok(!JSON.stringify((await call('/admin/model',admin)).data).includes('test-only-key'));
+    const billing=new Billing(app.store),p=await billing.policy();p.models['fixture-model']={credits:2,enabled:true};p.plans.Free.models=['fixture-model'];p.plans.Free.defaultModel='fixture-model';await billing.updatePolicy('fixture',p);
     const {cookie}=await student(),chat=(await call('/chats',cookie,'POST',{topicId:'maths-quadratic'})).data,requestId=crypto.randomUUID();
     const first=await fetch(base+`/api/v1/chats/${chat.id}/messages`,{method:'POST',headers:{Cookie:cookie,'X-Hokse-Client':'1','Content-Type':'application/json'},body:JSON.stringify({content:'請解釋判別式',requestId})});assert.equal(first.status,200);assert.match(await first.text(),/event: done/);
     const before=calls;const repeat=await fetch(base+`/api/v1/chats/${chat.id}/messages`,{method:'POST',headers:{Cookie:cookie,'X-Hokse-Client':'1','Content-Type':'application/json'},body:JSON.stringify({content:'請解釋判別式',requestId})});assert.match(await repeat.text(),/event: done/);assert.equal(calls,before);
@@ -164,7 +166,7 @@ test('provider failure is explicit, Responses adapter works, and stopping preser
   try{const baseUrl=`http://127.0.0.1:${(provider.address() as any).port}/v1`;
     await call('/admin/model',admin,'PUT',{baseUrl,model:'unavailable',protocol:'openai-chat',enabled:true});const failure=await call('/admin/model/test',admin,'POST',{});assert.equal(failure.status,502);assert.match(failure.data.error.message,/限額/);
     await call('/admin/model',admin,'PUT',{baseUrl,model:'responses-fixture',protocol:'openai-responses',enabled:true});assert.equal((await call('/admin/model/test',admin,'POST',{})).data.ok,true);
-    await call('/admin/model',admin,'PUT',{baseUrl,model:'slow',protocol:'openai-chat',enabled:true});const {cookie}=await student(),chat=(await call('/chats',cookie,'POST',{topicId:'maths-quadratic'})).data;
+    await call('/admin/model',admin,'PUT',{baseUrl,model:'slow',protocol:'openai-chat',enabled:true});const billing=new Billing(app.store),p=await billing.policy();p.models.slow={credits:2,enabled:true};p.plans.Free.models=['slow'];p.plans.Free.defaultModel='slow';await billing.updatePolicy('fixture',p);const {cookie}=await student(),chat=(await call('/chats',cookie,'POST',{topicId:'maths-quadratic'})).data;
     const requestId=crypto.randomUUID(),controller=new AbortController(),running=fetch(base+`/api/v1/chats/${chat.id}/messages`,{method:'POST',headers:{Cookie:cookie,'X-Hokse-Client':'1','Content-Type':'application/json'},body:JSON.stringify({content:'停止測試',requestId}),signal:controller.signal}).catch(()=>null);
     for(let n=0;n<20;n++){if((await call('/bootstrap',cookie)).data.chats[0].messages.length===2)break;await new Promise(r=>setTimeout(r,10))}
     assert.equal((await call(`/chats/${chat.id}/stop`,cookie,'POST',{})).status,200);controller.abort();await running;

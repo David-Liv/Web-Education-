@@ -8,6 +8,7 @@ import type { ContentPack, Cycle, ErrorCase, Identity, PilotEvidence, Role, Vers
 import { initialPacks } from './content.ts';
 import { hkToday, buildWeekGoals } from '../src/domain.ts';
 import type { StudioState } from './studio-state.ts';
+import { checkpointUsage } from './billing.ts';
 
 export interface PrivateQuiz extends Quiz { snapshot: ContentPack['questions']; blueprints?:Pick<ContentPack,'id'|'version'|'topicId'|'skills'>[]; contentVersions:string[]; purpose:'formal'|'practice'; manualContinue?:boolean; response?:unknown; independence?:Record<string,boolean> }
 export interface StudentState extends Omit<Database,'quizzes'|'evidence'|'studio'> {
@@ -46,6 +47,20 @@ export class Store {
       CREATE TABLE IF NOT EXISTS previews(id TEXT PRIMARY KEY,user_id TEXT REFERENCES users(id),body TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS files(id TEXT PRIMARY KEY,user_id TEXT REFERENCES users(id),name TEXT,type TEXT,data ${this.db.kind==='postgres'?'BYTEA':'BLOB'} NOT NULL);
       CREATE TABLE IF NOT EXISTS settings(id TEXT PRIMARY KEY,body TEXT NOT NULL);`);
+    await this.db.exec(`CREATE TABLE IF NOT EXISTS billing_accounts(user_id TEXT PRIMARY KEY REFERENCES users(id),body TEXT NOT NULL);
+      CREATE TABLE IF NOT EXISTS credit_operations(id TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id),period TEXT NOT NULL,status TEXT NOT NULL,created_at TEXT NOT NULL,body TEXT NOT NULL);
+      CREATE INDEX IF NOT EXISTS credit_user_period ON credit_operations(user_id,period,status);
+      CREATE TABLE IF NOT EXISTS billing_orders(id TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id),request_key TEXT NOT NULL,status TEXT NOT NULL,created_at TEXT NOT NULL,body TEXT NOT NULL,UNIQUE(user_id,request_key));
+      CREATE INDEX IF NOT EXISTS orders_user_date ON billing_orders(user_id,created_at);
+      CREATE TABLE IF NOT EXISTS billing_audit(id TEXT PRIMARY KEY,actor_id TEXT NOT NULL,created_at TEXT NOT NULL,body TEXT NOT NULL);
+      CREATE TABLE IF NOT EXISTS ai_usage_logs(id TEXT PRIMARY KEY,user_id TEXT NOT NULL REFERENCES users(id),operation_id TEXT NOT NULL,started_at TEXT NOT NULL,status TEXT NOT NULL,body TEXT NOT NULL,content TEXT NOT NULL);
+      CREATE INDEX IF NOT EXISTS usage_date ON ai_usage_logs(started_at);
+      CREATE INDEX IF NOT EXISTS usage_operation ON ai_usage_logs(operation_id);
+      INSERT INTO migrations VALUES(2) ON CONFLICT DO NOTHING;`);
+    if(this.db.kind==='postgres'){
+      await this.db.exec('ALTER TABLE billing_accounts ENABLE ROW LEVEL SECURITY; ALTER TABLE credit_operations ENABLE ROW LEVEL SECURITY; ALTER TABLE billing_orders ENABLE ROW LEVEL SECURITY; ALTER TABLE billing_audit ENABLE ROW LEVEL SECURITY; ALTER TABLE ai_usage_logs ENABLE ROW LEVEL SECURITY; REVOKE ALL ON billing_accounts,credit_operations,billing_orders,billing_audit,ai_usage_logs FROM PUBLIC;');
+      for(const role of ['anon','authenticated'])if(await this.db.prepare('SELECT 1 FROM pg_roles WHERE rolname=?').get(role))await this.db.exec(`REVOKE ALL ON billing_accounts,credit_operations,billing_orders,billing_audit,ai_usage_logs FROM ${role}`);
+    }
     const legacyModel=await this.db.prepare("SELECT body FROM settings WHERE id='model'").get();
     if(legacyModel)try{this.decrypt(JSON.parse(legacyModel.body).secret)}catch{throw new Error('資料庫密鑰不匹配，拒絕啟動；請恢復原有 HOKSE_ENCRYPTION_KEY／secret.key。')}
     await this.db.prepare('INSERT INTO settings VALUES(?,?) ON CONFLICT DO NOTHING').run('encryption-check',this.seal('hokse-key-v1',randomBytes(12)));
@@ -70,13 +85,14 @@ export class Store {
   async identity(token:string):Promise<Identity|null>{const row=await this.db.prepare('SELECT u.id,u.username,u.name,u.role FROM users u JOIN sessions s ON s.user_id=u.id WHERE s.token=? AND s.expires>?').get(digest(token),Date.now());return row as Identity??null}
   async logout(token:string){await this.db.prepare('DELETE FROM sessions WHERE token=?').run(digest(token))}
   async state(userId:string):Promise<StudentState>{const lock=this.db.kind==='postgres'&&this.db.inTransaction()?' FOR UPDATE':'';const row=await this.db.prepare('SELECT body FROM students WHERE user_id=?'+lock).get(userId);if(!row)throw new Error('Student missing');const data=JSON.parse(row.body);data.profile.date=hkToday();return data}
-  async save(userId:string,state:StudentState){state.weeks=buildWeekGoals(state.tasks,state.profile.date);const expected=state.revision,next=expected+1;const result=await this.db.prepare('UPDATE students SET body=?,revision=? WHERE user_id=? AND revision=?').run(JSON.stringify({...state,revision:next}),next,userId,expected);if(result.changes!==1)throw Object.assign(new Error('資料版本衝突，請重新載入'),{status:409,code:'STALE_STATE'});state.revision=next}
+  async save(userId:string,state:StudentState):Promise<void>{if(!this.db.inTransaction())return this.transaction(()=>this.save(userId,state));state.weeks=buildWeekGoals(state.tasks,state.profile.date);const expected=state.revision,next=expected+1;const result=await this.db.prepare('UPDATE students SET body=?,revision=? WHERE user_id=? AND revision=?').run(JSON.stringify({...state,revision:next}),next,userId,expected);if(result.changes!==1)throw Object.assign(new Error('資料版本衝突，請重新載入'),{status:409,code:'STALE_STATE'});await checkpointUsage(this,userId);state.revision=next}
   async packs(publishedOnly=false):Promise<ContentPack[]>{const rows=await this.db.prepare('SELECT body FROM packs ORDER BY id,version DESC').all();return rows.map(r=>JSON.parse(r.body) as ContentPack).filter(p=>!publishedOnly||p.status==='published')}
   async latestPacks(publishedOnly=true){const seen=new Set<string>();return (await this.packs(publishedOnly)).filter(p=>{if(seen.has(p.id))return false;seen.add(p.id);return true})}
   async putPack(pack:ContentPack){await this.db.prepare('INSERT INTO packs VALUES(?,?,?) ON CONFLICT(id,version) DO UPDATE SET body=excluded.body').run(pack.id,pack.version,JSON.stringify(pack))}
   async putPreview(userId:string,preview:VersionedPreview){await this.db.prepare('INSERT INTO previews VALUES(?,?,?)').run(preview.previewId,userId,JSON.stringify(preview))}
   async preview(userId:string,id:string):Promise<VersionedPreview|null>{const row=await this.db.prepare('SELECT body FROM previews WHERE id=? AND user_id=?').get(id,userId);return row?JSON.parse(row.body):null}
   private seal(value:string,iv:Buffer){const c=createCipheriv('aes-256-gcm',this.key,iv);const encrypted=Buffer.concat([c.update(value,'utf8'),c.final()]);return Buffer.concat([iv,c.getAuthTag(),encrypted]).toString('base64')}
+  encrypt(value:string){return this.seal(value,randomBytes(12))}
   decrypt(value:string){const buf=Buffer.from(value,'base64'),d=createDecipheriv('aes-256-gcm',this.key,buf.subarray(0,12));d.setAuthTag(buf.subarray(12,28));return Buffer.concat([d.update(buf.subarray(28)),d.final()]).toString('utf8')}
   async model():Promise<ModelConfig|null>{const row=await this.db.prepare("SELECT body FROM settings WHERE id='model'").get();if(!row)return null;const value=JSON.parse(row.body);value.secret=this.decrypt(value.secret);return value}
   async putModel(config:ModelConfig){const value={...config,secret:this.seal(config.secret,randomBytes(12))};await this.db.prepare("INSERT INTO settings VALUES('model',?) ON CONFLICT(id) DO UPDATE SET body=excluded.body").run(JSON.stringify(value))}

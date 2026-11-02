@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {createServer} from 'node:http';
 import {createPilot} from './app.ts';
 import {units} from './studio-state.ts';
+import {Billing, initialPolicy} from './billing.ts';
 import type {Identity} from '../src/pilot-types.ts';
 
 async function fixture(){
@@ -12,7 +13,8 @@ async function fixture(){
  const app=createPilot({database:':memory:',allowSetup:false});const base=`http://127.0.0.1:${await app.listen(0)}`;
  const accounts:{user:Identity;cookie:string}[]=[];for(const [username,role] of [['owner','developer'],['student_a','student'],['student_b','student'],['reviewer','reviewer']] as const){const user=await app.store.createUser(username,'fixture-password-123',username,role);accounts.push({user,cookie:`hokse_session=${await app.store.session(user)}`})}
  const config={id:'default',name:'Fixture global provider',baseUrl:upstream,secret:'fixture-provider-key',model:'old-model',protocol:'openai-chat' as const,enabled:true,tested:{at:'2026-01-01T00:00:00Z',model:'old-model',ok:true},models:['old-model']};await app.store.putModel(config);
- async function call(path:string,cookie=accounts[0].cookie,method='GET',body?:unknown){const r=await fetch(base+'/api/v1'+path,{method,headers:{'X-Hokse-Client':'1',Cookie:cookie,...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify(body):undefined});return {status:r.status,data:r.headers.get('content-type')?.includes('text/event-stream')?await r.text():await r.json()}}
+ const policy=initialPolicy();policy.models['old-model']={credits:2,enabled:true};policy.models['new-model']={credits:5,enabled:true};policy.plans.Free.models=['old-model','new-model'];policy.plans.Free.defaultModel='old-model';await new Billing(app.store).updatePolicy(accounts[0].user.id,policy);
+ async function call(path:string,cookie=accounts[0].cookie,method='GET',body?:unknown){const r=await fetch(base+'/api/v1'+path,{method,headers:{'X-Hokse-Client':'1','X-Hokse-Request-ID':crypto.randomUUID(),Cookie:cookie,...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify(body):undefined});return {status:r.status,data:r.headers.get('content-type')?.includes('text/event-stream')?await r.text():await r.json()}}
  return {app,upstream,calls,accounts,call,draft:{name:config.name,baseUrl:upstream,apiKey:'',model:'new-model',protocol:config.protocol,enabled:true},close:async()=>{await app.close();await new Promise<void>((r,j)=>provider.close(e=>e?j(e):r()))}};
 }
 
@@ -27,11 +29,11 @@ test('model discovery and selected-model tests use drafts without activating the
  }finally{await f.close()}
 });
 
-test('applying one global model updates new chat requests for every student and preserves old messages',async()=>{
+test('provider configuration is shared while each student chooses a plan-allowed model and history retains snapshots',async()=>{
  const f=await fixture();try{
   const chats=[];for(const actor of f.accounts.slice(1,3)){const chat=await f.call('/chats',actor.cookie,'POST',{topicId:units[0].topicId,mode:'explain'});assert.equal(chat.status,201);chats.push({actor,id:chat.data.id});const old=await f.call(`/chats/${chat.data.id}/messages`,actor.cookie,'POST',{content:'Fixture question',requestId:crypto.randomUUID(),model:'student-override'});assert.match(old.data,/old-model/)}
   const applied=await f.call('/admin/model',undefined,'PUT',f.draft);assert.equal(applied.status,200);assert.equal(applied.data.model,'new-model');assert.equal(applied.data.tested,undefined);
-  for(const c of chats){const next=await f.call(`/chats/${c.id}/messages`,c.actor.cookie,'POST',{content:'A new fixture question',requestId:crypto.randomUUID(),model:'student-override'});assert.match(next.data,/new-model/);const state=(await f.call('/bootstrap',c.actor.cookie)).data;const history=JSON.stringify(state.chats.find((x:any)=>x.id===c.id));assert.match(history,/old-model/);assert.match(history,/new-model/)}
+  for(const c of chats){assert.equal((await f.call('/billing',c.actor.cookie)).data.account.model,'old-model');assert.equal((await f.call('/billing/model',c.actor.cookie,'PUT',{model:'student-override'})).status,403);assert.equal((await f.call('/billing/model',c.actor.cookie,'PUT',{model:'new-model'})).status,200);const next=await f.call(`/chats/${c.id}/messages`,c.actor.cookie,'POST',{content:'A new fixture question',requestId:crypto.randomUUID(),model:'student-override'});assert.match(next.data,/new-model/);const state=(await f.call('/bootstrap',c.actor.cookie)).data;const history=JSON.stringify(state.chats.find((x:any)=>x.id===c.id));assert.match(history,/old-model/);assert.match(history,/new-model/)}
   assert.deepEqual(f.calls.filter(c=>c.model).map(c=>c.model),['old-model','old-model','new-model','new-model']);
  }finally{await f.close()}
 });

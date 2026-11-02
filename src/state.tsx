@@ -6,7 +6,9 @@ import type { ReactNode } from 'react';
 import type { Catalog, Database } from './types';
 import { api, getBootstrap, getCatalog, realMode } from './api/client';
 import { Login } from './Login';
+import type { BillingView } from './billing-types';
 interface AppState {
+    billing?: BillingView;
     db: Database;
     catalog: Catalog;
     refresh: () => Promise<void>;
@@ -22,6 +24,7 @@ export function AppProvider({ children }: {
     const interfaceLanguage=useInterfaceLanguage();
     const [db, setDb] = useState<Database>();
     const [catalog, setCatalog] = useState<Catalog>();
+    const [billing, setBilling] = useState<BillingView>();
     const [error, setError] = useState('');
     const [auth, setAuth] = useState<{
         setup: boolean;
@@ -33,7 +36,7 @@ export function AppProvider({ children }: {
         type: string;
     }[]>([]);
     const toast = useCallback((message: string, type = 'success') => { const id = Date.now() + Math.random(); setToasts(t => [...t.slice(-2), { id, message, type }]); setTimeout(() => setToasts(t => t.filter(x => x.id !== id)), 4200); }, []);
-    const refresh = useCallback(async () => { const [d, c] = await Promise.all([getBootstrap(), getCatalog()]); setDb(d); setCatalog(c); }, []);
+    const refresh = useCallback(async () => { const [d, c, b] = await Promise.all([getBootstrap(), getCatalog(), realMode ? api<BillingView>('/billing') : undefined]); setDb(d); setCatalog(c); setBilling(b); }, []);
     const load = useCallback(async () => { setError(''); try {
         if (realMode) {
             const status = await api('/auth/status');
@@ -45,9 +48,10 @@ export function AppProvider({ children }: {
             }
             setAuth(null);
         }
-        const [d, c] = await Promise.all([getBootstrap(), getCatalog()]);
+        const [d, c, b] = await Promise.all([getBootstrap(), getCatalog(), realMode ? api<BillingView>('/billing') : undefined]);
         setDb(d);
         setCatalog(c);
+        setBilling(b);
     }
     catch (e) {
         setError((e as Error).message);
@@ -70,7 +74,7 @@ export function AppProvider({ children }: {
         return <main className="boot-state"><LanguageSwitch/><img src="/favicon.svg" width="52"/><h1>{ui("暫時未能載入學習工作室")}</h1><p>{ui(error)}</p><button className="btn primary" onClick={() => { localStorage.setItem('hokse.network', 'normal'); setNetworkState('normal'); void load(); }}>{ui("恢復正常連線並重試")}</button></main>;
     if (!db || !catalog)
         return <main className="boot-state"><LanguageSwitch/><img src="/favicon.svg" width="56"/><h1>{ui("把今天的學習，慢慢排好。")}</h1><span className="loading-dots"><i /><i /><i /></span></main>;
-    return <Context.Provider value={{ db, catalog:localizeCatalog(catalog,interfaceLanguage), refresh, mutate, toast, network, setNetwork }}>{children}<div className="toast-stack" aria-live="polite">{toasts.map(t => <div key={t.id} className={`toast ${t.type}`}>{t.type === 'error' ? '!' : '✓'} <span>{ui(t.message)}</span></div>)}</div></Context.Provider>;
+    return <Context.Provider value={{ db, billing, catalog:localizeCatalog(catalog,interfaceLanguage), refresh, mutate, toast, network, setNetwork }}>{children}<div className="toast-stack" aria-live="polite">{toasts.map(t => <div key={t.id} className={`toast ${t.type}`}>{t.type === 'error' ? '!' : '✓'} <span>{ui(t.message)}</span></div>)}</div></Context.Provider>;
 }
 export function useApp() { const value = useContext(Context); if (!value)
     throw new Error('AppProvider missing'); return value; }

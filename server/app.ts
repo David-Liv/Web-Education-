@@ -19,6 +19,8 @@ import type { ContentPack, Identity, VersionedPreview } from '../src/pilot-types
 import type { Task } from '../src/types.ts';
 import { addDays, validateTask } from '../src/domain.ts';
 import { catalog } from '../src/data/catalog.ts';
+import { Billing, beginProvider, finishUsage, usageModel } from './billing.ts';
+import { billingRoutes } from './billing-routes.ts';
 
 interface Options { databaseUrl?:string; encryptionKey?:string; database?:string; staticDir?:string; allowSetup?:boolean; secureCookie?:boolean; origin?:string }
 const MIME:Record<string,string>={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json','.csv':'text/csv; charset=utf-8','.svg':'image/svg+xml','.wav':'audio/wav','.png':'image/png','.woff2':'font/woff2'};
@@ -27,6 +29,7 @@ const active=new Map<string,AbortController>();
 
 export function createPilot(options:Options={}){
   const store=new Store(options.database??resolve('.data/pilot.sqlite'),{databaseUrl:options.databaseUrl,encryptionKey:options.encryptionKey});
+  const billing=new Billing(store);
   const attempts=new Map<string,{n:number;until:number}>();
   const assets=new Map<string,{mtime:number;bytes:Buffer;gzip?:Buffer;etag:string}>();
   function bodyLimit(req:IncomingMessage,max=3*1024*1024):Promise<Buffer>{return new Promise((resolve,reject)=>{const chunks:Buffer[]=[];let size=0;req.on('data',c=>{size+=c.length;if(size>max){reject(Object.assign(new Error('內容超過允許大小'),{status:413}));req.pause();return}chunks.push(c)});req.on('end',()=>resolve(Buffer.concat(chunks)));req.on('error',reject)})}
@@ -77,6 +80,8 @@ export function createPilot(options:Options={}){
       }
       if(!identity)reject('請先登入邀請帳戶',401,'UNAUTHENTICATED');
       if(path==='/auth/logout'&&method==='POST'){(await store.logout(token));cookie('',0);send({ok:true});return}
+      if(await billingRoutes(billing,identity,path,method,input,url.searchParams,send,res))return;
+      const handle=async(send:(data:any,status?:number)=>void)=>{
       const role=(allowed:string[])=>{if(!allowed.includes(identity.role))reject('此功能僅供獲授權的開發者／內容復核者',403,'FORBIDDEN')};
       const change=async <T>(fn:(data:StudentState)=>T|Promise<T>)=>(await store.transaction(async ()=>{const data=(await store.state(identity.id));const result=await fn(data);(await store.save(identity.id,data));return result}));
       const packs=(await store.latestPacks());
@@ -214,7 +219,8 @@ export function createPilot(options:Options={}){
         if(action==='save-summary'&&method==='POST'){send((await change(data=>{const c=findChat(data);if(!c.messages.some(m=>m.role==='assistant'&&m.status==='complete'))reject('請先完成一輪對話');if(!data.events.some(e=>e.sourceUrl===`/learn/${id}`&&e.date===data.profile.date))recordLearning(data,c.topicId,c.title,'chat',10,`/learn/${id}`);return {ok:true}})));return}
         if(action==='messages'&&method==='POST'){
           const content=String(input.content??'').trim();if(!content||content.length>12000)reject('請輸入 1–12000 字元；附件暫供人工查看，請同時寫下問題');
-          const config=(await store.model())??reject('開發者尚未設定 AI；你仍可閱讀教材及完成測驗',503,'MODEL_NOT_CONFIGURED');
+          let config=(await store.model())??reject('開發者尚未設定 AI；你仍可閱讀教材及完成測驗',503,'MODEL_NOT_CONFIGURED');
+          config=await usageModel(config);
           const requestId=String(input.requestId??'');if(!/^[a-zA-Z0-9-]{8,80}$/.test(requestId))reject('缺少有效的訊息請求 ID');
           if(active.has(identity.id+id))reject('此對話仍在生成，請稍候或停止',409);
           const controller=new AbortController();active.set(identity.id+id,controller);
@@ -224,6 +230,8 @@ export function createPilot(options:Options={}){
           const attachments=Array.isArray(input.attachmentIds)?input.attachmentIds:[];if(attachments.some((a:string)=>!state.attachments.some(f=>f.id===a)))reject('附件不屬於此帳戶',404);
           let existing=chat.messages.find(m=>m.requestId===requestId&&m.role==='assistant');
           if(existing?.status==='complete'){res.writeHead(200,{'Content-Type':'text/event-stream','Cache-Control':'no-store'});res.end(`event: delta\ndata: ${JSON.stringify({text:existing.content})}\n\nevent: done\ndata: ${JSON.stringify({id:existing.id})}\n\n`);return}
+          if(!config.enabled||!config.model)reject('開發者尚未啟用模型或選擇模型 ID',503,'MODEL_NOT_CONFIGURED');
+          await beginProvider(config);
           const assistantId=existing?.id??crypto.randomUUID();
           (await change(data=>{for(const q of data.quizzes.filter(q=>!q.submittedAt&&q.topicIds.includes(chat.topicId)))for(const questionId of q.questionIds)data.assists.push({questionId,quizId:q.id,kind:'chat-assistance',at:new Date().toISOString()});const c=findChat(data);if(!c.messages.some(m=>m.requestId===requestId&&m.role==='user'))c.messages.push({id:crypto.randomUUID(),role:'user',content,status:'complete',attachmentIds:attachments,requestId});const a=c.messages.find(m=>m.id===assistantId);if(a){a.content='';a.status='streaming'}else c.messages.push({id:assistantId,role:'assistant',content:'',status:'streaming',requestId});c.updatedAt=new Date().toISOString();}));
           let done=false;
@@ -234,12 +242,20 @@ export function createPilot(options:Options={}){
             const system=`你是香港中學生的耐心導師。依據教材、學習參考與學生文字提供簡明解釋、可檢查步驟及分層提示。錯因不足時寫待確認；不能改成績、掌握度或日曆。正在正式測驗時不代答；使用者要求提示則提醒返回題目提示入口。導讀後可直接附隨堂小題，不用測驗生成格式；不要聲稱教材已由專業審校或看過圖片錄音。語言：${chat.teachingLanguage==='en'?'English':'香港繁體中文'}。教材：${JSON.stringify(pack.lessons)}`;
             const text=await generate(config,[{role:'system',content:system},...chat.messages.filter(m=>m.status==='complete').slice(-10).map(m=>({role:m.role,content:m.content})),{role:'user',content}],controller.signal);
             if(controller.signal.aborted)throw new Error('已停止生成');
-            (await persist(text,'complete'));done=true;res.writeHead(200,{'Content-Type':'text/event-stream','Cache-Control':'no-store'});res.write(`event: start\ndata: ${JSON.stringify({id:assistantId})}\n\n`);for(let n=0;n<text.length;n+=200)res.write(`event: delta\ndata: ${JSON.stringify({text:text.slice(n,n+200)})}\n\n`);res.end(`event: done\ndata: ${JSON.stringify({id:assistantId})}\n\n`);
+            (await persist(text,'complete'));await finishUsage({data:{__sse:{text,id:assistantId}},status:200});done=true;res.writeHead(200,{'Content-Type':'text/event-stream','Cache-Control':'no-store'});res.write(`event: start\ndata: ${JSON.stringify({id:assistantId})}\n\n`);for(let n=0;n<text.length;n+=200)res.write(`event: delta\ndata: ${JSON.stringify({text:text.slice(n,n+200)})}\n\n`);res.end(`event: done\ndata: ${JSON.stringify({id:assistantId})}\n\n`);
           }catch(e){(await persist('','interrupted'));throw e}finally{done=true}return;
           }finally{if(active.get(identity.id+id)===controller)active.delete(identity.id+id)}
         }
       }
       reject('找不到此接口',404,'NOT_FOUND');
+      };
+      const aiRequest=method==='POST'&&(path==='/admin/model/test'||path==='/plans/explain'||/^\/wrong\/[^/]+\/analyse$/.test(path)||/^\/chats\/[^/]+\/messages$/.test(path)||path==='/studio/quizzes'&&input.source==='ai'||/^\/studio\/quizzes\/[^/]+\/submit$/.test(path));
+      if(aiRequest){
+        const key=String(input.requestId??input.previewId??req.headers['x-hokse-request-id']??(/^\/studio\/quizzes\/[^/]+\/submit$/.test(path)?path:''));
+        if(!key||key.length>200)reject('缺少 AI 操作請求 ID',400,'REQUEST_ID_REQUIRED');
+        const controller=new AbortController();res.once('close',()=>{if(!res.writableEnded)controller.abort()});
+        await billing.run(identity,path,input,key,AbortSignal.any([controller.signal,AbortSignal.timeout(90000)]),handle,(data,status)=>{if(data?.__sse){res.writeHead(status,{'Content-Type':'text/event-stream','Cache-Control':'no-store'});res.end(`event: delta\ndata: ${JSON.stringify({text:data.__sse.text})}\n\nevent: done\ndata: ${JSON.stringify({id:data.__sse.id})}\n\n`)}else send(data,status)});
+      }else await handle(send);
     }catch(e){const error=e as Error&{status?:number;code?:string};const status=error.status??500;send({error:{code:error.code??(status===500?'INTERNAL_ERROR':'INVALID_REQUEST'),message:status===500?'操作未完成，請重試；如持續出現請聯絡開發者':error.message}},status)}
   });
   return {server,store,async listen(port=3001,host='127.0.0.1'){await store.ready;await new Promise<void>(resolve=>server.listen(port,host,resolve));return (server.address() as AddressInfo).port},async close(){for(const controller of active.values())controller.abort();await new Promise<void>((resolve,reject)=>server.close(e=>e?reject(e):resolve()));(await store.close())}};

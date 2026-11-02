@@ -10,7 +10,7 @@ Website: [Open HOKSE](https://web-education.onrender.com). Sign in with the acco
 
 Share the cloud website link above. The organiser's computer does not need to stay on, and you can turn yours off when you finish.
 
-**AI features require an administrator to select and enable a global model.** Saving a URL/key or fetching the model list does not activate AI. Until then, fixed practice, notes, goals and the calendar remain available; subjective answers show reference points rather than invented scores. The free website may take longer to open after being idle.
+**AI features require an enabled shared service and sufficient credits.** Saving a URL/key or fetching the model list does not activate AI. Until then, fixed practice, notes, goals and the calendar remain available; subjective answers show reference points rather than invented scores. The free website may take longer to open after being idle.
 
 This guide uses the English interface labels, with Chinese names alongside key controls to help you switch between languages.
 
@@ -151,19 +151,44 @@ Export your records and sign out in Personal Settings. Sign out on shared comput
 
 Attachments support specified images/audio, up to 20 MiB per file and a 100 MiB shared attachment cap in the free cloud pilot. They are visible to their owner or an authorised review process. The current AI receives text only. PDF paper OCR, marked-paper import and automatic diagnostic exemptions are not implemented.
 
+## 12.1 Plans, AI credits and simulated billing
+
+Open **Plan & Billing** in the sidebar to see your used, reserved and available monthly credits, reset date and allowed model selection.
+
+| Plan | Simulated monthly price | Monthly credits | Default model | Initial operation prices |
+| --- | --- | --- | --- | --- |
+| Free | HK$0 | 500 | PGGO anti-truncation 3.5 Flash Lite | Lite 2, Flash 5 |
+| Plus | HK$39 | 2,000 | PGGO anti-truncation 3.8 Flash | Lite 2, Flash 5 |
+| Pro | HK$79 | 5,000 | PGGO anti-truncation 4 Argon | Lite 2, Flash 5, Argon 20 |
+
+These are initial settings. Administrators can change prices, allowances, model access and operation prices; the page shows current rules. Free includes Flash. Configuring access does not mean every provider model has passed a real generation or teaching-quality check.
+
+- One usable AI operation incurs one charge: chat, AI exercise generation, subjective feedback, error analysis or plan explanation. Up to three internal independent-quiz generation/check attempts still incur only one charge.
+- Fixed-question generation and rule-only marking are free. Subjective answers or written steps in fixed practice may need AI feedback; its price is shown before submission.
+- Credits are reserved first, then charged when a usable result is saved or ready to deliver. Failures, invalid final questions and cancellation release the reservation. Retrying the same operation does not double-charge. A reservation interrupted without a saved result expires after five minutes and is released on the next account query or operation.
+- Insufficient credits block the call without silently changing models. Fixed practice, notes and rule-generated schedules remain available.
+- Credits reset on the first of each month in Hong Kong time, without rollover. An upgrade increases the cap minus used/reserved credits, rather than granting a fresh full allowance.
+- Internal credits are neither provider tokens nor an actual API spending cap. Missing provider token counts are shown as **Not provided**.
+
+**Simulated upgrade:** choose a plan → confirm the order and prorated difference for the remaining month → click simulated Card / Alipay / FPS → immediate success. **No real payment, card collection or AI call takes place.** Orders expire after 30 minutes and must be reconfirmed if rules change. View the latest 100 orders and download clearly labelled simulated JSON receipts.
+
+Upgrades apply immediately. Downgrades and cancellation preserve current benefits until the first of next month. **Restore renewal / undo change** cancels a pending change. Usage shows the latest 100 operations this month, their settlement states and actual provider token counts.
+
+**AI logs and privacy:** administrators can view each user's model, Plan, request time, status, duration and tokens, and export AI response text for troubleshooting. The detail screen excludes response text. AI call logs retain up to 1,000 records for 30 days. Credit ledgers and orders remain separate; this does not delete chat or learning records. Avoid unnecessary personal secrets in your questions.
+
 ## 13. Administrator setup
 
-Students do not enter API keys. In Personal Settings, an administrator can open the content/developer workspace:
+Students do not enter API keys. Open the content/developer workspace from Personal Settings:
 
-1. Use Invite Accounts to add students. Give reviewer access only to people who need content-review duties.
-2. In Model Service (模型服務), enter the API Base URL, protocol and key, then fetch the model list (獲取模型列表). This reads the list without selecting or testing every model.
-3. Select a global model (選擇全站模型), then test it (測試此模型). Discovery and testing use a draft and do not replace the active model. A manual Model ID is also available.
-4. Enable it and save/apply to all users (儲存並套用至全部使用者). Every account's subsequent AI requests use that model; students need no key and cannot change it. Requests already running and historical records retain their original model. Untick enable and apply to pause AI globally.
-5. Leave the key blank to retain it for the same URL. Enter a new key when changing URLs. A text test does not verify teaching quality, image reading or paper OCR.
-6. Original reviewed packs still require different reviewer accounts before publication. Coaching does not wait for that process.
-7. Share only each person's own invitation, not the administrator account or API key.
+1. Create student accounts under Invite Accounts. Grant reviewer access only for content-review duties.
+2. Under Model Service, enter the shared API Base URL, protocol and key, then fetch the model list. Discovery does not test every model.
+3. Select an admin test model and test it. Tests use the actual provider API but do not deduct student credits. Enable/apply the shared connection, then manage plan defaults, allowed models and prices under **Plan settings**.
+4. Existing students start on Free with no retrospective charges. Change assignments under **User plans & credits**. Plan changes do not erase this month's used/reserved credits. Changes retain the actor, time and before/after values.
+5. Newly discovered models are not automatically available. Add, price and enable them, then grant plan access. Replace plan defaults before disabling a model. Students can select allowed models but cannot read the API key. A blank key retains it for the same URL; changing URLs requires a new key.
+6. **AI usage logs** support user/model search, status and Hong Kong date filters, paging and refresh. The eye icon shows request summaries, tokens, errors and settlement. Response text is available only in single JSON or filtered JSONL exports; keep exports private. Reviewers cannot read admin logs or edit billing rules.
+7. A text test does not verify teaching quality, images or paper OCR. Original reviewed packs still need separate reviewer accounts before publication; coaching does not wait for this. Never share the admin account or API key.
 
-School/parent/tutoring-organisation portals, payments, mentor matching, social features and round-the-clock psychological support are not part of this version.
+School/parent/tutoring-organisation portals, real payments, mentor matching, social features and round-the-clock psychological support are not part of this version. A simulated receipt is not proof of payment.
 
 ## 14. If something goes wrong
 
@@ -179,6 +204,7 @@ Useful trial feedback says what you were trying to do, where you got stuck and w
 
 ## 15. Change log
 
+- 2 November 2026: Free/Plus/Pro plans, monthly credits, allowed-model selection, complete simulated checkout and admin AI usage logs. Mock payments make no AI calls. Documents charging, released reservations, month-end changes, missing tokens and administrator access to exported response text.
 - 2 November 2026: completed the English interface review, including mistake-cause options, dynamic review topics and planning reasons. Checked singular/plural forms, DSE terminology and mobile layouts.
 
 - 1 November 2026: site-wide Traditional Chinese / English interface for student and administrator actions, calendar dates and weekdays, subject / programme / resource labels, filters and common errors. This browser saves the interface preference separately from learning content language. Both guides now match the English controls. Original questions, learning text and personal input are retained; interface translation is not teaching-material review.

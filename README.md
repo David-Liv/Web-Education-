@@ -10,7 +10,7 @@
 
 指定試用帳戶可使用負責人私下分配的短密碼；一般邀請／首次設定仍至少10字元。登入、重設後重新登入及最新邀請說明已同步至中英文指南；密碼不在公開文件中列出。
 
-管理員可在`/developer?tab=model`輸入API URL／Key、獲取清單、測試所選草稿，再明確套用至全部使用者。列表及測試不會切換生效模型。2026-11-01已保存使用者指定服務並實際取得24個模型，待管理員選擇及啟用；未代選或逐一呼叫。詳見 [全站模型設定](docs/developer-model-settings.md)。
+管理員在 `/developer?tab=model` 管理共用 API URL／Key／協議及草稿測試；學生模型改由套餐規則與個人選擇決定。新增 `/billing` 完整模擬帳單、Free/Plus/Pro（500/2000/5000 credit）、服務端原子預留／結算及管理用量日誌；管理設定在 `?tab=billing`，日誌在 `?tab=usage`。不收集付款資料、不真實收費。規則見 [已批准方案](docs/billing-credits-ai-logs-plan.md)，驗收見 [套餐與日誌驗證](docs/billing-verification.md)。
 
 數學外部資料見 [By Topic 提取說明](docs/research/maths-index-extraction.md)。已整理 585 道歷屆卷二題與 23 道牛津樣本練習的元資料，另有 73 個課題文件連結；可從「學習資源 → 數學 By Topic 題目索引」篩選與下載 CSV。外部索引未匯入正式測驗題庫。
 
@@ -18,7 +18,7 @@
 
 網站由Render在雲端依`Dockerfile`構建，日常使用和Node本機開發都不需要Docker Desktop。本機Compose與臨時隧道分享已移除；直接分享上方雲端網址，負責人的電腦不必開機。`Dockerfile`、`.dockerignore`及`render.yaml`保留供雲端構建。原有本機資料保留；雲端使用PostgreSQL、固定密鑰及Supabase官方CA。私有配置仍在被忽略的`.data/cloud.env`，僅雲端空庫可用`node --env-file=.data/cloud.env server/bootstrap-admin.ts`私下初始化，不開公網設定入口。
 
-真實模式包含 SQLite／PostgreSQL、帳戶隔離、兩個原有單元、三科自主輔導入口、內容審校、版本日曆與模型接入。`pnpm check:postgres`僅為有Docker環境的維護者／CI保留可選隔離測試，驗證交易、並行寫入及備份恢復，不連真實學生庫；不是網站或一般開發的啟動依賴。詳見 [操作說明](docs/pilot-runbook.md)、[部署驗證](docs/deployment-verification.md)、[P1驗證](docs/p1-verification.md) 及 [67 個真實 API 操作](public/openapi-pilot.json)。遠程部署與本地P1驗收分開記錄；實際人工審校、使用者 AI API 和學生試用尚待完成。下列原有說明適用於**演示模式**。
+真實模式包含 SQLite／PostgreSQL、帳戶隔離、兩個原有單元、三科自主輔導入口、內容審校、版本日曆與模型接入。`pnpm check:postgres`僅為有Docker環境的維護者／CI保留可選隔離測試，驗證交易、並行寫入及備份恢復，不連真實學生庫；不是網站或一般開發的啟動依賴。詳見 [操作說明](docs/pilot-runbook.md)、[部署驗證](docs/deployment-verification.md)、[P1驗證](docs/p1-verification.md) 及 [真實 API 合約](public/openapi-pilot.json)。遠程部署與本地P1驗收分開記錄；實際人工審校、使用者 AI API 和學生試用尚待完成。下列原有說明適用於**演示模式**。
 
 面向香港中學生的可操作前端示範，預設使用繁體中文、2028 備試人物及 2028-02-14 示範時鐘。React + TypeScript + Vite，MSW 提供瀏覽器內 mock API；不用 AI key 或後端服務。
 

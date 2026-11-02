@@ -1,3 +1,4 @@
+import { AiCostNotice } from './Billing';
 import { ui, useInterfaceLanguage } from "../i18n";
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
@@ -25,7 +26,7 @@ export function PilotPage() {
     finally {
         setBusy(false);
     } }
-    return <div className="page-enter"><PageHeading eyebrow="ONE STEP YOU CAN SEE" title={ui("先找到起點，再把理解學紮實。")} description={ui("每個單元約 10–15 分鐘摸底。學習、獨立作答和隔時復測會留下不同的證據。")}/><div className="pilot-banner"><Icon name="leaf"/><div><strong>{ui("真實記錄 · 首期兩個單元")}</strong><p>{ui("成績由學校預估或完整模擬試提供；這裡的進展只涵蓋已測技能。AI 未設定時仍可學習教材和完成測驗。")}</p></div></div>
+    return <div className="page-enter"><AiCostNotice/><PageHeading eyebrow="ONE STEP YOU CAN SEE" title={ui("先找到起點，再把理解學紮實。")} description={ui("每個單元約 10–15 分鐘摸底。學習、獨立作答和隔時復測會留下不同的證據。")}/><div className="pilot-banner"><Icon name="leaf"/><div><strong>{ui("真實記錄 · 首期兩個單元")}</strong><p>{ui("成績由學校預估或完整模擬試提供；這裡的進展只涵蓋已測技能。AI 未設定時仍可學習教材和完成測驗。")}</p></div></div>
     {!info?.content.length && <section className="card pilot-card"><h2>{ui("教材正在完成復核")}</h2><p>{ui("二次方程及酸鹼與滴定需完成內容復核後，才開放正式摸底。你可以先設定目標與每日時間。")}</p><Link className="btn primary" to="/goals">{ui("設定我的目標")}</Link>{info?.identity.role !== 'student' && <Link className="btn secondary" to="/developer">{ui("前往內容復核")}</Link>}</section>}
     <div className="pilot-grid">{info?.content.map(p => <section className="card pilot-card" key={p.id}><Badge tone="green">{ui("內容 v{0} · 已發布", [p.version])}</Badge><h2>{ui(p.title)}</h2><p className="muted">{ui("從關鍵方法出發，完成後再選擇補弱或復測。")}</p><div className="pilot-actions"><button className="btn primary" disabled={busy} onClick={() => void start(p.topicId)}>{ui("開始 10–15 分鐘摸底")}</button><button className="btn secondary" onClick={() => void api(`/content/${p.topicId}`).then(setLesson).catch(e => toast(e.message, 'error'))}>{ui("閱讀教學")}</button><Link className="btn ghost" to={`/quizzes?subjectId=${p.id === 'acids' ? 'chem' : 'maths'}&topicId=${p.topicId}`}>{ui("自己選題")}</Link></div></section>)}</div>
     {lesson && <section className="card pilot-card"><div className="row-between"><h2>{lesson.title}</h2><button className="btn ghost" onClick={() => setLesson(null)}>{ui("收起")}</button></div>{lesson.lessons.map(l => <div key={l.title} className="lesson-block"><h3>{l.title}</h3><p>{l.text}</p></div>)}<button className="btn primary" onClick={() => void mutate('/events', 'POST', { topicId: lesson.topicId, type: 'lesson', minutes: 10 }).then(() => toast('已保存學習記錄，將加入回顧；閱讀不直接提升掌握狀態')).catch(() => { })}>{ui("完成閱讀，加入回顧")}</button></section>}
