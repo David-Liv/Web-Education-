@@ -1,5 +1,7 @@
 # 真實模式啟動、復核與試用準備
 
+2026-11-01界面語言：登入頁及全站右上角可選繁體中文／English，選擇只保存在本瀏覽器，不需資料庫遷移。`?lang=en`也可直接設定英文，指南跟隨界面但保留`/help?lang=en`入口。開發時以`ui(...)`接入`src/i18n/en.json`，系統資料只做顯示投影；不要翻譯／覆寫學生輸入或更改教學內容語言。執行`src/i18n.test.ts`、完整前後端測試及production build，另做中英文切換、草稿保留、管理員權限和窄屏檢查。詳見 [界面翻譯驗證](interface-language-verification.md)。
+
 學生操作見 [中文使用指南](user-guide.md)／[English User Guide](user-guide.en.md)，站內入口為側欄／頁尾「使用指南」。`/help`及`/help?lang=en`直接渲染對應Markdown；每次功能或資料範圍更新，須同步更新兩版操作步驟、可用／規劃狀態及日期紀錄，見 [維護約定](../AGENTS.md)。
 
 數學外部索引已加入「學習資源 → 數學 By Topic 題目索引」。這是來源分類、程度和文件入口，不是已發布評核內容；不得以匯入索引替代內容復核。覆蓋、提取與離線校驗命令見 [資料提取紀錄](research/maths-index-extraction.md)。

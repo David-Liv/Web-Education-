@@ -1,5 +1,7 @@
 # 學序 HOKSE · DSE 學習工作室
 
+全站界面可在登入頁／右上角切換繁體中文與English；瀏覽器保存`hokse.interface-language`，`?lang=en`可直接進入英文。界面語言與`profile.teachingLanguage`分開，不改寫試題、筆記、答案及聊天原文。翻譯詞庫為`src/i18n/en.json`，React接入為`src/i18n.tsx`；新增界面文字須補兩語、參數及實際操作驗證，見 [界面翻譯驗證](docs/interface-language-verification.md)。
+
 費用觸發條件與控制見 [托管費用說明](docs/hosting-costs.md)：Free 不代表綁卡後流量超額也免費；自動部署關閉，額外構建支出建議設 US$0。
 
 學生操作見 [中文使用指南](docs/user-guide.md)／[English User Guide](docs/user-guide.en.md)，網站側欄與頁尾亦可開啟 `/help`，英文直達 `/help?lang=en`。站內直接渲染這兩份Markdown；每次影響使用者的更新須同步修訂兩個版本與更新紀錄，見 [專案維護約定](AGENTS.md)。邀請訊息和帳戶密碼只保存在被忽略的私有目錄，不得寫入指南或公開程式碼。帳戶名稱支援2–40個英文字母、數字、句點、底線或連字號，不分大小寫。

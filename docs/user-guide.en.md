@@ -1,20 +1,24 @@
 # HOKSE Trial User Guide
 
-Updated: 1 November 2026. HOKSE helps you plan, understand and review your own learning. It is a personal study assistant, not a school grading system.
+Updated: 2 November 2026. HOKSE helps you plan, understand and review your own learning. It is a personal study assistant, not a school grading system.
 
-Website: [Open HOKSE](https://web-education.onrender.com). Sign in with the account sent to you privately. You do not need to register, install software or run Docker. Switch between 中文 and English on the guide page, or download either guide.
+Website: [Open HOKSE](https://web-education.onrender.com). Sign in with the account sent to you privately. You do not need to register, install software or run Docker.
+
+**Change the whole interface:** select English or 繁體中文 on the sign-in page or at the top right. Navigation, forms, calendar controls, quiz actions, messages and administrator settings change together. Your choice is saved in this browser and survives refreshing and signing in again. Choose separately on other computers. You can also use the [English entry link](https://web-education.onrender.com/?lang=en). The guide follows the interface language, and both guide versions can still be selected and downloaded.
+
+**Interface language and learning content language are separate.** An English interface does not translate or rewrite original questions, Chinese passages, your answers, notes or conversation history. Existing teaching material and external websites may remain in their original language. Set the learning / AI content language under University Goals → Grades & available time → Learning content language. Existing conversations retain the content language selected when they were created. Switching the interface does not submit or clear unfinished forms, change scores or alter admission scoring rules.
 
 Share the cloud website link above. The organiser's computer does not need to stay on, and you can turn yours off when you finish.
 
 **AI features require an administrator to select and enable a global model.** Saving a URL/key or fetching the model list does not activate AI. Until then, fixed practice, notes, goals and the calendar remain available; subjective answers show reference points rather than invented scores. The free website may take longer to open after being idle.
 
-The app interface is mainly Hong Kong Traditional Chinese. This guide includes the Chinese button names so you can find them.
+This guide uses the English interface labels, with Chinese names alongside key controls to help you switch between languages.
 
 ## 1. Your first five steps
 
 1. Open My Learning Flow (我的學習流程) and choose Maths, Chinese or English.
 2. Set your target level and daily study time, then save. University choices and complete subject grades can wait.
-3. Choose three questions and try Fixed Quick Practice (固定隨堂練習). Choose Fixed Independent Check (固定獨立小測) to work independently.
+3. Choose three questions and try Fixed guided practice (固定隨堂練習). Choose Fixed independent quiz (固定獨立小測) to work independently.
 4. Write answers, save for later or submit for feedback. Hints are available and recorded as assistance.
 5. Read the feedback, preview a two-week plan, and confirm before it enters your calendar. Use Daily Review afterwards.
 
@@ -25,7 +29,7 @@ Saving daily time here replaces the budget for all seven days. Use Goals to set 
 - **My Learning Flow / 我的學習流程**: three-subject starting points, short explanations, fixed or AI exercises, provisional skills, corrections and next steps.
 - **Study Calendar / 溫習日曆**: scheduled tasks, unscheduled checklist, two-week plans, weekly milestones and rest days.
 - **Daily Review / 每日溫習**: today's, yesterday's and due material, recall cards, notes and short checks.
-- **Learning Overview / 學習總覽**: activities, tasks, reviewed evidence and reports. Some charts cover only their own evidence source.
+- **Study Overview / 學習總覽**: activities, tasks, reviewed evidence and reports. Some charts cover only their own evidence source.
 - **My Subjects / 我的學科**: subject and topic directory. A listed topic is not necessarily available for teaching or assessment.
 - **AI Study Room / AI學習室**: saved conversations, explanations, guided reading and writing advice.
 - **Topic Quizzes / 專題測驗**: the original reviewed-bank diagnostic, practice, retest and timed quiz workflow. Published content is required.
@@ -48,10 +52,10 @@ Chemistry keeps its earlier entry points. The original reviewed-bank packs cover
 
 ## 4. Choosing an exercise button
 
-- **Fixed Quick Practice / 固定隨堂練習**: no AI call to generate questions. Chinese/English subjective feedback and modelling-step evaluation still require a model.
-- **Fixed Independent Check / 固定獨立小測**: answer fixed original questions independently. No AI question-generation call; hints and repeats are still recorded.
-- **AI Quick Practice / AI隨堂練習 · 快速**: one generation call, without the full quiz repair workflow.
-- **Generate Independent Check / 生成獨立小測**: AI questions are checked before use, with up to three generation attempts if repair is needed.
+- **Fixed guided practice / 固定隨堂練習**: no AI call to generate questions. Chinese/English subjective feedback and modelling-step evaluation still require a model.
+- **Fixed independent quiz / 固定獨立小測**: answer fixed original questions independently. No AI question-generation call; hints and repeats are still recorded.
+- **AI guided practice · quick / AI隨堂練習 · 快速**: one generation call, without the full quiz repair workflow.
+- **Generate independent quiz / 生成獨立小測**: AI questions are checked before use, with up to three generation attempts if repair is needed.
 
 Only AI independent quiz question generation uses the full check-and-repair workflow. Chat, small exercises attached to guided reading, writing advice and submitted-answer feedback use a fast, single-response approach.
 
@@ -66,7 +70,7 @@ Save unfinished work and reopen it under Continue Previous Practice. After submi
 - **Unknown / not assessed**: unanswered, insufficient information or no usable evaluation. This is not zero.
 - **Provisional skill state**: a working estimate for choosing what to study next, separate from whole-subject DSE levels and reviewed evidence.
 
-Practice Reference, Initial Mastery and More Stable (Provisional) apply only to the skills actually covered. Hints, seen answers, same-topic chat during a check and repeated question families do not endlessly add independent evidence. A final numeric answer without modelling steps leaves method ability unknown.
+Practice reference, Initial understanding and More consistent (provisional) apply only to the skills actually covered. Hints, seen answers, same-topic chat during a check and repeated question families do not endlessly add independent evidence. A final numeric answer without modelling steps leaves method ability unknown.
 
 If feedback is wrong, choose This Feedback Has a Problem (這個回饋有問題) and explain why. The original record remains, while the disputed feedback is excluded from skill calculations. After repeated difficulty, read an example or change method. You can explicitly continue; earlier weaknesses are retained.
 
@@ -74,7 +78,7 @@ After a check, continue strengthening, preview maintenance and a subject switch,
 
 ## 6. AI chat, guided reading and writing
 
-Paste a passage, draft or question in My Learning Flow. Choose Guided Reading/Explanation with Exercises (導讀／講解＋隨堂題) or Writing Advice (寫作建議). The text is prefilled in a conversation; press Send to call the model.
+Paste a passage, draft or question in My Learning Flow. Choose Guided reading / explanation + quick practice (導讀／講解＋隨堂題) or Writing suggestions (寫作建議). The text is prefilled in a conversation; press Send to call the model.
 
 You can also create conversations directly in the AI Study Room, choose a supported unit/mode, search, rename or delete conversations, and add useful learning to Daily Review.
 
@@ -174,6 +178,10 @@ School/parent/tutoring-organisation portals, payments, mentor matching, social f
 Useful trial feedback says what you were trying to do, where you got stuck and what you expected. You do not have to try every feature first.
 
 ## 15. Change log
+
+- 2 November 2026: completed the English interface review, including mistake-cause options, dynamic review topics and planning reasons. Checked singular/plural forms, DSE terminology and mobile layouts.
+
+- 1 November 2026: site-wide Traditional Chinese / English interface for student and administrator actions, calendar dates and weekdays, subject / programme / resource labels, filters and common errors. This browser saves the interface preference separately from learning content language. Both guides now match the English controls. Original questions, learning text and personal input are retained; interface translation is not teaching-material review.
 
 - 1 November 2026: explicit global model selection/application, with draft discovery/tests that do not change the active model. All students share the administrator's selected model. Short privately assigned trial passwords are accepted; new accounts still need 10 characters. Clarifies cloud sharing without keeping the organiser's computer on.
 - 31 October 2026: plain-language Chinese/English guides, in-app language switching/downloads and two-character usernames. Documents the implemented coaching, fast/quiz routing, provisional skills, corrections, checklist, rest, weekly milestones and two-week reports. Real model quality and student trials are separate checks; AI configuration is still the administrator's responsibility.
