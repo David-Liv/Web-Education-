@@ -12,4 +12,10 @@
 
 ## 驗證狀態
 
-本地新增四項安全檢查測試通過。GitHub Actions 首次執行及 Render 設定／新部署回執待完成後記錄；不提前聲稱線上檢查成功。
+本地新增四項安全檢查測試、Git 歷史掃描、workflow 結構／Action commit 核對、正式構建及官方 Render Blueprint 校驗通過。本倉庫已設定 `.githooks`，實際提交與推送時均成功執行檢查；未更改全局 Git 或設定強制 PR。
+
+- 首次業務／CI 提交 `795ec5e50b796adb23b95dd3f1779e9f2049c658` 的 [GitHub 執行 41408314947](https://github.com/David-Liv/Web-Education-/actions/runs/41408314947) 於 2026-11-02 15:46:30 HKT 全部成功，耗時 1m21s。五項工作為 Secret guard、Tests and production build、Isolated PostgreSQL、CodeQL、Release readiness；包括原有 69 項前端、53 項後端、20 項 PostgreSQL 和新增 4 項安全檢查測試。
+- Render 實際設定為 `autoDeployTrigger: checksPass`。檢查完成後於 15:46:32 HKT 自動觸發 `new_commit` 部署 `dep-dbk3vm15efls73eke4h0`，15:47:27 HKT 完成並回報 `live`。未呼叫手動部署補救，也未增加新的環境或付費資源；服務仍為 Free／Starter。
+- 首次執行的 pnpm v4 Action 出現 Node 20 棄用警告，已換成官方 Node 24 pnpm v5 Action 並固定 commit。CI 配置提交 `bd5ee21673f694c74f5d532afc0c184d0d95314c` 的 [第二次執行 41408954679](https://github.com/David-Liv/Web-Education-/actions/runs/41408954679) 全部成功，耗時 1m42s，頁面無先前的棄用警告。該提交只有 CI 配置改動，以 `[skip render]` 避免重建網站；線上業務仍是 `795ec5e`。
+- 公開 HTTPS 重新檢查 `/billing`，既有帳戶顯示 Free 500、Lite 2 credit、Plus／Pro 方案和模擬帳單；英文 `/help` 已呈現新的自動檢查及發布說明。未呼叫真實 AI、修改學生套餐或產生模擬付款。截圖在忽略的 `.data/reviews/ci-passed-2026-11-02.png` 和 `.data/reviews/ci-live-billing-2026-11-02.png`。
+- 真實 API Key、生產資料庫與備份未進 Git、Actions 或 artifact。兩份學生指南已隨首個業務提交同步並核對；此後只有 CI 運行時及驗證記錄改動，無學生功能差異。後續純驗證回執使用 `[skip ci] [skip render]`，不再重複構建。

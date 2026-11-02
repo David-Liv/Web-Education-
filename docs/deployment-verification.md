@@ -1,5 +1,13 @@
 # GitHub與Docker部署準備驗證
 
+## 2026-11-02：main 自動檢查與直接發布
+
+- 按用戶確認，保持單人 main 工作流、單一線上環境，改為 GitHub 檢查成功後直接發布，不新增 PR 規則、測試環境或付費資源。
+- `795ec5e50b796adb23b95dd3f1779e9f2049c658` 的 [首次 Actions](https://github.com/David-Liv/Web-Education-/actions/runs/41408314947) 五項工作於 15:46:30 HKT 成功；Render 於 15:46:32 HKT 自動啟動部署 `dep-dbk3vm15efls73eke4h0`，15:47:27 HKT 完成並回報 live，trigger 為 `new_commit`。已讀回確認 Free／Starter、main、`checksPass` 和原健康檢查路徑。
+- 更新 pnpm Action 至官方 Node 24 v5，`bd5ee21` 的 [第二次 Actions](https://github.com/David-Liv/Web-Education-/actions/runs/41408954679) 同樣全部成功，無舊執行時警告。該配置維護以 `[skip render]` 不重建業務鏡像。
+- 公開 HTTPS 再核對套餐、credit、模擬帳單與新版英文指南；沒有在正式帳戶發起 AI 或付款。中英文指南、README、運行／部署／費用說明同步。詳見 [CI 驗證](ci-verification.md)。
+- 私有配置、真實密鑰和學生備份保持忽略；提交／推送前鉤子及 CI 歷史掃描實際通過，CI 僅用臨時 PostgreSQL 和提供方替身。後續純驗證文件提交不重複構建。
+
 ## 2026-11-02：套餐、credit、模擬帳單與 AI 日誌
 
 - 業務提交 `7a18c841795547924165789e2177fccd6a0c6df6` 已推送；部署 `dep-dbk1kllg1s2s7391q77g` 於 13:07 HKT 完成並回報 `live`。保留既有 Render Free／Supabase Free、Starter、自動部署關閉；沒有新增付費服務。
