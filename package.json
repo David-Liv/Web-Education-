@@ -17,6 +17,8 @@
     "build:pilot": "node scripts/build-pilot.mjs",
     "typecheck:server": "tsc -p server/tsconfig.json",
     "test:server": "node --test server/pilot.check.ts server/static.check.ts server/studio.check.ts server/model-settings.check.ts server/billing.check.ts",
+    "test:security": "node --test scripts/security.check.mjs",
+    "check:secrets": "node scripts/check-secrets.mjs --history",
     "extract:maths-index": "node scripts/extract-maths-metadata.mjs",
     "check:maths-index": "node scripts/check-maths-index.mjs",
     "backup:pilot": "node scripts/backup-pilot.mjs"

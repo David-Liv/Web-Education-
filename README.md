@@ -2,7 +2,7 @@
 
 全站界面可在登入頁／右上角切換繁體中文與English；瀏覽器保存`hokse.interface-language`，`?lang=en`可直接進入英文。界面語言與`profile.teachingLanguage`分開，不改寫試題、筆記、答案及聊天原文。翻譯詞庫為`src/i18n/en.json`，React接入為`src/i18n.tsx`；新增界面文字須補兩語、參數及實際操作驗證，見 [界面翻譯驗證](docs/interface-language-verification.md)。
 
-費用觸發條件與控制見 [托管費用說明](docs/hosting-costs.md)：Free 不代表綁卡後流量超額也免費；自動部署關閉，額外構建支出建議設 US$0。
+費用觸發條件與控制見 [托管費用說明](docs/hosting-costs.md)：Free 不代表綁卡後流量超額也免費；main 的檢查全部通過後自動部署；額外構建支出維持 US$0。
 
 學生操作見 [中文使用指南](docs/user-guide.md)／[English User Guide](docs/user-guide.en.md)，網站側欄與頁尾亦可開啟 `/help`，英文直達 `/help?lang=en`。站內直接渲染這兩份Markdown；每次影響使用者的更新須同步修訂兩個版本與更新紀錄，見 [專案維護約定](AGENTS.md)。邀請訊息和帳戶密碼只保存在被忽略的私有目錄，不得寫入指南或公開程式碼。帳戶名稱支援2–40個英文字母、數字、句點、底線或連字號，不分大小寫。
 
@@ -105,3 +105,13 @@ node node_modules/vite/bin/vite.js build
 2026-10-31 三科自主輔導與P1已接通，入口 `/studio`；只有AI獨立測驗生成使用完整檢查／有限返工，聊天與導讀後練習以速度優先。範圍見 [P1實施清單](docs/p1-learning-platform-plan.md)，契約見 [AI輸出規範v2](docs/ai-output-contract.md)，本地檢查與邊界見 [P1驗證](docs/p1-verification.md)。後續已部署公網，實際版本與驗收見 [部署記錄](docs/deployment-verification.md)；真實模型品質及學生試用另行驗收。
 
 首期範圍、後端接口遷移、初始規則及試用驗收，見 [已批准的實施方案](docs/pilot-implementation-plan.md)。本地代碼及檢查見本次驗證；3–5 人兩周試用須待實際內容、模型及部署條件完成後安排。
+
+## 自動檢查與發布
+
+目前單人開發，直接推送 main，不要求 PR 或人工批准。`.github/workflows/ci.yml` 在 main 提交、可選 PR 或手動執行時檢查密鑰、前後端測試、正式構建、臨時 PostgreSQL 和 CodeQL。所有 Action 固定為已核對的 commit；只用標準 Ubuntu runner，不上傳 `.data` 或使用真實 AI／雲端資料庫憑據。CodeQL 高／嚴重或 error 級發現會阻止發布。
+
+Render 設為 **After CI Checks Pass**，不需要把 Render 或 AI Key 放到 Actions。失敗保留既有線上版本；同分支舊檢查會取消。純驗證文檔提交可用 `[skip render]` 省去重建；兩份直接在站內顯示的使用指南改動仍需發布。沒有另外的測試／穩定環境。
+
+本機一次設定 `git config core.hooksPath .githooks`，提交前和推送前會檢查 Git 內容，避免 CI 在推送後才發現秘密。執行 `pnpm check:secrets`、`pnpm test:security` 可單獨檢查；掃描只報位置和規則，不打印密鑰。支援常見 token、私鑰、資料庫密碼及加密 key 格式；不能保證識別所有編碼和第三方格式。不要把真實值寫入 `.env.example` 或 `VITE_*`；實際私有設定留在被忽略的 `.data/`／`.env`，雲端 Key 留在後端設定。
+
+首次 GitHub／Render 執行結果見 [CI 與自動發布驗證](docs/ci-verification.md)。

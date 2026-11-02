@@ -10,7 +10,7 @@
 
 2026-10-31 P1本地入口為 `/studio`，原有已審校題庫保留於 `/pilot`。數學／中文／英文自主練習毋須逐題雙人發布；AI題目與回饋明確標為參考／暫定，不變成已審校證據。開發者沿用原模型設定即可使用；沒有模型時可做固定練習，主觀題不造分。只有AI獨立小測生成允許最多三次生成，聊天、導讀後練習與評價不循環返工。機器契約為 `server/quiz-contract.ts`，規範見 [AI輸出規範](ai-output-contract.md)，檢查證據見 [P1驗證](p1-verification.md)。
 
-P1最初完成於本地；公網版本以 [部署驗證](deployment-verification.md) 的實際版本紀錄為準。變更後需重新構建及手動部署，保留既有Free設定。`pnpm test:server` 已包含P1整合檢查，覆蓋模型替身的Chat／Responses、返工次數、快速請求、隔離、糾正、休息與預覽版本；這些不代表真實提供方教學品質通過。
+P1最初完成於本地；公網版本以 [部署驗證](deployment-verification.md) 的實際版本紀錄為準。變更推送 main 後由 Actions 檢查，全部通過才由 Render 自動部署，保留既有 Free 設定。`pnpm test:server` 已包含P1整合檢查，覆蓋模型替身的Chat／Responses、返工次數、快速請求、隔離、糾正、休息與預覽版本；這些不代表真實提供方教學品質通過。
 
 ## 本機啟動
 
@@ -91,7 +91,7 @@ node scripts/backup-pilot.mjs .data/backups/my-pilot-backup
 
 ## 部署準備
 
-費用與免費額度見 [托管費用說明](hosting-costs.md)。保持 Render Free／Hobby 和 Supabase Free；自動部署關閉，手動發布前核對剩餘構建分鐘，額外構建支出設 US$0／月。此上限不控制流量費。
+費用與免費額度見 [托管費用說明](hosting-costs.md)。保持 Render Free／Hobby 和 Supabase Free；自動部署設 After CI Checks Pass；檢查通過才構建，額外構建支出維持 US$0／月，達限不升級。此上限不控制流量費。
 
 按步驟分享給學生，見 [上線與帳戶分享指南](deployment-guide.md)：現採 Render Free Docker＋Supabase Free PostgreSQL，無付費磁盤。雲端連線、私有資料表與首位管理員已建立；公開 HTTPS、資料隔離與重啟保存已有獨立驗收，見部署驗證。
 
@@ -116,3 +116,13 @@ pnpm server
 ```
 
 遠程試用地址為 `https://web-education.onrender.com`，已通過 HTTPS、帳戶隔離與重啟保存驗收。維護者使用 `.data/cloud-login.md` 的私有網站管理員登入，到邀請帳戶建立學生。完成實際內容復核與模型配置後，再邀請 3–5 名學生試用兩周；目前沒有實際招募、訊息發送或學生試用結果。
+
+## GitHub Actions 與密鑰保護（2026-11-02）
+
+單人 main 工作流，不要求 PR；未來另分環境時再調整。CI 包括密鑰掃描及四項安全檢查、既有前端／後端測試與 production build、獨立 Docker PostgreSQL 測試，以及 JavaScript／TypeScript CodeQL。`Release readiness` 要求每項工作成功，失敗或取消不算通過；高／嚴重或 error 級 SARIF 結果阻擋發布。這些檢查不驗收教學品質或真實模型表現。
+
+不向 CI 提供 `.data/cloud.env`、學生備份、AI Key、資料庫連線或 Render token；提供方及支付案例用替身，PostgreSQL 每次生成臨時憑據並清理容器。保留標準 Linux runner，無付費 Action、鏡像發布、學生資料 artifact 或自架 runner。Action 固定 commit。只有 CodeQL 工作有 security-events 寫權限，其他為 contents read；不使用 pull_request_target。
+
+本機設定 `git config core.hooksPath .githooks`；新增 clone 後需要各自設定。`pnpm check:secrets` 掃描本地可見歷史，提交鉤子檢查 index；僅報位置，不把匹配值放進 log。GitHub 的 Secret scanning／Push protection 是另一層，格式支援有限，不能取代忽略私有檔案及本機檢查。備份和 Key 永不進 Git 或 Docker context。
+
+Render 現有服務設 `checksPass`，保持 Free／Starter 和原費用上限；不建立新資源。請不要另開 On Commit 或呼叫另一個部署 hook，避免跳過檢查或重複發布。管理員可在 GitHub Actions 看失敗步驟；修好再推 main。只改驗證文件可用 `[skip render]`；使用指南內容改動不能跳過其發布。若 GitHub／Render 本身故障，先查對應執行回執，不以反覆重跑代替診斷。

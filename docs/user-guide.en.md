@@ -190,6 +190,8 @@ Students do not enter API keys. Open the content/developer workspace from Person
 
 School/parent/tutoring-organisation portals, real payments, mentor matching, social features and round-the-clock psychological support are not part of this version. A simulated receipt is not proof of payment.
 
+Website updates run automated tests, security checks and a build before being published to the same address. There is currently one live environment. These checks use AI fixtures and temporary databases; they do not validate real model teaching quality.
+
 ## 14. If something goes wrong
 
 - Slow first visit: the free service may be starting. Wait and try again; do not register another account.
@@ -204,6 +206,7 @@ Useful trial feedback says what you were trying to do, where you got stuck and w
 
 ## 15. Change log
 
+- 2 November 2026: updates now publish automatically after main-branch checks pass. Students keep using the same address; there is no separate test environment yet.
 - 2 November 2026: Free/Plus/Pro plans, monthly credits, allowed-model selection, complete simulated checkout and admin AI usage logs. Mock payments make no AI calls. Documents charging, released reservations, month-end changes, missing tokens and administrator access to exported response text.
 - 2 November 2026: completed the English interface review, including mistake-cause options, dynamic review topics and planning reasons. Checked singular/plural forms, DSE terminology and mobile layouts.
 
