@@ -1,5 +1,13 @@
 # GitHub與Docker部署準備驗證
 
+## 2026-11-02：套餐、credit、模擬帳單與 AI 日誌
+
+- 業務提交 `7a18c841795547924165789e2177fccd6a0c6df6` 已推送；部署 `dep-dbk1kllg1s2s7391q77g` 於 13:07 HKT 完成並回報 `live`。保留既有 Render Free／Supabase Free、Starter、自動部署關閉；沒有新增付費服務。
+- 已依用戶明確授權匯出發布前八張業務表，存於私有忽略目錄。壓縮、SHA-256、資料關聯、revision 及加密密鑰驗證通過；已確認實際 Windows 用戶 david 可讀且擁有檔案，不把隔離工具帳戶誤作擁有者。沒有把備份、密鑰或學生內容提交到 Git。
+- 69 項前端、53 項後端、20 項隔離 PostgreSQL 與正式構建通過。模擬 checkout、失敗退回、並發扣點及正文匯出使用本機替身驗證，沒有真實金流或 AI 呼叫。
+- 公開 HTTPS 核對套餐頁、管理規則與日誌入口：500／2000／5000 credit、2／5／20 單價及三個指定預設模型。正式帳戶無模擬訂單或 AI 用量寫入；SQL 確認五張新表 RLS 及無匿名讀取，原有學習資料內容／revision 指紋與備份一致。
+- 中英文使用指南、README、runbook、82 項 OpenAPI 同步；詳見 [套餐與日誌驗證](billing-verification.md)。畫面在忽略的 `.data/reviews/billing-live-2026-11-02.png`。後續回執文件提交不重複構建。
+
 ## 2026-11-02：全站英文界面
 
 - 業務提交`f6de9dac1942ae377bb6d33bf4d8ba8d11196afa`已推送，既有Render Free服務部署`dep-dbjvdcrbc2fs73dvi80g`於2026-11-02 10:35 HKT回報`live`。沒有新增資源、改動模型設定或執行資料庫遷移。
