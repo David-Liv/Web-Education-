@@ -31,4 +31,8 @@
 
 ## 發布狀態
 
-發布前已完成本地自動與瀏覽器檢查；線上版本、deploy ID及實際公開驗證在部署完成後另行記錄。沿用既有Render Free服務，不建立新服務、不更改模型、不增加付費方案。
+2026-11-02已發布至既有Render Free服務`Web-Education-`（`srv-dbi62sqjnfac73cu251g`）。業務commit為`f6de9dac1942ae377bb6d33bf4d8ba8d11196afa`，deploy為`dep-dbjvdcrbc2fs73dvi80g`，Render確認於2026-11-02 10:35 HKT進入`live`。使用者資料、模型選擇及服務方案未因本次界面更新修改；沒有建立新服務或資料庫遷移。
+
+已在公開HTTPS完成既有管理員登入，等待帳戶資料及各頁非同步載入後，檢查總覽、日曆、每日複習、數學科目、學習對話、測驗、數學外部索引、升學、模型設定及英文指南的英文顯示。已實際切回中文、重新整理後確認保留中文，再切回英文；沒有以試驗題寫入雲端學生紀錄，沒有呼叫真實AI。UI草稿、作答、錯因及筆記完整流程使用前述本地隔離fixture驗證。
+
+線上英文入口：[web-education.onrender.com/?lang=en](https://web-education.onrender.com/?lang=en)。線上日曆截圖另存於被忽略的`.data/reviews/english-live-calendar-2026-11-02.png`；報告中的公開commit與deploy ID均不含憑據。後續僅更新驗證文件的提交不重複觸發構建，保留自動部署關閉及Free方案。

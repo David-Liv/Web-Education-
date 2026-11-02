@@ -1,5 +1,12 @@
 # GitHub與Docker部署準備驗證
 
+## 2026-11-02：全站英文界面
+
+- 業務提交`f6de9dac1942ae377bb6d33bf4d8ba8d11196afa`已推送，既有Render Free服務部署`dep-dbjvdcrbc2fs73dvi80g`於2026-11-02 10:35 HKT回報`live`。沒有新增資源、改動模型設定或執行資料庫遷移。
+- 登入頁及全站可選繁體中文／English，與教學內容語言分開。69項前端測試（含9項語言契約）、41項後端測試及production build通過；已檢查原值保留、表單／筆記／作答、中英文切換及390px窄屏。
+- 已在公開HTTPS使用既有管理員登入，等待頁面實際載入後檢查十個英文入口，以及切換中文、刷新保留、切回英文。未生成真實AI內容或新增雲端測驗證據；完整作答及筆記流程使用本地隔離帳戶。詳見[界面翻譯驗證](interface-language-verification.md)。
+- 中英文指南、README及runbook同步；後續驗證文件提交不再重複構建，維持Free、自動部署關閉及既有費用控制。
+
 ## 2026-11-01：管理員全站模型設定
 
 - 業務提交`f022f0ef52ce92414cdd79b869786164cbf61d4a`已推送；既有Free服務部署`dep-dbji867lk1mc739avb0g`於11:36:46 UTC回報live。保留同一Render Free／Supabase Free，沒有新增服務或付費資源。
