@@ -133,9 +133,9 @@ describe('data integrity', () => {
     for(const q of questions){expect(q.original).toBe(true);expect(topics.some(t=>t.id===q.topicId&&t.subjectId===q.subjectId)).toBe(true);if(q.kind==='choice')expect(q.options?.[q.answer.charCodeAt(0)-65]).toBeTruthy();}
   });
   it('keeps statistics years and missing values rather than inventing 2028 admissions', () => {
-    expect(programmes).toHaveLength(31);
-    expect(programmes.filter(p=>p.qualification==='學士')).toHaveLength(27);
-    expect(programmes.every(p=>p.url.startsWith('https://')&&p.checkedAt==='2026-10-27')).toBe(true);
+    expect(programmes).toHaveLength(435);
+    expect(programmes.filter(p=>p.qualification==='學士')).toHaveLength(430);
+    expect(programmes.every(p=>p.url.startsWith('https://')&&(/^\d{4}-\d{2}-\d{2}/.test(p.checkedAt)))).toBe(true);
     expect(programmes.find(p=>p.id==='SPACE-ENG')?.median).toBeNull();
     expect(programmes.find(p=>p.id==='8C112-ENG')?.mean).toBe(16.28);
   });

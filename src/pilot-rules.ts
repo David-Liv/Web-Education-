@@ -1,3 +1,4 @@
+import { programmeFormula } from './programme-rules.ts';
 import type { ContentPack, Cycle, PilotEvidence, Skill, SkillState } from './pilot-types.ts';
 import { MASTERY_POLICY } from './pilot-types.ts';
 import type { Grade, Profile, Programme } from './types.ts';
@@ -60,14 +61,15 @@ export function validatePack(pack: ContentPack): string[] {
 
 export interface GradeCost { subjectId:string; from:Grade; to:Grade; hours:[number,number]; source:string }
 export function compareGradePaths(profile:Profile,programme:Programme,costs:GradeCost[],budgetHours:number){
-  const base=calculateScore(profile.grades,programme.formula??{count:5,required:[],weights:{},scale:'standard',verified:false});
+  const formula=programmeFormula(programme);
+  const base=calculateScore(profile.grades,formula);
   const conflicts=Object.entries(programme.minimum).filter(([id,min])=>profile.targetGrades[id]!==undefined&&gradePoints(profile.targetGrades[id])<gradePoints(min)).map(([id])=>id);
-  if(!programme.formula?.verified||base.score===null)return {baseline:null,conflicts,paths:[],missing:'缺少已核實公式或整科成績'};
+  if(base.score===null)return {baseline:null,conflicts,paths:[],missing:'請補充計分所需的整科成績'};
   const subjects=Object.keys(profile.targetGrades).filter(id=>gradeOrder.includes(profile.grades[id])&&gradeOrder.includes(profile.targetGrades[id])&&profile.grades[id]!=='U').slice(0,8);
   const choices=subjects.map(id=>gradeOrder.slice(gradeOrder.indexOf(profile.grades[id]),gradeOrder.indexOf(profile.targetGrades[id])+1));
   const paths:{grades:Record<string,Grade>;gain:number;hours:[number,number]|null;feasible:boolean|null;minimumMet:boolean;assumptions:string[]}[]=[];
   const walk=(i:number,g:Record<string,Grade>,lo:number,hi:number,known:boolean,assumptions:string[])=>{
-    if(i===subjects.length){const score=calculateScore(g,programme.formula!).score;if(score===null)return;const minimumMet=Object.entries(programme.minimum).every(([id,min])=>g[id]!==undefined&&gradePoints(g[id])>=gradePoints(min));paths.push({grades:{...g},gain:Math.round((score-base.score!)*100)/100,hours:known?[lo,hi]:null,feasible:known?hi<=budgetHours:null,minimumMet,assumptions:[...new Set(assumptions)]});return}
+    if(i===subjects.length){const score=calculateScore(g,formula).score;if(score===null)return;const minimumMet=Object.entries(programme.minimum).every(([id,min])=>g[id]!==undefined&&gradePoints(g[id])>=gradePoints(min));paths.push({grades:{...g},gain:Math.round((score-base.score!)*100)/100,hours:known?[lo,hi]:null,feasible:known?hi<=budgetHours:null,minimumMet,assumptions:[...new Set(assumptions)]});return}
     const id=subjects[i];for(const grade of choices[i]){let low=lo,high=hi,k=known;const sources=[...assumptions];for(let n=gradeOrder.indexOf(profile.grades[id]);n<gradeOrder.indexOf(grade);n++){const c=costs.find(c=>c.subjectId===id&&c.from===gradeOrder[n]&&c.to===gradeOrder[n+1]);if(!c||!c.source||c.hours[0]<0||c.hours[1]<c.hours[0])k=false;else{low+=c.hours[0];high+=c.hours[1];sources.push(c.source)}}walk(i+1,{...g,[id]:grade},low,high,k,sources)}
   };
   // Explicitly bounded enumeration; never call this a calibrated grade prediction.

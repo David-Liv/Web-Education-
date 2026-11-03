@@ -48,6 +48,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm test
+      - run: pnpm test:programmes
       - run: pnpm test:server
       - run: pnpm build:pilot
       - name: Generated API contract must be committed

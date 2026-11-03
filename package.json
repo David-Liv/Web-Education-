@@ -1,6 +1,6 @@
 {
   "name": "hokse-dse-study-studio",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -16,12 +16,15 @@
     "check:postgres": "node scripts/check-postgres.mjs",
     "build:pilot": "node scripts/build-pilot.mjs",
     "typecheck:server": "tsc -p server/tsconfig.json",
-    "test:server": "node --test server/pilot.check.ts server/static.check.ts server/studio.check.ts server/model-settings.check.ts server/billing.check.ts",
+    "test:server": "node --test server/pilot.check.ts server/static.check.ts server/studio.check.ts server/model-settings.check.ts server/billing.check.ts server/admissions.check.ts",
     "test:security": "node --test scripts/security.check.mjs",
     "check:secrets": "node scripts/check-secrets.mjs --history",
     "extract:maths-index": "node scripts/extract-maths-metadata.mjs",
     "check:maths-index": "node scripts/check-maths-index.mjs",
-    "backup:pilot": "node scripts/backup-pilot.mjs"
+    "backup:pilot": "node scripts/backup-pilot.mjs",
+    "crawl:programmes": "node scripts/crawl-bigexam-programmes.mjs",
+    "test:programmes": "node --test scripts/programmes.check.mjs",
+    "normalize:programmes": "node scripts/enrich-programmes.mjs"
   },
   "dependencies": {
     "katex": "^0.16.22",

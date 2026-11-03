@@ -5,6 +5,8 @@ import { assessSkill } from '../src/pilot-rules.ts';
 import { buildWeekGoals, addDays, calculateScore, dailyCapacity, gradePoints, hasConflict, minutesTime, timeMinutes } from '../src/domain.ts';
 import type { StudentState } from './store.ts';
 import { studySkills } from './studio-state.ts';
+import { subjectPriorities, SCORING_VERSION } from '../src/admissions.ts';
+import { catalog } from '../src/data/catalog.ts';
 
 export function planStudent(data:StudentState,packs:ContentPack[],programme?:Programme,now=new Date(),preferences:{maintainTopic?:string;subjectFocus?:string[]}={}):VersionedPreview{
   const tasks:Task[]=[],unscheduled:Task[]=[];
@@ -28,10 +30,13 @@ export function planStudent(data:StudentState,packs:ContentPack[],programme?:Pro
       return {pack:p,key:`skill-${s.id}`,title:`${paused?'前置補救':st.label.startsWith('較穩定')?'隔時復測':'理解與新題'} · ${s.name}`,minutes:Math.round((s.minutes[0]+s.minutes[1])/2),kind:st.label.startsWith('較穩定')?'review' as const:'study' as const,rank:paused?0:st.label==='需加強'?1:st.label==='未評估'?2:3,reason:paused?'同一補救周期兩次失敗，先看完整示例或補前置能力':`${st.label}；按技能證據及先修安排，不承諾固定升級`,skillId:s.id};
     });
   });
-  const gain=(subject:string)=>{if(!programme?.formula?.verified||!data.profile.grades[subject]||!data.profile.targetGrades[subject])return 0;const base=calculateScore(data.profile.grades,programme.formula).score,after=calculateScore({...data.profile.grades,[subject]:data.profile.targetGrades[subject]},programme.formula).score;return base===null||after===null?0:Math.max(0,after-base)};
+  const priorities=programme?subjectPriorities(programme,data.profile,catalog.programmes):[];
+  const gain=(subject:string)=>priorities.find(p=>p.subjectId===subject)?.gain??0;
+  const priority=(subject:string)=>priorities.find(p=>p.subjectId===subject)?.priority??0;
+  const gate=(subject:string)=>priorities.find(p=>p.subjectId===subject)?.gate?1:0;
   const focus=(subject:string)=>preferences.subjectFocus?.includes(subject)?preferences.subjectFocus.indexOf(subject):100;
-  candidates.sort((a,b)=>a.rank-b.rank||focus(a.pack.subjectId)-focus(b.pack.subjectId)||gain(b.pack.subjectId)-gain(a.pack.subjectId)||a.minutes-b.minutes||a.key.localeCompare(b.key));
-  for(const c of candidates){if(c.skillId&&provisional.some(s=>s.id===c.skillId&&s.count)&&!data.evidence.some(e=>e.skillIds.includes(c.skillId!)&&e.reviewed))c.reason+='；採用暫定練習依據，後續新題再驗證';const improvement=gain(c.pack.subjectId);if(improvement)c.reason+=`；假設此科達到所填整科目標，課程加權分情景 +${improvement.toFixed(2)}。此活動只涵蓋相關技能，並非完成即得該增益`}
+  candidates.sort((a,b)=>gate(b.pack.subjectId)-gate(a.pack.subjectId)||a.rank-b.rank||focus(a.pack.subjectId)-focus(b.pack.subjectId)||priority(b.pack.subjectId)-priority(a.pack.subjectId)||a.minutes-b.minutes||a.key.localeCompare(b.key));
+  for(const c of candidates){if(c.skillId&&provisional.some(s=>s.id===c.skillId&&s.count)&&!data.evidence.some(e=>e.skillIds.includes(c.skillId!)&&e.reviewed))c.reason+='；採用暫定練習依據，後續新題再驗證';const improvement=gain(c.pack.subjectId);if(improvement)c.reason+=`；假設此科提升一級，參考加權分 +${improvement.toFixed(2)}。此活動只涵蓋相關技能，並非完成即得該增益`}
   for(let d=0;d<14;d++){
     const day=addDays(date,d);let remaining=Math.max(0,dailyCapacity(data.profile,day)-preserved.filter(t=>t.date===day&&t.kind!=='exam'&&!!t.start&&t.schedule!=='floating').reduce((n,t)=>n+t.minutes,0));
     let cursor=Math.max(timeMinutes(data.profile.availability[(new Date(day+'T12:00:00Z').getUTCDay()+6)%7]??'18:00'),d===0?todayMinute:0);
@@ -47,7 +52,7 @@ export function planStudent(data:StudentState,packs:ContentPack[],programme?:Pro
   for(const c of candidates.filter(c=>!scheduled.has(c.key)))unscheduled.push({id:crypto.randomUUID(),date,start:'00:00',minutes:c.minutes,title:c.title,subjectId:c.pack.subjectId,topicId:c.pack.topicId,kind:c.kind,status:'pending',locked:false,reason:'目前 14 天可用時段不足；請選擇取捨，不自動增加時間'});
   if(!packs.length)unscheduled.push({id:crypto.randomUUID(),date,start:'00:00',minutes:0,title:'內容仍待雙人復核發布',subjectId:'all',kind:'study',status:'pending',locked:false,reason:'可以先設定目標或自行加入任務；正式診斷在內容發布後開放'});
   const weeks=buildWeekGoals([...preserved,...tasks],date);
-  return {tasks,unscheduled,allocations:[...allocations.values()],weeks,source:'pilot-rules',previewId:crypto.randomUUID(),revision:data.revision,ruleVersion:RULE_VERSION,generatedAt:now.toISOString(),planDate:date,contentSignature:packs.map(p=>`${p.id}@${p.version}`).sort().join(',')};
+  return {tasks,unscheduled,allocations:[...allocations.values()],weeks,source:'pilot-rules',previewId:crypto.randomUUID(),revision:data.revision,ruleVersion:RULE_VERSION,generatedAt:now.toISOString(),planDate:date,contentSignature:packs.map(p=>`${p.id}@${p.version}`).sort().join(','),programmeId:programme?.id??null,scoringVersion:SCORING_VERSION};
 }
 
 export function canSmallReorder(before:Task,after:Task,others:Task[]){return !before.locked&&before.status==='pending'&&before.kind!=='exam'&&before.date===after.date&&before.subjectId===after.subjectId&&before.kind===after.kind&&before.minutes===after.minutes&&!hasConflict(after,others)}

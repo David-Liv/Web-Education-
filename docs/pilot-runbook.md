@@ -2,7 +2,7 @@
 
 2026-11-01界面語言：登入頁及全站右上角可選繁體中文／English，選擇只保存在本瀏覽器，不需資料庫遷移。`?lang=en`也可直接設定英文，指南跟隨界面但保留`/help?lang=en`入口。開發時以`ui(...)`接入`src/i18n/en.json`，系統資料只做顯示投影；不要翻譯／覆寫學生輸入或更改教學內容語言。執行`src/i18n.test.ts`、完整前後端測試及production build，另做中英文切換、草稿保留、管理員權限和窄屏檢查。詳見 [界面翻譯驗證](interface-language-verification.md)。
 
-學生操作見 [中文使用指南](user-guide.md)／[English User Guide](user-guide.en.md)，站內入口為側欄／頁尾「使用指南」。`/help`及`/help?lang=en`直接渲染對應Markdown；每次功能或資料範圍更新，須同步更新兩版操作步驟、可用／規劃狀態及日期紀錄，見 [維護約定](../AGENTS.md)。
+學生操作見 [中文使用指南](user-guide.md)／[English User Guide](user-guide.en.md)，站內入口為側欄／頁尾「使用指南」。`/help`及`/help?lang=en`直接渲染對應Markdown；每次功能或資料範圍更新，須同步更新兩版操作步驟與產品版本摘要，管理細節與日期驗收另留管理手冊，見 [維護約定](../AGENTS.md)。
 
 數學外部索引已加入「學習資源 → 數學 By Topic 題目索引」。這是來源分類、程度和文件入口，不是已發布評核內容；不得以匯入索引替代內容復核。覆蓋、提取與離線校驗命令見 [資料提取紀錄](research/maths-index-extraction.md)。
 
@@ -128,3 +128,9 @@ pnpm server
 本機設定 `git config core.hooksPath .githooks`；新增 clone 後需要各自設定。`pnpm check:secrets` 掃描本地可見歷史，提交鉤子檢查 index；僅報位置，不把匹配值放進 log。GitHub 的 Secret scanning／Push protection 是另一層，格式支援有限，不能取代忽略私有檔案及本機檢查。備份和 Key 永不進 Git 或 Docker context。
 
 Render 現有服務設 `checksPass`，保持 Free／Starter 和原費用上限；不建立新資源。請不要另開 On Commit 或呼叫另一個部署 hook，避免跳過檢查或重複發布。管理員可在 GitHub Actions 看失敗步驟；修好再推 main。只改驗證文件可用 `[skip render]`；使用指南內容改動不能跳過其發布。若 GitHub／Render 本身故障，先查對應執行回執，不以反覆重跑代替診斷。
+
+## v1.1 升學與指南分流
+
+學生指南維持 `/help` 與中英文來源文件；管理員指南為 docs/admin-guide.md／docs/admin-guide.en.md，`/admin/help` 按需讀取 `/api/v1/admin/guide?lang=en`，`download=1` 亦驗證 developer 身份。不得以 raw import 把管理正文打入公開 JS。Docker runtime 必須包含兩份管理 Markdown。
+
+`npm run normalize:programmes` 從既有快照重新投影；不是重新抓取。新增 `test:programmes` 與 server/admissions.check.ts。個人指數、參考基準、QS 提示及排程共用確定性規則，參考公式不因未有 verified 旗標而封鎖。主目標與 scoringVersion 記入預覽，狀態變更後重新預覽。真實來源未有抓取時間時維持 null，不把匯入日期寫成抓取日期。

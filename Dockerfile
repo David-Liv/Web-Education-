@@ -12,6 +12,7 @@ WORKDIR /app
 ENV NODE_ENV=production HOST=0.0.0.0 PORT=3001 HOKSE_STATIC_DIR=/app/dist-pilot HOKSE_DATABASE=/app/.data/pilot.sqlite HOKSE_ALLOW_SETUP=false
 COPY --from=build /app/dist-pilot ./dist-pilot
 COPY --from=build /app/server ./server
+COPY --from=build /app/docs/admin-guide.md /app/docs/admin-guide.en.md ./docs/
 COPY --from=build /app/src ./src
 COPY --from=build /app/node_modules ./node_modules
 RUN mkdir -p /app/.data && chown -R node:node /app

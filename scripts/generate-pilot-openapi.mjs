@@ -4,6 +4,8 @@ const response=schema=>({description:'Success',content:{'application/json':{sche
 const paths={};
 function route(path,method,summary,request,reply={type:'object'}){paths[path]??={};paths[path][method]={summary,...(path.startsWith('/auth/')?{}:{security:[{session:[]}]}),...(method==='get'?{}:{parameters:[{in:'header',name:'X-Hokse-Client',required:true,schema:{const:'1'}}]}),...(request?{requestBody:{required:true,content:{'application/json':{schema:request}}}}:{}),responses:{200:response(reply),400:response(ref('Error')),401:response(ref('Error')),403:response(ref('Error')),409:response(ref('Error')),422:response(ref('Error')),502:response(ref('Error'))}}}
 const credentials=minimum=>obj({username:str,password:{type:'string',minLength:minimum,maxLength:200},name:str},['username','password']);
+route('/admin/guide','get','Developer-only administrator guide and protected download',null);
+route('/programmes/compare','get','Deterministic current and target comparisons for the signed-in student goals; no AI credits',null,{type:'array',items:{type:'object'}});
 route('/auth/status','get','Current identity and local first-setup availability',null);
 route('/auth/setup','post','Create local first developer',credentials(10),ref('Identity'));
 route('/auth/login','post','Sign in with existing credentials, including privately assigned short trial passwords',credentials(3),ref('Identity'));

@@ -6,6 +6,7 @@
 
 學生操作見 [中文使用指南](docs/user-guide.md)／[English User Guide](docs/user-guide.en.md)，網站側欄與頁尾亦可開啟 `/help`，英文直達 `/help?lang=en`。站內直接渲染這兩份Markdown；每次影響使用者的更新須同步修訂兩個版本與更新紀錄，見 [專案維護約定](AGENTS.md)。邀請訊息和帳戶密碼只保存在被忽略的私有目錄，不得寫入指南或公開程式碼。帳戶名稱支援2–40個英文字母、數字、句點、底線或連字號，不分大小寫。
 
+管理員操作另見 [中文管理員手冊](docs/admin-guide.md)／[Administrator Manual](docs/admin-guide.en.md)。站內入口為開發工作台的「管理員使用指南」（`/admin/help`）；內容及下載由服務端驗證 developer 角色，不混入學生指南。學生更新記錄採 v1.1 等版本摘要；技術驗收留在管理及部署文件。
 試用入口：[web-education.onrender.com](https://web-education.onrender.com)。現採 Render Free＋Supabase Free，已驗證公開 HTTPS 登入、資料隔離、日曆／附件與重啟持久性；沒有公開自行註冊。分享與不同帳戶見 [上線與帳戶分享指南](docs/deployment-guide.md)。
 
 指定試用帳戶可使用負責人私下分配的短密碼；一般邀請／首次設定仍至少10字元。登入、重設後重新登入及最新邀請說明已同步至中英文指南；密碼不在公開文件中列出。
@@ -117,3 +118,5 @@ Render 設為 **After CI Checks Pass**，不需要把 Render 或 AI Key 放到 A
 首次 GitHub／Render 執行結果見 [CI 與自動發布驗證](docs/ci-verification.md)。
 
 學生可在「套餐與帳單」分別設定測驗、普通對話及評估模型。所有生成只允許指定抗截斷路線；界面顯示基礎名稱和 credit，實際 ID 保留在技術日誌。接口、舊帳戶兼容與路由說明見 [試用維護手冊](docs/pilot-runbook.md#接自己的模型服務)。
+
+升學資料使用 `npm run normalize:programmes` 從記錄快照產生目錄；`npm run crawl:programmes` 才會重新抓取來源。來源失敗時保留原快照及失敗清單，時間、缺失和異常不得補造。`npm run test:programmes` 檢查解析及快照契約。升學比較接口為 `/api/v1/programmes/compare`；參考計分／QS 方向提示不呼叫 AI。
