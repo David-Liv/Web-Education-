@@ -21,7 +21,9 @@ Date: 4 November 2026 (Hong Kong). Scope: the approved [university-goals plan](u
 
 ## Release evidence
 
-Pending commit/CI/Render verification at the time this implementation record was prepared. The release receipt below will be updated after actual deployment; local checks alone do not establish live status.
+The university-goals implementation was committed as `fd2ae683d4c60d6552a7dddd36e387cc87e7f906`. On 4 November 2026 the user authorized publishing the accumulated changes; that commit was pushed together with the subsequent v1.2 chat release `ccbdb15980fd1b2f6bf69268df021a1245867691`.
+
+The [GitHub check run](https://github.com/David-Liv/Web-Education-/actions/runs/41860704694) passed every required job, including the isolated PostgreSQL checks and CodeQL. Render automatically deployed `ccbdb15` in `dep-dbll5v49v7es738rldr0`, confirmed `live` at 23:46:08 Hong Kong time on 4 November 2026. The existing service remains Free. Public HTTPS health, new assets, both versioned student-guide summaries and the public API contract were read back successfully. Full release evidence is recorded in [the rich-chat receipt](chat-content-verification.md#delivery-status-and-remarks); this did not repeat production student scoring or scheduling mutations.
 
 ## Follow-up remarks
 

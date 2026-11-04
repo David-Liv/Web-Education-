@@ -50,7 +50,13 @@ The final focused chat/translation suite passed 17 tests; the backend one-call/r
 
 ## Delivery status and remarks
 
-Local implementation and checks are complete. On 4 November 2026 the user subsequently authorized publishing the accumulated changes, including the earlier university-goals commit. The v1.2 changes and versioned release notes are prepared for main; successful push, CI and deployment must each be confirmed independently. This test receipt alone does not establish a live deployment.
+On 4 November 2026 the user authorized publishing the accumulated changes, including the earlier university-goals commit. Product commit [`ccbdb15980fd1b2f6bf69268df021a1245867691`](https://github.com/David-Liv/Web-Education-/commit/ccbdb15980fd1b2f6bf69268df021a1245867691) was pushed to main with the bilingual guides and [versioned release notes](../CHANGELOG.md). The pre-commit and pre-push secret guards passed, including 416 Git objects in the history scan. Ignored configuration, credentials and real-provider probe output were not committed; the unrelated untracked `scripts/update-types.mjs` was preserved.
+
+The [GitHub check run](https://github.com/David-Liv/Web-Education-/actions/runs/41860704694) succeeded at 23:44:54 Hong Kong time. All five jobs passed: Secret guard, Tests and production build, Isolated PostgreSQL, CodeQL and Release readiness. Local release checks also passed 88 frontend/domain tests, 58 server tests, three programme-catalogue checks, four security checks and the production build.
+
+Render automatically deployed that exact product commit after the checks. Deploy `dep-dbll5v49v7es738rldr0` was confirmed `live` at 23:46:08 Hong Kong time, 4 November 2026, on the existing Free service. No manual deploy, new service, payment-plan change or production database migration was performed.
+
+Public HTTPS readback confirmed a healthy `/api/v1/auth/status` response with setup disabled, the new `ChatContent` and `ChatVisual` assets, both v1.2 guide summaries and the updated public chat API contract. The ignored public-readback receipt is `.data/rich-chat-release-live.json`. These checks verify deployment and published assets; the account-level interaction and real-output visual evidence above came from isolated local replay. No production student chat was generated or charged during release verification.
 
 The repaired provider passed the bounded examples above, with a repeatable answer-consistency failure in one extra probability exercise. This is limited real-model evidence, not acceptance of every visual format or general subject accuracy. Markdown and local fallbacks work with old text replies. Format validation does not certify mathematical explanations or circuit reasoning. Circuit support is limited to the declared schematic templates, and quick chat exercises do not become independent scored assessments.
 
