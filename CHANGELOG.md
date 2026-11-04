@@ -1,0 +1,38 @@
+# HOKSE 更新日誌 / Release notes
+
+## v1.2.0 · 2026-11-04
+
+### 中文
+
+- 學習對話加入表格、公式及多種圖形，支援簡單數據圖、函數圖、幾何、思維導圖與電路示意。
+- 每次回覆提供三個相關的下一步建議，可先編輯再傳送，並可還原上一份草稿。
+- 隨堂練習的提示與答案可展開查看；圖形支援放大及 SVG／PNG 下載。
+- 改善中文圖形標籤排版，更新中英文使用指南及管理員說明。
+
+使用範圍：電路圖為基礎示意；滑桿及即時計算紀錄表尚未提供。AI 隨堂練習供陪練，發現答案與解析不一致時可要求重新核算。
+
+### English
+
+- Richer study conversations with tables, formulas, data charts, function plots, basic geometry, concept maps and circuit schematics.
+- Three contextual next-step suggestions per reply, editable before sending, with one-step draft restoration.
+- Expandable practice hints and answers, diagram enlargement, and SVG/PNG downloads.
+- Clearer Chinese diagram labels and updated student and administrator guides in both languages.
+
+Scope: circuits are basic schematics. Slider forms and records with live calculations are not available. AI practice is for coaching; ask for recalculation if an answer disagrees with its explanation.
+
+## v1.1.0 · 2026-11-04
+
+### 中文
+
+- 改善課程探索、歷年收分展示及目前／目標成績對照。
+- 加入升學目標相關的溫習優先次序與計劃預覽。
+- 分開學生與管理員指南，以版本摘要呈現產品更新。
+
+### English
+
+- Improved programme discovery, historical admission-score views, and comparisons with current and target grades.
+- Goal-related revision priorities and plan previews.
+- Separate student and administrator guides, with version-based product updates.
+
+版本記錄描述產品改動；實際上線版本以部署紀錄為準。
+Release notes describe product changes; deployment records identify the version currently live.

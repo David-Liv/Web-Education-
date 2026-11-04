@@ -1,6 +1,6 @@
 # HOKSE User Guide
 
-v1.1 · 4 November 2026 · Find your direction and make progress at your own pace.
+v1.2 · 4 November 2026 · Find your direction and make progress at your own pace.
 
 Website: [Open HOKSE](https://web-education.onrender.com). Sign in with your invited account to begin. No software installation is needed.
 
@@ -28,6 +28,16 @@ Use hints when needed. After submitting, review each answer. If something seems 
 ## 3. AI Study Room
 
 Each conversation keeps a learning topic together. Rename it, continue asking questions, stop a reply or save a learning summary.
+
+Replies can include tables, formulas, charts, function plots, basic geometry, concept maps and simple circuit schematics. Enlarge a diagram, download SVG/PNG, or open its supporting text or data where available. These are learning references; circuit diagrams are not simulations.
+
+Case-by-case explanations can use relationship diagrams and comparison tables. Chat does not currently offer draggable sliders or interactive records with live calculations. To change example values, continue in the same conversation. Quick-practice answers can still contain mistakes; if an answer disagrees with its explanation, ask the AI to recalculate.
+
+Three suggested next steps appear after each completed reply. Click one to fill the input box, edit it if you wish, then press Enter to continue in the same conversation. Nothing is sent by clicking a suggestion. If it replaces an existing draft, use “Restore your draft” to get that draft back.
+
+Quick practice stays in the chat. Try answering below, or expand “Give me a hint” and “Show answer and explanation” when needed. These exercises support learning and do not count as independent quiz scores.
+
+Suggestions, answer reveals, enlarging and downloads use no extra credits. Sending a new question is a new AI operation at the displayed model price. A reply may still provide useful text when a visual cannot be displayed.
 
 Include the question, your own thinking and where you got stuck. With an image or recording, also describe the problem in text. Attachments currently support keeping and viewing material; attaching a file does not mean AI has read everything in it.
 
@@ -96,6 +106,13 @@ The current checkout is a demonstration. Choosing a payment channel does not cha
 Use your own account and sign out before leaving a shared computer. For troubleshooting, administrators can view AI usage records and export response text. Avoid unnecessary personal secrets in your questions.
 
 ## 11. What's new
+
+**v1.2 · Learn through conversation**
+
+- Richer explanations with tables, formulas and learning visuals.
+- Contextual next-step suggestions and expandable practice hints and answers.
+- More ways to explore and keep useful diagrams.
+- Clearer concept-map labels and guidance on supported interactions.
 
 **v1.1 · A clearer direction for your next step**
 

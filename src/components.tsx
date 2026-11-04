@@ -1,5 +1,5 @@
 import { ui, useInterfaceLanguage } from "./i18n";
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { BookOpen, CalendarDays, LayoutDashboard, Repeat2, MessageSquareText, ClipboardCheck, FolderOpen, GraduationCap, Settings, Search, Bell, ChevronDown, ChevronLeft, ChevronRight, ArrowUpRight, ArrowRight, Plus, Check, CheckCircle2, X, Clock, Flame, TrendingUp, Target, MoreHorizontal, Play, Pause, Bookmark, ExternalLink, Filter, SlidersHorizontal, Upload, Mic, Send, Square, RotateCcw, Pin, Lock, AlertCircle, Lightbulb, Leaf, Sparkles, Menu, Layers, FileText, Headphones, Trash2, Pencil, GripVertical, FlaskConical, Calculator, Languages, Compass, Sun, Star, HelpCircle, ListChecks, Flag, CircleHelp, ArrowDown, RefreshCw, Copy, Volume2, Eye } from 'lucide-react';
@@ -8,6 +8,7 @@ import { useApp } from './state';
 import { loadFile, storeFile } from './media';
 import { realMode } from './api/client';
 import type { Attachment, Subject } from './types';
+const ChatContent = lazy(()=>import('./ChatContent').then(m=>({default:m.ChatContent})));
 const icons = { eye: Eye, book: BookOpen, calendar: CalendarDays, dashboard: LayoutDashboard, review: Repeat2, chat: MessageSquareText, quiz: ClipboardCheck, folder: FolderOpen, graduation: GraduationCap, settings: Settings, search: Search, bell: Bell, down: ChevronDown, left: ChevronLeft, right: ChevronRight, arrowUp: ArrowUpRight, arrow: ArrowRight, plus: Plus, check: Check, checkCircle: CheckCircle2, x: X, clock: Clock, flame: Flame, trend: TrendingUp, target: Target, more: MoreHorizontal, play: Play, pause: Pause, bookmark: Bookmark, external: ExternalLink, filter: Filter, sliders: SlidersHorizontal, upload: Upload, mic: Mic, send: Send, square: Square, reset: RotateCcw, pin: Pin, lock: Lock, alert: AlertCircle, bulb: Lightbulb, leaf: Leaf, sparkles: Sparkles, menu: Menu, layers: Layers, file: FileText, headphones: Headphones, trash: Trash2, pencil: Pencil, grip: GripVertical, chem: FlaskConical, maths: Calculator, languages: Languages, compass: Compass, sun: Sun, star: Star, help: HelpCircle, list: ListChecks, flag: Flag, question: CircleHelp, arrowDown: ArrowDown, refresh: RefreshCw, copy: Copy, volume: Volume2, Eye };
 export type IconName = keyof typeof icons;
 export function Icon({ name, size = 19, className = '', ...props }: {
@@ -72,9 +73,7 @@ export function Formula({ tex }: {
 catch {
     return <code>{tex}</code>;
 } }
-export function RichText({ text }: {
-    text: string;
-}) { useInterfaceLanguage(); return <div className="rich-text">{text.split('\n\n').map((p, i) => <p key={i}>{p.split(/(\*\*.*?\*\*)/g).map((part, j) => part.startsWith('**') ? <strong key={j}>{part.slice(2, -2)}</strong> : <span key={j}>{part}</span>)}</p>)}</div>; }
+export function RichText({text,assistant=true,complete=true}:{text:string;assistant?:boolean;complete?:boolean}) {return <Suspense fallback={<div className="rich-text">{assistant?ui('正在整理回覆…'):text}</div>}><ChatContent text={text} assistant={assistant} complete={complete}/></Suspense>;}
 export function SectionTitle({ title, link, to, children }: {
     title: string;
     link?: string;

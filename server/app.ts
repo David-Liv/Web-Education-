@@ -19,9 +19,10 @@ import type { ContentPack, Identity, VersionedPreview } from '../src/pilot-types
 import type { Task } from '../src/types.ts';
 import { addDays, validateTask } from '../src/domain.ts';
 import { catalog } from '../src/data/catalog.ts';
-import { Billing, beginProvider, finishUsage, usageModel } from './billing.ts';
+import { Billing, beginProvider, discardUsage, finishUsage, usageModel } from './billing.ts';
 import { billingRoutes } from './billing-routes.ts';
 import { programmeComparison, SCORING_VERSION } from '../src/admissions.ts';
+import { CHAT_CONTENT_INSTRUCTIONS, chatHistoryText, parseChatContent } from '../src/chat-content.ts';
 
 interface Options { databaseUrl?:string; encryptionKey?:string; database?:string; staticDir?:string; allowSetup?:boolean; secureCookie?:boolean; origin?:string }
 const MIME:Record<string,string>={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json','.csv':'text/csv; charset=utf-8','.svg':'image/svg+xml','.wav':'audio/wav','.png':'image/png','.woff2':'font/woff2'};
@@ -247,10 +248,11 @@ export function createPilot(options:Options={}){
           try{
             // No reference answers or unpublished questions are placed in chat context.
             const system=`你是香港中學生的耐心導師。依據教材、學習參考與學生文字提供簡明解釋、可檢查步驟及分層提示。錯因不足時寫待確認；不能改成績、掌握度或日曆。正在正式測驗時不代答；使用者要求提示則提醒返回題目提示入口。導讀後可直接附隨堂小題，不用測驗生成格式；不要聲稱教材已由專業審校或看過圖片錄音。語言：${chat.teachingLanguage==='en'?'English':'香港繁體中文'}。教材：${JSON.stringify(pack.lessons)}`;
-            const text=await generate(config,[{role:'system',content:system},...chat.messages.filter(m=>m.status==='complete').slice(-10).map(m=>({role:m.role,content:m.content})),{role:'user',content}],controller.signal);
+            const text=await generate(config,[{role:'system',content:system+'\n'+CHAT_CONTENT_INSTRUCTIONS},...chat.messages.filter(m=>m.status==='complete').slice(-10).map(m=>({role:m.role,content:m.role==='assistant'?chatHistoryText(m.content):m.content})),{role:'user',content}],controller.signal);
+            if(!parseChatContent(text).blocks.some(b=>b.kind==='visual'||b.kind==='exercise'||b.kind==='markdown'&&b.text.trim()))reject('回覆未包含可用講解，請重新提問',502,'NO_USABLE_CHAT_CONTENT');
             if(controller.signal.aborted)throw new Error('已停止生成');
             (await persist(text,'complete'));await finishUsage({data:{__sse:{text,id:assistantId}},status:200});done=true;res.writeHead(200,{'Content-Type':'text/event-stream','Cache-Control':'no-store'});res.write(`event: start\ndata: ${JSON.stringify({id:assistantId})}\n\n`);for(let n=0;n<text.length;n+=200)res.write(`event: delta\ndata: ${JSON.stringify({text:text.slice(n,n+200)})}\n\n`);res.end(`event: done\ndata: ${JSON.stringify({id:assistantId})}\n\n`);
-          }catch(e){(await persist('','interrupted'));throw e}finally{done=true}return;
+          }catch(e){discardUsage();(await persist('','interrupted'));throw e}finally{done=true}return;
           }finally{if(active.get(identity.id+id)===controller)active.delete(identity.id+id)}
         }
       }

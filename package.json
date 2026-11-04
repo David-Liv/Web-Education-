@@ -1,6 +1,6 @@
 {
   "name": "hokse-dse-study-studio",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -16,7 +16,7 @@
     "check:postgres": "node scripts/check-postgres.mjs",
     "build:pilot": "node scripts/build-pilot.mjs",
     "typecheck:server": "tsc -p server/tsconfig.json",
-    "test:server": "node --test server/pilot.check.ts server/static.check.ts server/studio.check.ts server/model-settings.check.ts server/billing.check.ts server/admissions.check.ts",
+    "test:server": "node --test server/pilot.check.ts server/static.check.ts server/studio.check.ts server/model-settings.check.ts server/billing.check.ts server/admissions.check.ts server/chat-content.check.ts",
     "test:security": "node --test scripts/security.check.mjs",
     "check:secrets": "node scripts/check-secrets.mjs --history",
     "extract:maths-index": "node scripts/extract-maths-metadata.mjs",
@@ -33,7 +33,11 @@
     "pg": "^8.23.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "react-router-dom": "^7.9.5"
+    "react-markdown": "^10.1.0",
+    "react-router-dom": "^7.9.5",
+    "rehype-katex": "^7.0.1",
+    "remark-gfm": "^4.0.1",
+    "remark-math": "^6.0.0"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.17",

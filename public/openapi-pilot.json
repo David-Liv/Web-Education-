@@ -6392,7 +6392,7 @@
         },
         "responses": {
           "200": {
-            "description": "SSE start/delta/done events; HTTP errors before stream",
+            "description": "SSE start/delta/done events; content is Markdown with bounded chart/plot/geometry/diagram/circuit/exercise/suggestions JSON fences. Suggestions share the same call. HTTP errors before stream; provider-native streaming is not implemented.",
             "content": {
               "text/event-stream": {
                 "schema": {

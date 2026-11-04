@@ -48,7 +48,7 @@ route('/chats','post','Create teaching chat for a published unit',obj({topicId:s
 route('/chats/{id}','patch','Rename owned chat',obj({title:str},['title']));route('/chats/{id}','delete','Delete owned chat',null);
 for(const action of ['stop','save-summary'])route(`/chats/{id}/${action}`,'post','Stop generation / save learning summary',obj({}));
 route('/chats/{id}/messages','post','Idempotent provider-backed teaching; assessed work assistance recorded',obj({content:str,requestId:str,attachmentIds:{type:'array',items:str}},['content','requestId']));
-paths['/chats/{id}/messages'].post.responses[200]={description:'SSE start/delta/done events; HTTP errors before stream',content:{'text/event-stream':{schema:str}}};
+paths['/chats/{id}/messages'].post.responses[200]={description:'SSE start/delta/done events; content is Markdown with bounded chart/plot/geometry/diagram/circuit/exercise/suggestions JSON fences. Suggestions share the same call. HTTP errors before stream; provider-native streaming is not implemented.',content:{'text/event-stream':{schema:str}}};
 for(const path of ['/admin/users','/admin/content','/admin/model','/admin/grading'])route(path,'get','Role-protected developer/reviewer view',null);
 route('/admin/users','post','Developer assigns invite account',obj({...credentials(10).properties,role:{enum:['student','reviewer','developer']}},['username','password','name','role']));
 const modelDraft=obj({name:str,baseUrl:str,apiKey:str,clearKey:{type:'boolean'},model:str,protocol:{enum:['openai-chat','openai-responses']},enabled:{type:'boolean'}},['baseUrl','protocol']);

@@ -1,6 +1,6 @@
 # HOKSE Administrator Manual
 
-v1.1 · 4 November 2026. For maintaining accounts, content, AI services and programme data.
+v1.2 · 4 November 2026. For maintaining accounts, content, AI services and programme data.
 
 ## 1. Administrator workspace
 
@@ -34,6 +34,8 @@ Search users or models and filter by status and Hong Kong dates. The eye icon sh
 
 Logs retain up to 1,000 upstream calls for 30 days, with at most 30,000 response characters and key redaction. Credit ledgers, orders and learning history are separate. Inspect content only for necessary support and protect exports. The student guide retains notice of this access.
 
+Chat uses controlled Markdown and bounded JSON blocks for charts, plots, geometry, diagrams, circuits and exercises. Suggested next steps are requested in the same conversation-model call; invalid suggestions use local defaults with no repair calls. Clicking only fills a draft. Answer reveals and exports are local operations. Rendering uses app-owned React/SVG components, never model HTML, JavaScript or Python. Diagram format checks do not certify subject accuracy. Old text-only replies remain readable. The current provider path still waits for a complete model response before sending display chunks; native provider streaming is a separate follow-up.
+
 ## 6. Content and learning evidence
 
 Coaching uses original reference material and provisional AI feedback. The original formal content bank retains its review and publication process. Rules mark objective answers; uncertain subjective answers stay unknown. Hints, repeats and self-ratings are not independent mastery.
@@ -60,8 +62,11 @@ Keep keys, connection strings, backups and individual invitations in private con
 
 For provider failures, inspect status and protocol. For balances, inspect operation settlement rather than deleting logs. For scheduling, inspect capacity, locks and rest days. Use actual deployment records for release status; local checks are not production acceptance.
 
+4 November 2026 visual probe: after provider recovery, Flash returned charts, a circuit and concept diagrams. Bounded compatibility now accepts empty optional text and maps `tree` to the existing flow layout, retaining node and edge validation. One extra practice answer disagreed with its explanation; the same-call prompt now asks for a consistency check, without adding chat repair calls or guaranteeing correctness. Operable sliders and record forms remain unimplemented. See docs/chat-content-verification.md for evidence and the initial upstream `no_credential` failure.
+
 ## 9. Administrator release record
 
+- v1.2 / 4 November 2026: rich chat replies, contextual draft suggestions and collapsible quick-practice answers; one-call generation and local visual exports.
 - v1.1 / 4 November 2026: programme data and reference scoring integration; separate student and administrator guides; student release notes use product-level version summaries.
 - v1.0: account isolation, three-subject coaching, per-purpose models, plan allowances and usage logs.
 

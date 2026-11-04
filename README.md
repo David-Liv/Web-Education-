@@ -120,3 +120,7 @@ Render 設為 **After CI Checks Pass**，不需要把 Render 或 AI Key 放到 A
 學生可在「套餐與帳單」分別設定測驗、普通對話及評估模型。所有生成只允許指定抗截斷路線；界面顯示基礎名稱和 credit，實際 ID 保留在技術日誌。接口、舊帳戶兼容與路由說明見 [試用維護手冊](docs/pilot-runbook.md#接自己的模型服務)。
 
 升學資料使用 `npm run normalize:programmes` 從記錄快照產生目錄；`npm run crawl:programmes` 才會重新抓取來源。來源失敗時保留原快照及失敗清單，時間、缺失和異常不得補造。`npm run test:programmes` 檢查解析及快照契約。升學比較接口為 `/api/v1/programmes/compare`；參考計分／QS 方向提示不呼叫 AI。
+
+v1.2 聊天支援 Markdown、表格、KaTeX 與受控圖形／隨堂題區塊，回覆後三個建議只填草稿，由學生發送。正文及建議共用普通對話模型的一次呼叫；本機 SVG 繪圖、答案折疊與下載無需 Python 或新服務。格式、限制及後續備註見 [聊天內容契約](docs/chat-content-contract.md)。
+
+產品版本摘要見 [更新日誌 / Release notes](CHANGELOG.md)。學生指南保留站內可直接閱讀的中英文版本記錄；詳細驗證結果另載於各項驗證文件。
