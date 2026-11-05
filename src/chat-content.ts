@@ -12,10 +12,11 @@ export type VisualSpec=({kind:'chart'}&ChartSpec)|({kind:'plot'}&PlotSpec)|({kin
 export type ChatBlock={kind:'markdown';text:string}|{kind:'exercise';value:ExerciseSpec}|{kind:'visual';value:VisualSpec}|{kind:'unavailable';pending:boolean;source?:string;format?:string};
 const reserved=new Set(['chart','plot','geometry','diagram','circuit','exercise','suggestions','review']);
 const obj=(v:any)=>v&&typeof v==='object'&&!Array.isArray(v);
-const str=(v:any,n=200)=>typeof v==='string'&&v.trim().length>0&&v.length<=n;
+const textChars=(v:string)=>!/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/.test(v);
+const str=(v:any,n=200)=>typeof v==='string'&&v.trim().length>0&&v.length<=n&&textChars(v);
 // Providers commonly emit an empty optional label rather than omitting it.
 // Keep required text nonempty, but accept bounded blank optional text as absent.
-const optional=(v:any,n=200)=>v===undefined||typeof v==='string'&&v.length<=n;
+const optional=(v:any,n=200)=>v===undefined||typeof v==='string'&&v.length<=n&&textChars(v);
 const num=(v:any,limit=1e9)=>typeof v==='number'&&Number.isFinite(v)&&Math.abs(v)<=limit;
 const arr=(v:any,min:number,max:number)=>Array.isArray(v)&&v.length>=min&&v.length<=max;
 export function validBlock(kind:string,v:any):boolean {

@@ -36,6 +36,11 @@ describe('controlled chat content',()=>{
   expect(chatHistoryText(invalid)).not.toContain('hidden answer');
   expect(renderToStaticMarkup(<ChatContent text={invalid}/>)).not.toContain('hidden answer');
   expect(parseChatContent(invalid,true,{retainInvalid:true}).blocks[0]).toEqual({kind:'unavailable',pending:false,source:invalid,format:'exercise'});
+  // A single LaTeX backslash before "frac" is valid JSON's form-feed escape,
+  // but must not silently turn a mathematical answer into damaged text.
+  const damaged='```exercise\n'+String.raw`{"question":"Half?","answer":"$\frac{1}{2}$"}`+'\n```';
+  expect(parseChatContent(damaged).blocks[0].kind).toBe('unavailable');
+  expect(validBlock('exercise',{question:'Half?',answer:'$\\frac{1}{2}$'})).toBe(true);
  });
  it('validates data limits, missing chart values, diagram references and circuit measurement positions',()=>{
   const chart={title:'Values',type:'line',labels:['A','B'],series:[{name:'Observed',values:[0,null]}]};expect(validBlock('chart',chart)).toBe(true);
