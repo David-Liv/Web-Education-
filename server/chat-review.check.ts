@@ -52,7 +52,7 @@ test('separate generation and reviewer routes share one charge and replay the co
  const id=crypto.randomUUID(),res=await f.send(id);assert.equal(res.status,200);assert.match(await res.text(),/event: done/);
  const state=await f.app.store.state(f.student.id),m=state.chats[0].messages[1];assert.equal(state.chats[0].messages.length,2);assert.match(m.content,/0\.032/);assert.doesNotMatch(m.content,/0\.128/);assert.ok(parseChatContent(m.content).blocks.some(b=>b.kind==='exercise'));
  assert.deepEqual(f.calls,[{model:gen,stage:'generation'},{model:review,stage:'review'}]);assert.equal((await f.billing.view(f.student.id)).spent,2);assert.equal(state.events.length,0);assert.equal(state.evidence.length,0);
- const logs=await f.billing.logs(new URLSearchParams());assert.deepEqual(logs.rows.map(l=>l.stage).sort(),['generation','review']);assert.equal(new Set(logs.rows.map(l=>l.operationId)).size,1);
+ const logs=await f.billing.logs(new URLSearchParams({q:f.student.username}));assert.deepEqual(logs.rows.map(l=>l.stage).sort(),['generation','review']);assert.equal(new Set(logs.rows.map(l=>l.operationId)).size,1);
  await (await f.send(id)).text();assert.equal(f.calls.length,2);assert.equal((await f.read()).messages[1].id,m.id);
 }finally{await f.close()}});
 test('mixed body arrives before the exercise, hidden drafts stay private, and disconnect does not cancel review',async()=>{const f=await fixture();f.block();try{
@@ -86,7 +86,7 @@ test('concurrent duplicate requests share work and changed inputs cannot reuse t
  f.release();await first.text();await duplicate.text();assert.equal(f.calls.length,2);assert.equal((await f.read()).messages.length,2);assert.equal((await f.billing.view(f.student.id)).spent,2);
 }finally{await f.close()}});
 test('only an administrator can export original and corrected private practice revisions',async()=>{const f=await fixture();try{
- await (await f.send()).text();const logs=await f.billing.logs(new URLSearchParams()),log=logs.rows.find(l=>l.stage==='review')!,path='/admin/usage/'+log.id+'/review';
+ await (await f.send()).text();const logs=await f.billing.logs(new URLSearchParams({q:f.student.username})),log=logs.rows.find(l=>l.stage==='review')!,path='/admin/usage/'+log.id+'/review';
  assert.equal((await f.call(path)).status,403);
  const admin=await f.app.store.createUser('admin','fixturepass','Admin','developer'),cookie='hokse_session='+await f.app.store.session(admin);
  const result=await f.call(path,undefined,undefined,cookie);assert.equal(result.status,200);const record=await result.json();assert.equal(record.history[0].verdict,'corrected');assert.match(record.history[0].before,/0\.128/);assert.match(record.history[0].after,/0\.032/);
