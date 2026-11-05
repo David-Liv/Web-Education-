@@ -24,6 +24,10 @@ import { Billing, discardUsage } from './billing.ts';
 import { billingRoutes } from './billing-routes.ts';
 import { programmeComparison, SCORING_VERSION } from '../src/admissions.ts';
 import { ChatService } from './chat-service.ts';
+import {binding,teachingState,tutorResources} from './tutors.ts';
+import {TUTORS} from '../src/tutors.ts';
+import {readDocument} from './tutor-documents.ts';
+import {renderLessonPdf} from './lesson-pdf.ts';
 
 interface Options { databaseUrl?:string; encryptionKey?:string; database?:string; staticDir?:string; allowSetup?:boolean; secureCookie?:boolean; origin?:string }
 const MIME:Record<string,string>={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json','.csv':'text/csv; charset=utf-8','.svg':'image/svg+xml','.wav':'audio/wav','.png':'image/png','.woff2':'font/woff2'};
@@ -32,7 +36,7 @@ const validRoles=['student','reviewer','developer'];
 export function createPilot(options:Options={}){
   const store=new Store(options.database??resolve('.data/pilot.sqlite'),{databaseUrl:options.databaseUrl,encryptionKey:options.encryptionKey});
   const billing=new Billing(store);
-  const chats=new ChatService(store,billing);
+  const chats=new ChatService(store,billing,options.origin);
   const attempts=new Map<string,{n:number;until:number}>();
   const assets=new Map<string,{mtime:number;bytes:Buffer;gzip?:Buffer;etag:string}>();
   function bodyLimit(req:IncomingMessage,max=3*1024*1024):Promise<Buffer>{return new Promise((resolve,reject)=>{const chunks:Buffer[]=[];let size=0;req.on('data',c=>{size+=c.length;if(size>max){reject(Object.assign(new Error('內容超過允許大小'),{status:413}));req.pause();return}chunks.push(c)});req.on('end',()=>resolve(Buffer.concat(chunks)));req.on('error',reject)})}
@@ -219,12 +223,23 @@ export function createPilot(options:Options={}){
         const attachment=(await store.transaction(async ()=>{const data=(await store.state(identity.id));await store.putFile(id,identity.id,name,type,bytes);const file={id,name,type,size:bytes.length};data.attachments.push(file);(await store.save(identity.id,data));return file}));send(attachment,201);return;
       }
       if(path.startsWith('/attachments/')&&method==='GET'){const file=(await store.db.prepare('SELECT * FROM files WHERE id=? AND user_id=?').get(path.split('/')[2],identity.id)) as any;if(!file)reject('附件不存在',404);res.writeHead(200,{'Content-Type':file.type,'Content-Disposition':`inline; filename*=UTF-8''${encodeURIComponent(file.name)}`,'X-Content-Type-Options':'nosniff','Cache-Control':'private, no-store'});res.end(file.data);return}
-      if(path==='/chats'&&method==='POST'){send((await change(data=>{const p=(packs.find(p=>p.topicId===input.topicId)??coaching.find(p=>p.topicId===input.topicId))??reject('此單元未發布',422);const chat={id:crypto.randomUUID(),title:String(input.title??p.title).slice(0,100),subjectId:p.subjectId,topicId:p.topicId,mode:input.mode??'explain',year:data.profile.year,teachingLanguage:data.profile.teachingLanguage,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),messages:[]};data.chats.unshift(chat);return chat})),201);return}
+      if(path==='/tutors'&&method==='GET'){send({tutors:TUTORS,resources:tutorResources.map(({text,...s})=>s)});return}
+      if(path==='/chats'&&method==='POST'){send((await change(data=>{const p=(packs.find(p=>p.topicId===input.topicId)??coaching.find(p=>p.topicId===input.topicId))??reject('此單元未發布',422);const tutor=input.tutorId===undefined?undefined:binding(input.tutorId,p.topicId);const previous=input.sourceChatId?data.chats.find(c=>c.id===input.sourceChatId&&c.topicId===p.topicId)??reject('找不到原對話',404):undefined;const chat={id:crypto.randomUUID(),title:String(input.title??p.title).slice(0,100),subjectId:p.subjectId,topicId:p.topicId,mode:input.mode??'explain',year:data.profile.year,teachingLanguage:data.profile.teachingLanguage,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),messages:[],...(tutor?{tutor,teaching:previous?.teaching??teachingState(data.profile,p.topicId),documents:[]}:{} )};data.chats.unshift(chat);return chat})),201);return}
+      const memoryMatch=path.match(/^\/tutor-memory\/([^/]+)$/);
+      if(memoryMatch&&method==='PUT'){send(await change(data=>{const record=data.tutorMemory?.records.find(r=>r.id===memoryMatch[1])??reject('找不到學習記錄',404);if(typeof input.confirmed!=='boolean')reject('請確認學習記錄');record.confirmed=input.confirmed;const term=data.pendingTutorTerms?.[record.id];if(term){data.tutorMemory!.terms=data.tutorMemory!.terms.filter(t=>t.recordId!==record.id);if(record.confirmed)data.tutorMemory!.terms.push(term)}return {ok:true}}));return}
+      const teachingMatch=path.match(/^\/chats\/([^/]+)\/teaching$/);
+      if(teachingMatch&&method==='PATCH'){send(await change(data=>{const c=data.chats.find(c=>c.id===teachingMatch[1])??reject('對話不存在',404);if(!c.tutor)reject('請為新對話選擇導師',422);if(c.messages.some(m=>m.status==='streaming'))reject('請在回覆完成後更新學習設定',409);c.teaching??=teachingState(data.profile,c.topicId);for(const field of ['mission','success','constraints','outOfScope','preferences'] as const)if(input[field]!==undefined){if(typeof input[field]!=='string'||input[field].length>1200)reject('學習設定過長');c.teaching[field]=input[field].trim()}return c}));return}
+      const docMatch=path.match(/^\/chats\/([^/]+)\/documents\/([^/]+)(?:\/(render))?$/);
+      if(docMatch&&(method==='GET'||method==='POST'&&docMatch[3]==='render')){
+       const c=(await store.state(identity.id)).chats.find(c=>c.id===docMatch[1])??reject('對話不存在',404);const doc=await readDocument(store,identity.id,c,docMatch[2]);
+       if(method==='POST'){const bytes=await renderLessonPdf({...doc.meta,reference:''},doc.content,c.id,c.teachingLanguage==='en',options.origin);if(bytes.length>5*1024*1024)reject('課件超出大小限制',413);await store.transaction(async()=>{const latest=await store.state(identity.id);if(!latest.chats.find(x=>x.id===c.id)?.documents?.some(d=>d.id===doc.meta.id))reject('找不到課件',404);await store.db.prepare('DELETE FROM files WHERE id=? AND user_id=?').run(doc.meta.id,identity.id);await store.putFile(doc.meta.id,identity.id,`HOKSE-${doc.meta.number}-v${doc.meta.version}.pdf`,'application/pdf',bytes)});send({ok:true});return}
+       const file=await store.db.prepare('SELECT * FROM files WHERE id=? AND user_id=?').get(doc.meta.id,identity.id);if(!file)reject('課件檔案暫時無法讀取，請重新排版',404,'DOCUMENT_RENDER_REQUIRED');res.writeHead(200,{'Content-Type':'application/pdf','Content-Disposition':`attachment; filename*=UTF-8''${encodeURIComponent(file.name)}`,'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'});res.end(file.data);return;
+      }
       const retryChat=path.match(/^\/chats\/([^/]+)\/messages\/([^/]+)\/retry$/);
       if(retryChat&&method==='POST'){await chats.send(identity,retryChat[1],input,[...packs,...coaching],res,retryChat[2]);return}
       const chatMatch=path.match(/^\/chats\/([^/]+)(?:\/(messages|stop|save-summary))?$/);
       if(chatMatch){const [,id,action]=chatMatch;const findChat=(data:StudentState)=>data.chats.find(c=>c.id===id)??reject('對話不存在',404);
-        if(method==='DELETE'&&!action){await chats.remove(identity.id,id);send((await change(data=>{findChat(data);data.chats=data.chats.filter(c=>c.id!==id);return {ok:true}})));return}
+        if(method==='DELETE'&&!action){await chats.remove(identity.id,id);send({ok:true});return}
         if(method==='PATCH'&&!action){send((await change(data=>{const c=findChat(data);if(!String(input.title??'').trim())reject('請輸入標題');c.title=String(input.title).slice(0,100);return c})));return}
         if(action==='stop'&&method==='POST'){send(await chats.stop(identity.id,id));return}
         if(action==='save-summary'&&method==='POST'){send((await change(data=>{const c=findChat(data);if(!c.messages.some(m=>m.role==='assistant'&&m.status==='complete'))reject('請先完成一輪對話');if(!data.events.some(e=>e.sourceUrl===`/learn/${id}`&&e.date===data.profile.date))recordLearning(data,c.topicId,c.title,'chat',10,`/learn/${id}`);return {ok:true}})));return}

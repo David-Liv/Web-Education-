@@ -1,5 +1,11 @@
 # HOKSE 更新日誌 / Release notes
 
+## v1.5.0 · 2026-11-06
+
+- Choose a teaching approach and keep it with your conversation.
+- Download short lessons, revisit versions and discuss exercises by number.
+- Continue learning with saved goals, preferences and notes.
+
 ## v1.4.0 · 2026-11-05
 
 - 日曆加入直接拖動、觸屏長按、落點預覽及三秒撤銷提醒。

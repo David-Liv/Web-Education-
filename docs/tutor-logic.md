@@ -1,5 +1,7 @@
 # 从 STEM Super-Tutor prompt 提取的导师逻辑
 
+2026-11-05：Tutor 选择、方法版本、可选教学模块及 Matt PDF 课程的最新已确认设计见 [Tutor 教学方法与 PDF 课程实施方案](tutor-teaching-methods-plan.md)。设计已进入首版实现，当前验证与发布状态见 [Tutor 验证](tutor-verification.md)。
+
 更新：2026-10-27。本文是产品设计参考，不是当前代理或学生界面必须逐字执行的提示词。
 
 2026-10-28 补充：本文保留规划推导和原型缺口；新的真实模式已加入证据、错因、补救及复核流程，具体实现／未验证边界见 [首期验证](pilot-verification.md)。下文的「待实现」不能用来推断新版本状态。

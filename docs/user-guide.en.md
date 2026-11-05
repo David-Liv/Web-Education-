@@ -1,6 +1,6 @@
 # HOKSE User Guide
 
-v1.4 · 5 November 2026 · Find your direction and make progress at your own pace.
+v1.5 · 6 November 2026 · Find your direction and make progress at your own pace.
 
 Website: [Open HOKSE](https://web-education.onrender.com). Sign in with your invited account to begin. No software installation is needed.
 
@@ -29,9 +29,17 @@ Use hints when needed. After submitting, review each answer. If something seems 
 
 ## 3. AI Study Room
 
+Choose a teaching method when starting a conversation. David offers guided reading, gradual hints and step-by-step problem solving. Matt builds short PDF lessons around your goal, followed by practice and discussion. Matt’s first complete topic is quadratic equations in compulsory Mathematics; the selector shows which topics are available.
+
+Each conversation keeps its tutor. “Change tutor” opens a new conversation while keeping the original. Relevant learning notes can carry across. Teaching settings do not change your grade targets or calendar. In “Learning settings”, add your goal, constraints and preferences, and revisit lesson references and learning notes. Confirm notes that match your understanding to help your tutor teach what comes next.
+
+Matt provides a downloadable PDF for a new lesson. Ordinary follow-up questions stay in the chat. Choose “Next PDF lesson”, check the draft and send it when you want to continue. After reading, choose “Discuss this lesson” and include its lesson number, version and question number, such as “Lesson 1, v1, Q2”, followed by your answer or question. Lessons provide questions first; ask for hints or a worked answer whenever you need them.
+
+“Revise content” fills a draft for you to edit and send. Revisions create a new version; earlier versions remain available. Opening and repeat downloads use no credits. A new lesson or content revision costs one operation at your conversation model price, including automatic exercise checks. An undelivered lesson is not charged. For file layout problems, use the free rebuild option under “Lesson details” to reformat the saved content. Downloading or reading a lesson does not automatically establish formal mastery.
+
 New exercises and worked answers in chat are checked before appearing. General explanations may appear first, with practice added to the same reply afterward. For requests that only ask for questions or solutions, wait for the complete reply. These checks help reduce errors; replies remain AI learning references.
 
-Started work continues when you switch conversations or leave the page. Return to see saved results; use Stop to cancel explicitly. If an exercise could not be prepared, Retry checks the same exercise once without an additional charge or rewriting an explanation already delivered. After another failure, send a new request. There are no automatic retry loops.
+Started work continues when you switch conversations or leave the page. Return to see saved results; use Stop to cancel explicitly. If a reply could not be completed, Retry continues the same saved request once without an additional charge or rewriting an explanation already delivered. After another failure, send a new request. There are no automatic retry loops.
 
 Each conversation keeps a learning topic together. Rename it, continue asking questions, stop a reply or save a learning summary.
 
@@ -39,9 +47,9 @@ Replies can include tables, formulas, charts, function plots, basic geometry, co
 
 Case-by-case explanations can use relationship diagrams and comparison tables. Chat does not currently offer draggable sliders or interactive records with live calculations. To change example values, continue in the same conversation. Quick-practice answers can still contain mistakes; if an answer disagrees with its explanation, ask the AI to recalculate.
 
-Three suggested next steps appear after each completed reply. Click one to fill the input box, edit it if you wish, then press Enter to continue in the same conversation. Nothing is sent by clicking a suggestion. If it replaces an existing draft, use “Restore your draft” to get that draft back.
+Suggested next steps appear when your tutor chooses to include them. Click one to fill the input box, edit it if you wish, then press Enter to continue in the same conversation. Nothing is sent by clicking a suggestion. If it replaces an existing draft, use “Restore your draft” to get that draft back.
 
-Quick practice stays in the chat. Try answering below, or expand “Give me a hint” and “Show answer and explanation” when needed. These exercises support learning and do not count as independent quiz scores.
+When your tutor uses chat exercises, quick practice stays in the chat. Try answering below, or expand “Give me a hint” and “Show answer and explanation” when needed. These exercises support learning and do not count as independent quiz scores.
 
 Suggestions, answer reveals, enlarging and downloads use no extra credits. Sending a new question is a new AI operation at the conversation model price shown in Plan & Billing. Automatic review has no additional student charge. No usable delivery means no charge; a delivered explanation retains its original charge. A previously refunded request is charged its original operation once if its retry succeeds. A reply may still provide useful text when a visual cannot be displayed.
 
@@ -116,6 +124,13 @@ The current checkout is a demonstration. Choosing a payment channel does not cha
 Use your own account and sign out before leaving a shared computer. For troubleshooting, administrators can view AI usage records and export response text. Avoid unnecessary personal secrets in your questions.
 
 ## 11. What's new
+
+**v1.5 · Find your way to learn · 6 November 2026**
+
+- Choose a tutor with a teaching approach that suits your needs.
+- Download lessons, revisit earlier versions and discuss questions by number.
+- Keep learning goals, preferences and notes to continue where you left off.
+- Improved saving of goals and learning-language settings.
 
 **v1.4 · A smoother study space · 5 November 2026**
 

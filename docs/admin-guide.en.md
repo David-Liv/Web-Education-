@@ -1,6 +1,6 @@
 # HOKSE Administrator Manual
 
-v1.4 · 5 November 2026. For maintaining accounts, content, AI services and programme data.
+v1.5 · 6 November 2026. For maintaining accounts, content, AI services and programme data.
 
 Navigation can collapse to icons on desktop and remembers the browser preference. Calendar moves and Undo use the same ownership, conflict and budget checks; they do not call AI.
 
@@ -78,3 +78,16 @@ For provider failures, inspect status and protocol. For balances, inspect operat
 - v1.0: account isolation, three-subject coaching, per-purpose models, plan allowances and usage logs.
 
 Manual reference: HOKSE_ADMIN_OPERATIONS_1_1.
+
+
+## Tutor methods and PDF lessons
+
+David and Matt are versioned teaching methods, separate from model selection. New UI conversations bind a method; old conversations keep their original behavior. Matt’s first covered topic is compulsory Mathematics quadratic equations. Curated resources and the adapted methods ship with the server; the ignored local skill checkout is not a runtime dependency. Matt attribution and MIT notice are included in server/assets.
+
+Lesson generation uses the conversation model, and new exercises/solutions use the existing review route. It does not enter the formal assessment repair workflow. PDF generation is deterministic and uses PDFKit, embedded OFL Noto Sans TC and MathJax vector formulas, without a browser worker or another cloud service. Each new lesson/revision is one operation. Pure concept lessons can avoid an unnecessary exercise review. Downloads and rebuilding the saved layout make no model calls. PDF-only failures release credits; checked content stays private for the original one-time retry.
+
+Document metadata is in the owned chat; checked source content, including answers, is encrypted in settings. The student PDF excludes exercise hints and answers. PDF bytes use the existing account-owned files store and global 100 MiB attachment guard; bytes are not separately encrypted by the application. PDF output is capped at 16 pages and 5 MiB. Production persistence requires the existing external PostgreSQL. Deleting a chat removes its documents and private source; shared learning notes remain. No new DDL or paid storage is provisioned.
+
+Learning-note proposals must quote the student’s current message exactly. Student confirmation can add a personal glossary entry, but does not change independent mastery, grades or calendar. Only relevant topic records enter the tutor context. Three suggestions and chat cards are optional for method-bound conversations; legacy chats keep their previous fallback. The mock uses a labelled, fixed original sample PDF, not a personalised generation.
+
+Run server/tutors.check.ts plus the existing suites and production build; isolated PostgreSQL checks include the same Tutor suite. Verify real-provider file delivery, ownership, restart persistence and visual PDF quality separately. Do not infer those results from a model connection test.

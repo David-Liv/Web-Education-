@@ -11,7 +11,7 @@ export function reject(message:string,status=400,code='INVALID_REQUEST'):never{t
 export const publicQuestion=(q:ContentPack['questions'][number])=>{const {answer,explanation,hint,errorCandidates,scoring,...pub}=q;return pub};
 export const publicQuiz=(q:PrivateQuiz)=>{const {snapshot,blueprints,contentVersions,independence,...pub}=q;return pub};
 export function studentView(data:StudentState,identity:Identity,packs:ContentPack[]):Database{
-  const {assists,errors,cycles,appliedPreviews,revision,studio,...pub}=data;
+  const {assists,errors,cycles,appliedPreviews,revision,studio,pendingTutorTerms,...pub}=data;
   return {...pub,studio:studioView(data),quizzes:data.quizzes.map(publicQuiz),pilot:{revision,identity,skills:packs.flatMap(p=>p.skills.map(s=>assessSkill(s,data.evidence))),errors,cycles,content:packs.map(p=>({id:p.id,version:p.version,title:p.title,topicId:p.topicId,status:p.status}))}};
 }
 export function recordLearning(data:StudentState,topicId:string,title:string,type:'lesson'|'quiz'|'chat'|'review',minutes:number,sourceUrl:string){

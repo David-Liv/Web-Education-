@@ -1,4 +1,6 @@
 import { compilePlot } from './chat-math.ts';
+import {validTeachingUpdate} from './tutors.ts';
+import type {TeachingUpdate} from './tutors.ts';
 
 export interface FollowUp {label:string;prompt:string}
 export interface ChartSpec {title:string;type:'line'|'bar'|'scatter';labels:string[];series:{name:string;values:(number|null)[]}[];xLabel?:string;yLabel?:string;caption?:string}
@@ -10,7 +12,7 @@ export interface CircuitSpec {title:string;layout:'series'|'parallel';sourceLabe
 export interface ExerciseSpec {question:string;hint?:string;answer:string;explanation?:string}
 export type VisualSpec=({kind:'chart'}&ChartSpec)|({kind:'plot'}&PlotSpec)|({kind:'geometry'}&GeometrySpec)|({kind:'diagram'}&DiagramSpec)|({kind:'circuit'}&CircuitSpec);
 export type ChatBlock={kind:'markdown';text:string}|{kind:'exercise';value:ExerciseSpec}|{kind:'visual';value:VisualSpec}|{kind:'unavailable';pending:boolean;source?:string;format?:string};
-const reserved=new Set(['chart','plot','geometry','diagram','circuit','exercise','suggestions','review']);
+const reserved=new Set(['chart','plot','geometry','diagram','circuit','exercise','suggestions','review','teaching']);
 const obj=(v:any)=>v&&typeof v==='object'&&!Array.isArray(v);
 const textChars=(v:string)=>!/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/.test(v);
 const str=(v:any,n=200)=>typeof v==='string'&&v.trim().length>0&&v.length<=n&&textChars(v);
@@ -20,6 +22,7 @@ const optional=(v:any,n=200)=>v===undefined||typeof v==='string'&&v.length<=n&&t
 const num=(v:any,limit=1e9)=>typeof v==='number'&&Number.isFinite(v)&&Math.abs(v)<=limit;
 const arr=(v:any,min:number,max:number)=>Array.isArray(v)&&v.length>=min&&v.length<=max;
 export function validBlock(kind:string,v:any):boolean {
+  if(kind==='teaching')return validTeachingUpdate(v);
   if(!obj(v)&&kind!=='suggestions')return false;
   if(kind==='review')return ['none','exercises','all'].includes(v.scope);
   if(kind==='suggestions')return arr(v,3,3)&&v.every((s:any)=>obj(s)&&str(s.label,60)&&str(s.prompt,1200))&&new Set(v.map((s:any)=>s.prompt.trim())).size===3;
@@ -35,7 +38,7 @@ export function validBlock(kind:string,v:any):boolean {
 
 // Reserved fences are never displayed as raw JSON, including incomplete answers.
 export function parseChatContent(source:string,complete=true,options:{retainInvalid?:boolean}={}) {
-  const text=source.slice(0,60000),blocks:ChatBlock[]=[],suggestions:FollowUp[]=[];let reviewScope:'none'|'exercises'|'all'|undefined;
+  const text=source.slice(0,60000),blocks:ChatBlock[]=[],suggestions:FollowUp[]=[];let reviewScope:'none'|'exercises'|'all'|undefined,teaching:TeachingUpdate|undefined;
   // Only the private review pipeline opts in. Student rendering/history never
   // receives malformed question payloads, but the reviewer must not lose them.
   const unavailable=(pending:boolean,raw:string,format:string):ChatBlock=>({kind:'unavailable',pending,...(options.retainInvalid?{source:raw,format}:{})});
@@ -53,12 +56,13 @@ export function parseChatContent(source:string,complete=true,options:{retainInva
       if(kind==='diagram'&&obj(v)&&v.layout==='tree')v={...v,layout:'flow'};
       if(!validBlock(kind,v))throw new Error('Unsupported block');
       if(kind==='review'){reviewScope=v.scope}
+      else if(kind==='teaching'){teaching={...teaching,...v}}
       else if(kind==='suggestions'){if(!suggestions.length)suggestions.push(...v.map((s:FollowUp)=>({label:s.label.trim(),prompt:s.prompt.trim()})))}
       else if(kind==='exercise')blocks.push({kind:'exercise',value:v});else blocks.push({kind:'visual',value:{...v,kind} as VisualSpec});
     }catch{if(!['suggestions','review'].includes(kind))blocks.push(unavailable(false,text.slice(start,cursor),kind))}
   }
   if(cursor<text.length)blocks.push({kind:'markdown',text:text.slice(cursor)});
-  return {blocks,suggestions,reviewScope};
+  return {blocks,suggestions,reviewScope,teaching};
 }
 export function followUps(source:string,topic:string,english=false):FollowUp[] {
   const parsed=parseChatContent(source);if(parsed.suggestions.length===3)return parsed.suggestions;

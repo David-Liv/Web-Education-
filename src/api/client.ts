@@ -16,12 +16,12 @@ export const getDailyReview=()=>api<DailyReview>('/daily-review');
 export const getQuiz=(id:string)=>api<{quiz:Quiz;questions:PublicQuestion[]}>(`/quizzes/${id}`);
 const pendingMessages=new Map<string,{signature:string;requestId:string}>();
 export function clearPendingChat(id:string){pendingMessages.delete(id);sessionStorage.removeItem('hokse.chat.pending.'+id)}
-export async function streamChat(id:string,content:string,attachmentIds:string[],signal:AbortSignal,onDelta:(text:string)=>void,onMessage?:(message:ChatMessage,user?:ChatMessage)=>void,retryMessageId?:string){
-  const signature=JSON.stringify([content,attachmentIds,retryMessageId]);let pendingRequest=pendingMessages.get(id);
+export async function streamChat(id:string,content:string,attachmentIds:string[],signal:AbortSignal,onDelta:(text:string)=>void,onMessage?:(message:ChatMessage,user?:ChatMessage)=>void,retryMessageId?:string,lesson?:{lessonAction?:'next'|'revise';sourceDocumentId?:string;documentId?:string}){
+  const signature=JSON.stringify([content,attachmentIds,retryMessageId,lesson]);let pendingRequest=pendingMessages.get(id);
   if(!pendingRequest)try{pendingRequest=JSON.parse(sessionStorage.getItem('hokse.chat.pending.'+id)??'null')}catch{/* ignore malformed local metadata */}
   if(!pendingRequest||pendingRequest.signature!==signature){pendingRequest={signature,requestId:crypto.randomUUID()};pendingMessages.set(id,pendingRequest)}
   sessionStorage.setItem('hokse.chat.pending.'+id,JSON.stringify(pendingRequest));
-  const result=await fetch(`${base}/chats/${id}/messages${retryMessageId?'/'+retryMessageId+'/retry':''}`,{method:'POST',headers:{'Content-Type':'application/json','X-Hokse-Client':'1'},body:JSON.stringify({content,attachmentIds,requestId:pendingRequest.requestId}),signal});
+  const result=await fetch(`${base}/chats/${id}/messages${retryMessageId?'/'+retryMessageId+'/retry':''}`,{method:'POST',headers:{'Content-Type':'application/json','X-Hokse-Client':'1'},body:JSON.stringify({content,attachmentIds,requestId:pendingRequest.requestId,...lesson}),signal});
   if(!result.ok){const error=await result.json();throw new Error(ui(error.error?.message??'無法開始對話'))}
   if(!result.body)throw new Error('瀏覽器未提供串流回覆');
   const reader=result.body.getReader(),decoder=new TextDecoder();let pending='',completed=false;

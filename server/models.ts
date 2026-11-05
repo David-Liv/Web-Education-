@@ -22,12 +22,12 @@ async function provider(config:ModelConfig,path:string,body?:unknown,signal?:Abo
   try{return await result.json() as any}catch{reject('模型服務未返回有效 JSON',502,'PROTOCOL_ERROR')}
 }
 export async function listModels(config:ModelConfig){const result=await provider(config,'models');if(!Array.isArray(result.data))reject('此服務未提供相容模型清單，可手動填寫 model ID',502,'NO_MODEL_LIST');return [...new Set<string>(result.data.map((m:any)=>m.id).filter((id:any)=>isAllowedModel(id)&&id.length<=200))].slice(0,1000)}
-export async function generate(config:ModelConfig,messages:{role:string;content:string}[],signal?:AbortSignal, review=false){
+export async function generate(config:ModelConfig,messages:{role:string;content:string}[],signal?:AbortSignal, review=false,tokenBudget?:number){
   if(!config.enabled||!config.model)reject('開發者尚未啟用模型或選擇模型 ID',503,'MODEL_NOT_CONFIGURED');
   const scoped=await beginProvider(config,review);config=scoped.config;
   if(!isAllowedModel(config.model))reject('只可使用抗截斷模型；此模型不可用',403,'MODEL_NOT_ALLOWED');
   signal=signal&&scoped.signal?AbortSignal.any([signal,scoped.signal]):signal??scoped.signal;
-  const maxTokens=review?4800:2400;
+  const maxTokens=tokenBudget===undefined?(review?4800:2400):Math.min(6000,Math.max(1000,Math.floor(tokenBudget)));
   const payload=config.protocol==='openai-chat'?{model:config.model,messages,max_tokens:maxTokens}:{model:config.model,input:messages,max_output_tokens:maxTokens};
   const start=Date.now(),endpoint=new URL(config.baseUrl).pathname.replace(/\/$/,'')+'/'+(config.protocol==='openai-chat'?'chat/completions':'responses');
   const request={model:config.model,stream:false,msg_count:messages.length,chars:messages.reduce((n,m)=>n+m.content.length,0),has_tools:false,tools_count:0,first_role:messages[0]?.role??null,temperature:null,max_tokens:maxTokens};

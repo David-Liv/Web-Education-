@@ -8,6 +8,7 @@ import { PilotSettings } from './Pilot';
 import { calculateScore, eligibility, generatePlan, gradeOrder, mastery, nextGrade, selectedGrades } from '../domain';
 import { Badge, Confirm, Empty, Icon, Modal, PageHeading, Progress, SectionTitle, SubjectIcon, Tabs } from '../components';
 import type { Grade, PlanPreview, Profile, Programme } from '../types';
+import {profileUpdate} from '../profile-update';
 const subjectLabel = (id: string) => ui(({ chi: '中文', eng: '英文', maths: '數學', chem: '化學', bio: '生物', phy: '物理', econ: '經濟', bafs: '企會財', ict: 'ICT', csd: '公社', music: '音樂', va: '視藝', geo: '地理', pe: '體育', M1: 'M1', M2: 'M2' } as Record<string, string>)[id] ?? id);
 function readableMissing(text: string) { return ui(text).replace(/\b(chi|eng|maths|chem|bio|phy|econ|csd|bafs|ict)\b/g, id => subjectLabel(id)); }
 export function ProfileForm({ onSaved }: {
@@ -18,7 +19,7 @@ export function ProfileForm({ onSaved }: {
     const [form, setForm] = useState<Profile>(() => structuredClone(db.profile));
     const [busy, setBusy] = useState(false);
     const save = async () => { setBusy(true); try {
-        const { demo, ...updates } = form;
+        const updates = profileUpdate(form);
         await mutate('/profile', 'PATCH', updates);
         onSaved?.();
         if (!onSaved)
