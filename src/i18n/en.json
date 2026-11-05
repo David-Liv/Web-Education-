@@ -2386,5 +2386,6 @@
   "這天已設定休息，請選擇其他日期": "This is a rest day. Choose another date.",
   "拖動調整安排 · 觸屏長按後移動": "Drag to reschedule · Touch and hold on a touchscreen",
   "放開以更新安排": "Release to update the schedule",
-  "拖到想安排的日期或時間": "Drag to the date or time you want"
+  "拖到想安排的日期或時間": "Drag to the date or time you want",
+  "{0}\n{1} · {2} 分鐘": "{0}\n{1} · {2} minutes"
 }

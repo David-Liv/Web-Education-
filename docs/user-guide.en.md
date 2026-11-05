@@ -43,7 +43,7 @@ Three suggested next steps appear after each completed reply. Click one to fill 
 
 Quick practice stays in the chat. Try answering below, or expand “Give me a hint” and “Show answer and explanation” when needed. These exercises support learning and do not count as independent quiz scores.
 
-Suggestions, answer reveals, enlarging and downloads use no extra credits. Sending a new question is a new AI operation at the conversation model price shown in Plans & Billing. Automatic review has no additional student charge. No usable delivery means no charge; a delivered explanation retains its original charge. A previously refunded request is charged its original operation once if its retry succeeds. A reply may still provide useful text when a visual cannot be displayed.
+Suggestions, answer reveals, enlarging and downloads use no extra credits. Sending a new question is a new AI operation at the conversation model price shown in Plan & Billing. Automatic review has no additional student charge. No usable delivery means no charge; a delivered explanation retains its original charge. A previously refunded request is charged its original operation once if its retry succeeds. A reply may still provide useful text when a visual cannot be displayed.
 
 Include the question, your own thinking and where you got stuck. With an image or recording, also describe the problem in text. Attachments currently support keeping and viewing material; attaching a file does not mean AI has read everything in it.
 
