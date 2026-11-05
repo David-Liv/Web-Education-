@@ -22,7 +22,7 @@ The following checks passed on 2026-11-05/06 before publication:
 - Tutor integration includes: scope and ownership, a real PDF binary, same-request replay, versioned revisions, hidden answers, review-failure refund, storage-failure rollback and retry without more provider calls, quoted/confirmed learning notes, a concept-only PDF fast path, unsupported-math failure and PDF/source persistence across an API restart.
 - Tests use an isolated local model server; passing them does not prove real-provider output quality.
 
-Local `check:postgres` could not start because Docker's engine was unavailable. The CI PostgreSQL job includes the Tutor suite in its own disposable database; production data must never be used as a destructive test database.
+Local `check:postgres` could not start because Docker's engine was unavailable. GitHub CI subsequently passed the real isolated PostgreSQL suite: 41 checks passed and the SQLite-specific restart check was intentionally skipped. The Tutor suite uses its own disposable database; production data was never used as a destructive test database.
 
 ## Browser and PDF evidence
 
@@ -51,7 +51,12 @@ The production connection configuration was read using a read-only PostgreSQL tr
 
 ## Publication
 
-Pending. The existing service was verified as Render Free, `main`, with automatic deployment after CI checks. No new service, disk, worker or database is required. Record the exact commit, CI conclusion, live deploy and public/authenticated readback when completed; a push or queued deploy alone is not production proof.
+- Published implementation: commit `6ce41bc868b025c1fc9656eb6560dd531888fa1f` on `main`.
+- GitHub run [42063691028](https://github.com/David-Liv/Web-Education-/actions/runs/42063691028): all five jobs succeeded, including CodeQL and isolated PostgreSQL.
+- Render deployment `dep-dbmar8avcj2c738cnb20` became `live` at 2026-11-06 00:25 Hong Kong time. The existing service remains Free; no new service, disk, worker or database was created.
+- Public readback returned the matching `/assets/index-_Bk2ZVQt.js`, v1.5 bilingual guide content and document API contract. An authenticated browser showed the David/Matt selection, Mathematics topic and enabled Matt choice; the modal was cancelled without creating a conversation in the existing administrator account.
+- The first production generation checks encountered upstream authentication failures; Flash explicitly returned HTTP 401 with an expired provider Cookie message. After the user requested a retry, production generation and review both returned HTTP 200. An English Matt lesson was delivered in about 53 seconds (57,305-byte PDF); two calls cost one 5-credit operation. Repeated download and saved-content reformatting did not increase the charge. Anonymous access returned 401 and a different account returned 404. The student-facing state contained no reference answers and no mastery evidence was added. All three downloaded PDF pages were visually inspected, including the multi-curve plot and exercise working space. All disposable accounts and their test records were removed; existing student data and global model settings were unchanged.
+- The successful production PDF check explicitly selected Flash only for its temporary student. A subsequent administrator draft test of the Free default Lite model also returned HTTP 200 with a usable text reply; it changed no global model configuration and charged no student credits. That probe establishes text connectivity, not Lite PDF quality or availability of every model.
 
 ## Explicit limitations
 
