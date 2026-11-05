@@ -196,7 +196,7 @@ export class Billing {
       await this.saveAccount(userId, a); await this.store.db.prepare('UPDATE billing_orders SET status=?,body=? WHERE id=?').run(o.status, JSON.stringify(o), id); await this.audit(userId, 'mock-checkout', before, { account: a, order: o }); return o;
     });
   }
-  async reserve(ctx: UsageContext, model: string): Promise<Operation> {
+  async reserve(ctx: UsageContext, model: string, snapshot?:Operation): Promise<Operation> {
     return this.store.transaction(async () => {
       if (!isAllowedModel(model)) reject('只可使用抗截斷模型；此模型不可用', 403, 'MODEL_NOT_ALLOWED');
       const a = await this.account(ctx.identity.id); await this.recover(ctx.identity.id); const p = await this.policy(), rule = p.models[model];
@@ -205,9 +205,9 @@ export class Billing {
       if (old?.status === 'held') reject('此 AI 操作仍在處理，請稍候', 409, 'AI_IN_PROGRESS');
       if (old?.status === 'charged') reject('此操作已完成，請重新載入學習記錄', 409, 'AI_ALREADY_DELIVERED');
       if (!ctx.platform && (!p.plans[a.plan].models.includes(model) || !rule?.enabled)) reject('此套餐未開放這個模型', 403, 'MODEL_NOT_ALLOWED');
-      const cost = ctx.platform ? 0 : rule.credits, ops = await this.operations(ctx.identity.id, a.period), committed = ops.filter(o => o.status !== 'released' && !o.platform).reduce((sum, o) => sum + o.cost, 0);
+      const cost = ctx.platform ? 0 : snapshot?.cost ?? rule.credits, ops = await this.operations(ctx.identity.id, a.period), committed = ops.filter(o => o.status !== 'released' && !o.platform).reduce((sum, o) => sum + o.cost, 0);
       if (!ctx.platform && committed + cost > p.plans[a.plan].credits) reject('AI credit 不足；請等待下月重置或選擇其他套餐', 402, 'INSUFFICIENT_CREDITS');
-      const stamp = this.now().toISOString(), op: Operation = { id: ctx.id, period: a.period, status: 'held', cost, createdAt: stamp, updatedAt: stamp, purpose: ctx.source.path, model, plan: ctx.platform ? 'Platform' : a.plan, signature: ctx.signature, tokens: emptyTokens(), source: ctx.source, platform: ctx.platform };
+      const stamp = this.now().toISOString(), op: Operation = { id: ctx.id, period: a.period, status: 'held', cost, createdAt: snapshot?.createdAt ?? stamp, updatedAt: stamp, purpose: ctx.source.path, model, plan: ctx.platform ? 'Platform' : snapshot?.plan ?? a.plan, signature: ctx.signature, tokens: emptyTokens(), source: ctx.source, platform: ctx.platform };
       await this.putOperation(op, ctx.identity.id); return op;
     });
   }
@@ -249,7 +249,7 @@ export class Billing {
     const ctx:UsageContext={billing:this,identity,id:op.id,signature:op.signature,source:op.source,modelPurpose:'chat',platform:op.platform,logs:previous.map(r=>JSON.parse(r.body)),discarded:false,completed:false,signal,deferCheckpoint:true,retry:true};
     // Paid partial deliveries remain paid once. A previously refunded operation
     // must acquire its original reservation again before any new provider call.
-    ctx.op=op.status==='charged'?op:await this.reserve(ctx,op.model);
+    ctx.op=op.status==='charged'?op:await this.reserve(ctx,op.model,op);
     await context.run(ctx,async()=>{try{const result=await work();await finishUsage(result)}catch(e){await this.settle(identity.id,op.id,false,null,ctx.logs,'Retry did not deliver content');throw e}finally{
       await this.store.transaction(async()=>{const current=await this.store.db.prepare('SELECT body FROM credit_operations WHERE id=? AND user_id=?').get(op.id,identity.id);if(current){const rows=await this.store.db.prepare('SELECT body FROM ai_usage_logs WHERE operation_id=? AND user_id=? ORDER BY started_at').all(op.id,identity.id);const value:Operation=JSON.parse(current.body);value.tokens=combinedTokens(rows.map(r=>JSON.parse(r.body)));await this.putOperation(value,identity.id)}});
     }});

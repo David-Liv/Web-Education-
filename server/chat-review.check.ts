@@ -49,6 +49,7 @@ test('mixed body arrives before the exercise, hidden drafts stay private, and di
 }finally{await f.close()}});
 test('pure exercise failure refunds all credits and one retry reuses the generation then charges only once',async()=>{const f=await fixture();f.setText(fence('review',{scope:'all'})+'\n'+original);f.setVerdict({verdict:'uncertain',reason:'Need a recheck'});try{
  await (await f.send()).text();let m=(await f.read()).messages[1];assert.equal(m.content,'');assert.deepEqual(m.practice,{failed:true,retryAvailable:true});assert.equal((await f.billing.view(f.student.id)).spent,0);assert.equal((await f.billing.view(f.student.id)).held,0);
+ const changed=await f.billing.policy();changed.models[gen].credits=9;await f.billing.updatePolicy('fixture',changed);
  f.setVerdict({verdict:'corrected',reason:'Recalculated',content:corrected});const id=crypto.randomUUID(),retry=()=>f.call(`/chats/${f.chat.id}/messages/${m.id}/retry`,{requestId:id});
  await (await retry()).text();m=(await f.read()).messages[1];assert.match(m.content,/0\.032/);assert.equal(f.calls.filter(c=>c.stage==='generation').length,1);assert.equal(f.calls.filter(c=>c.stage==='review').length,2);assert.equal((await f.billing.view(f.student.id)).spent,2);await (await retry()).text();assert.equal(f.calls.length,3);
 }finally{await f.close()}});
