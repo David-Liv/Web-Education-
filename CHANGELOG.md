@@ -1,5 +1,14 @@
 # HOKSE 更新日誌 / Release notes
 
+## v1.4.0 · 2026-11-05
+
+- 日曆加入直接拖動、觸屏長按、落點預覽及三秒撤銷提醒。
+- 側邊欄可收起為圖標，支援名稱提示並記住偏好。
+- 精簡聊天輸入區，改善短任務顯示及安排衝突提示。
+- Direct calendar dragging, touch-and-hold, destination previews and a three-second Undo reminder.
+- Collapsible navigation with icon labels and a remembered layout.
+- A cleaner chat composer, clearer short-task labels and scheduling feedback.
+
 ## v1.3.0 · 2026-11-05
 
 - 聊天練習與題解加入檢查，並在原回覆展示完整內容。

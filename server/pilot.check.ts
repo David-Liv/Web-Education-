@@ -27,6 +27,23 @@ test.before(async()=>{
 });
 test.after(async()=>{await app.close()});
 
+test('guarded calendar moves and Undo preserve duration, validate constraints and reject stale or unowned edits',async()=>{
+ const owner=await student(),other=await student();
+ assert.equal((await call('/profile',owner.cookie,'PATCH',{dailyMinutes:Array(7).fill(120),availability:Array(7).fill('16:00')})).status,200);
+ const a=(await call('/tasks',owner.cookie,'POST',{title:'Move me',date:'2028-02-14',start:'18:00',minutes:30,subjectId:'maths'})).data;
+ assert.ok(a.id);assert.equal((await call('/tasks',owner.cookie,'POST',{title:'Keep me',date:'2028-02-15',start:'18:30',minutes:30,subjectId:'eng'})).status,201);
+ const origin=(t:any)=>({date:t.date,start:t.start,minutes:t.minutes}),move=(from:any,date:string,start:string)=>call('/tasks/'+a.id,owner.cookie,'PATCH',{date,start,moveFrom:origin(from)});
+ const moved=await move(a,'2028-02-15','18:00');assert.equal(moved.status,200);assert.equal(moved.data.minutes,30);assert.equal(moved.data.id,a.id);assert.equal(moved.data.moveFrom,undefined);
+ assert.equal((await move(a,'2028-02-15','19:00')).status,409);
+ const undo=await move(moved.data,a.date,a.start);assert.equal(undo.status,200);assert.equal(undo.data.date,a.date);
+ assert.equal((await move(a,'2028-02-15','18:30')).status,409);assert.equal((await move(a,a.date,'23:45')).status,409);
+ assert.equal((await call('/tasks/'+a.id,other.cookie,'PATCH',{date:a.date,start:'19:00',moveFrom:origin(a)})).status,404);
+ assert.equal((await call('/tasks/'+a.id,owner.cookie,'PATCH',{date:a.date,start:'19:00',moveFrom:origin(a),minutes:45})).status,400);
+ assert.equal((await call('/tasks/'+a.id,owner.cookie,'PATCH',{locked:true})).status,200);assert.equal((await move(a,a.date,'19:00')).status,409);
+ assert.equal((await call('/tasks/'+a.id,owner.cookie,'PATCH',{locked:false,status:'done'})).status,200);assert.equal((await move(a,a.date,'19:00')).status,409);
+ const saved=(await call('/bootstrap',owner.cookie)).data.tasks.find((t:any)=>t.id===a.id);assert.equal(saved.start,a.start);assert.equal(saved.minutes,30);
+});
+
 test('setup closes after first account and requires same-site marker',async()=>{
   assert.equal((await call('/auth/setup','','POST',{username:'another',name:'x',password})).status,403);
   assert.equal((await fetch(base+'/api/v1/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:'developer',password})})).status,403);

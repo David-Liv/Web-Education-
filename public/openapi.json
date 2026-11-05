@@ -1968,7 +1968,7 @@
     },
     "/tasks/{id}": {
       "patch": {
-        "summary": "Edit, lock, complete or skip a revision task",
+        "summary": "Edit a task; calendar moves supply moveFrom and only date/start, reject stale, locked or completed tasks",
         "parameters": [
           {
             "name": "id",
@@ -2067,6 +2067,26 @@
                   },
                   "sourceUrl": {
                     "type": "string"
+                  },
+                  "moveFrom": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "date",
+                      "start",
+                      "minutes"
+                    ],
+                    "properties": {
+                      "date": {
+                        "type": "string"
+                      },
+                      "start": {
+                        "type": "string"
+                      },
+                      "minutes": {
+                        "type": "number"
+                      }
+                    }
                   }
                 },
                 "required": []

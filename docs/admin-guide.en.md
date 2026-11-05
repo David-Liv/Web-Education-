@@ -1,6 +1,8 @@
 # HOKSE Administrator Manual
 
-v1.3 · 5 November 2026. For maintaining accounts, content, AI services and programme data.
+v1.4 · 5 November 2026. For maintaining accounts, content, AI services and programme data.
+
+Navigation can collapse to icons on desktop and remembers the browser preference. Calendar moves and Undo use the same ownership, conflict and budget checks; they do not call AI.
 
 ## 1. Administrator workspace
 

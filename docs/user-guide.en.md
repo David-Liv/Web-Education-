@@ -1,8 +1,10 @@
 # HOKSE User Guide
 
-v1.3 · 5 November 2026 · Find your direction and make progress at your own pace.
+v1.4 · 5 November 2026 · Find your direction and make progress at your own pace.
 
 Website: [Open HOKSE](https://web-education.onrender.com). Sign in with your invited account to begin. No software installation is needed.
+
+On desktop, use the button at the top of the sidebar to collapse navigation to icons. Hover over an icon or focus it with the keyboard to see its name. Your choice is remembered in this browser. On mobile, open navigation with the menu button.
 
 ## 1. Getting started
 
@@ -41,7 +43,7 @@ Three suggested next steps appear after each completed reply. Click one to fill 
 
 Quick practice stays in the chat. Try answering below, or expand “Give me a hint” and “Show answer and explanation” when needed. These exercises support learning and do not count as independent quiz scores.
 
-Suggestions, answer reveals, enlarging and downloads use no extra credits. Sending a new question is a new AI operation at the displayed model price. Automatic review has no additional student charge. No usable delivery means no charge; a delivered explanation retains its original charge. A previously refunded request is charged its original operation once if its retry succeeds. A reply may still provide useful text when a visual cannot be displayed.
+Suggestions, answer reveals, enlarging and downloads use no extra credits. Sending a new question is a new AI operation at the conversation model price shown in Plans & Billing. Automatic review has no additional student charge. No usable delivery means no charge; a delivered explanation retains its original charge. A previously refunded request is charged its original operation once if its retry succeeds. A reply may still provide useful text when a visual cannot be displayed.
 
 Include the question, your own thinking and where you got stuck. With an image or recording, also describe the problem in text. Attachments currently support keeping and viewing material; attaching a file does not mean AI has read everything in it.
 
@@ -56,6 +58,10 @@ The Mistake Notebook keeps answers and possible error causes. Find the step that
 ## 5. Study Calendar and checklist
 
 The calendar suggests activities around your available time and learning direction. Preview before adding them. You can then reschedule, adjust time slots or keep activities in the checklist.
+
+Drag a pending task on desktop, or touch and hold before moving it on a phone or tablet. Ordinary swipes still scroll. Day/week views snap to 5-minute intervals; month view changes the date only. Duration stays unchanged. Preview the destination while dragging and release to save. A “Schedule updated · Undo” reminder lasts **3 seconds** and can undo the most recent move. Click a task to edit its details.
+
+Completed tasks, locked tasks and exams cannot be dragged. Overlaps, over-budget days, rest days and moves past midnight are rejected with a specific reason. Short tasks use a single-line title; hover or open the details to read the full text.
 
 - Lock activities you want to keep in place.
 - Move an activity back to the checklist when the day is too busy.
@@ -110,6 +116,12 @@ The current checkout is a demonstration. Choosing a payment channel does not cha
 Use your own account and sign out before leaving a shared computer. For troubleshooting, administrators can view AI usage records and export response text. Avoid unnecessary personal secrets in your questions.
 
 ## 11. What's new
+
+**v1.4 · A smoother study space · 5 November 2026**
+
+- Drag or touch and hold to reschedule calendar tasks, with a brief Undo option.
+- Collapse navigation to icons and keep your preferred layout.
+- A cleaner chat composer and clearer calendar labels.
 
 **v1.3 · Smoother practice in chat**
 

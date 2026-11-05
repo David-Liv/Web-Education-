@@ -2374,5 +2374,17 @@
   "匯出練習修訂記錄": "Export practice revision record",
   "找不到練習修訂記錄": "The practice revision record was not found.",
   "重試": "Retry",
-  "按可用回覆扣點，自動檢查不另扣點。": "Credits apply to usable replies; automatic checks have no extra charge."
+  "按可用回覆扣點，自動檢查不另扣點。": "Credits apply to usable replies; automatic checks have no extra charge.",
+  "展開側邊欄": "Expand sidebar",
+  "收起側邊欄": "Collapse sidebar",
+  "已更新安排": "Schedule updated",
+  "撤銷": "Undo",
+  "已撤銷移動": "Move undone",
+  "此任務目前不能移動": "This task cannot be moved right now.",
+  "移動資料無效，請重新整理後再試": "The move could not be checked. Refresh and try again.",
+  "安排已變更，請重新整理後再移動": "This schedule has changed. Refresh before moving it again.",
+  "這天已設定休息，請選擇其他日期": "This is a rest day. Choose another date.",
+  "拖動調整安排 · 觸屏長按後移動": "Drag to reschedule · Touch and hold on a touchscreen",
+  "放開以更新安排": "Release to update the schedule",
+  "拖到想安排的日期或時間": "Drag to the date or time you want"
 }

@@ -57,7 +57,7 @@ const definitions=[
  ['post','/plans/preview','Deterministic mock strategy; no database mutation',ref('PlanPreview')],
  ['post','/plans/apply','Apply next 14 days while preserving locked, completed and distant tasks',ref('PlanPreview')],
  ['post','/tasks','Add a task with conflict and capacity validation',ref('Task'),{...schemas.Task,required:['date','start','minutes','title']}],
- ['patch','/tasks/{id}','Edit, lock, complete or skip a revision task',ref('Task'),{...schemas.Task,required:[]}],
+ ['patch','/tasks/{id}','Edit a task; calendar moves supply moveFrom and only date/start, reject stale, locked or completed tasks',ref('Task'),{...schemas.Task,required:[],properties:{...schemas.Task.properties,moveFrom:{type:'object',additionalProperties:false,required:['date','start','minutes'],properties:{date:{type:'string'},start:{type:'string'},minutes:{type:'number'}}}}}],
  ['post','/bookmarks/{id}','Toggle a resource bookmark',{type:'array',items:{type:'string'}}],
  ['post','/resource-clicks','Record a browser-local resource click',obj({ok:{type:'boolean'}}),obj({id:{type:'string'}})],
  ['post','/chats','Create a study chat with fixed context',ref('Chat'),obj({topicId:{type:'string'},mode:ref('StudyMode'),title:{type:'string'}})],

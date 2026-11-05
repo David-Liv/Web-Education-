@@ -3,7 +3,7 @@ import {localizeCatalog} from './i18n-catalog';
 import { ui, useInterfaceLanguage } from "./i18n";
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
-import type { Catalog, Database, Chat, ChatMessage } from './types';
+import type { Catalog, Database, Chat, ChatMessage, Task } from './types';
 import { api, getBootstrap, getCatalog, realMode } from './api/client';
 import { Login } from './Login';
 import type { BillingView } from './billing-types';
@@ -14,8 +14,9 @@ interface AppState {
     refresh: () => Promise<void>;
     applyChatMessage:(chatId:string,message:ChatMessage,user?:ChatMessage)=>void;
     applyChatSnapshot:(chat:Chat)=>void;
+    applyTask:(task:Task)=>void;
     mutate: <T = any>(path: string, method?: string, body?: unknown) => Promise<T>;
-    toast: (message: string, type?: 'success' | 'error') => void;
+    toast: (message: string, type?: 'success' | 'error', options?:{duration?:number;action?:{label:string;run:()=>void}}) => ()=>void;
     network: string;
     setNetwork: (mode: string) => void;
 }
@@ -36,11 +37,13 @@ export function AppProvider({ children }: {
         id: number;
         message: string;
         type: string;
+        action?:{label:string;run:()=>void};
     }[]>([]);
-    const toast = useCallback((message: string, type = 'success') => { const id = Date.now() + Math.random(); setToasts(t => [...t.slice(-2), { id, message, type }]); setTimeout(() => setToasts(t => t.filter(x => x.id !== id)), 4200); }, []);
+    const toast = useCallback((message: string, type = 'success', options?:{duration?:number;action?:{label:string;run:()=>void}}) => { const id = Date.now() + Math.random();const dismiss=()=>setToasts(t=>t.filter(x=>x.id!==id));setToasts(t => [...t.slice(-2), { id, message, type,action:options?.action }]);const timer=setTimeout(dismiss,options?.duration??4200);return ()=>{clearTimeout(timer);dismiss()}; }, []);
     const refresh = useCallback(async () => { const [d, c, b] = await Promise.all([getBootstrap(), getCatalog(), realMode ? api<BillingView>('/billing') : undefined]); setDb(d); setCatalog(c); setBilling(b); }, []);
     const applyChatMessage=useCallback((chatId:string,message:ChatMessage,user?:ChatMessage)=>setDb(old=>{if(!old)return old;return {...old,chats:old.chats.map(c=>{if(c.id!==chatId)return c;const messages=[...c.messages];if(user&&!messages.some(m=>m.id===user.id))messages.push(user);const i=messages.findIndex(m=>m.id===message.id);if(i<0)messages.push(message);else if((message.revision??0)>=(messages[i].revision??0))messages[i]=message;return {...c,messages}})}}),[]);
     const applyChatSnapshot=useCallback((chat:Chat)=>setDb(old=>old?{...old,chats:old.chats.map(c=>c.id===chat.id?{...chat,messages:chat.messages.map(m=>{const current=c.messages.find(x=>x.id===m.id);return current&&(current.revision??0)>(m.revision??0)?current:m})}:c)}:old),[]);
+    const applyTask=useCallback((task:Task)=>setDb(old=>old?{...old,tasks:old.tasks.map(t=>t.id===task.id?task:t)}:old),[]);
     const load = useCallback(async () => { setError(''); try {
         if (realMode) {
             const status = await api('/auth/status');
@@ -78,7 +81,7 @@ export function AppProvider({ children }: {
         return <main className="boot-state"><LanguageSwitch/><img src="/favicon.svg" width="52"/><h1>{ui("暫時未能載入學習工作室")}</h1><p>{ui(error)}</p><button className="btn primary" onClick={() => { localStorage.setItem('hokse.network', 'normal'); setNetworkState('normal'); void load(); }}>{ui("恢復正常連線並重試")}</button></main>;
     if (!db || !catalog)
         return <main className="boot-state"><LanguageSwitch/><img src="/favicon.svg" width="56"/><h1>{ui("把今天的學習，慢慢排好。")}</h1><span className="loading-dots"><i /><i /><i /></span></main>;
-    return <Context.Provider value={{ db, billing, catalog:localizeCatalog(catalog,interfaceLanguage), refresh, applyChatMessage,applyChatSnapshot,mutate, toast, network, setNetwork }}>{children}<div className="toast-stack" aria-live="polite">{toasts.map(t => <div key={t.id} className={`toast ${t.type}`}>{t.type === 'error' ? '!' : '✓'} <span>{ui(t.message)}</span></div>)}</div></Context.Provider>;
+    return <Context.Provider value={{ db, billing, catalog:localizeCatalog(catalog,interfaceLanguage), refresh, applyChatMessage,applyChatSnapshot,applyTask,mutate, toast, network, setNetwork }}>{children}<div className="toast-stack" aria-live="polite">{toasts.map(t => <div key={t.id} className={`toast ${t.type}`}>{t.type === 'error' ? '!' : '✓'} <span>{ui(t.message)}</span>{t.action&&<><span aria-hidden="true">·</span><button type="button" onClick={()=>{setToasts(old=>old.filter(x=>x.id!==t.id));t.action!.run()}}>{ui(t.action.label)}</button></>}</div>)}</div></Context.Provider>;
 }
 export function useApp() { const value = useContext(Context); if (!value)
     throw new Error('AppProvider missing'); return value; }

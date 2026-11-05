@@ -4799,7 +4799,7 @@
     },
     "/tasks/{id}": {
       "patch": {
-        "summary": "Explicitly edit, lock, complete or skip an owned task",
+        "summary": "Edit an owned task; guarded calendar moves supply only date/start and moveFrom, rejecting stale, locked or completed tasks",
         "security": [
           {
             "session": []
@@ -4857,6 +4857,26 @@
                   },
                   "locked": {
                     "type": "boolean"
+                  },
+                  "moveFrom": {
+                    "type": "object",
+                    "properties": {
+                      "date": {
+                        "type": "string"
+                      },
+                      "start": {
+                        "type": "string"
+                      },
+                      "minutes": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "date",
+                      "start",
+                      "minutes"
+                    ],
+                    "additionalProperties": false
                   }
                 },
                 "required": []
