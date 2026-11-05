@@ -1,6 +1,6 @@
 # HOKSE User Guide
 
-v1.2 · 4 November 2026 · Find your direction and make progress at your own pace.
+v1.3 · 5 November 2026 · Find your direction and make progress at your own pace.
 
 Website: [Open HOKSE](https://web-education.onrender.com). Sign in with your invited account to begin. No software installation is needed.
 
@@ -27,6 +27,10 @@ Use hints when needed. After submitting, review each answer. If something seems 
 
 ## 3. AI Study Room
 
+New exercises and worked answers in chat are checked before appearing. General explanations may appear first, with practice added to the same reply afterward. For requests that only ask for questions or solutions, wait for the complete reply. These checks help reduce errors; replies remain AI learning references.
+
+Started work continues when you switch conversations or leave the page. Return to see saved results; use Stop to cancel explicitly. If an exercise could not be prepared, Retry checks the same exercise once without an additional charge or rewriting an explanation already delivered. After another failure, send a new request. There are no automatic retry loops.
+
 Each conversation keeps a learning topic together. Rename it, continue asking questions, stop a reply or save a learning summary.
 
 Replies can include tables, formulas, charts, function plots, basic geometry, concept maps and simple circuit schematics. Enlarge a diagram, download SVG/PNG, or open its supporting text or data where available. These are learning references; circuit diagrams are not simulations.
@@ -37,7 +41,7 @@ Three suggested next steps appear after each completed reply. Click one to fill 
 
 Quick practice stays in the chat. Try answering below, or expand “Give me a hint” and “Show answer and explanation” when needed. These exercises support learning and do not count as independent quiz scores.
 
-Suggestions, answer reveals, enlarging and downloads use no extra credits. Sending a new question is a new AI operation at the displayed model price. A reply may still provide useful text when a visual cannot be displayed.
+Suggestions, answer reveals, enlarging and downloads use no extra credits. Sending a new question is a new AI operation at the displayed model price. Automatic review has no additional student charge. No usable delivery means no charge; a delivered explanation retains its original charge. A previously refunded request is charged its original operation once if its retry succeeds. A reply may still provide useful text when a visual cannot be displayed.
 
 Include the question, your own thinking and where you got stuck. With an image or recording, also describe the problem in text. Attachments currently support keeping and viewing material; attaching a file does not mean AI has read everything in it.
 
@@ -92,7 +96,7 @@ Source difficulty labels and target levels help you find material; they are not 
 
 Adjust subjects, grades, language and available time in Personal Settings. Plan & Billing shows available credits and lets you choose separate default models for quizzes, conversations and assessment. Each model displays its credit price per operation.
 
-AI operations reserve credits first and charge when a usable result is available. Failures and cancellation release the reservation. Fixed-question generation and rule-only marking use no AI credits. If credits run out, you can still keep notes, do fixed practice and arrange your calendar.
+AI operations reserve credits first and charge when a usable result is available. Failure or cancellation releases the reservation if nothing usable was delivered. An explanation already delivered retains its original charge. Fixed-question generation and rule-only marking use no AI credits. If credits run out, you can still keep notes, do fixed practice and arrange your calendar.
 
 The current checkout is a demonstration. Choosing a payment channel does not charge real money. The page shows your current allowance and plan arrangements.
 
@@ -106,6 +110,12 @@ The current checkout is a demonstration. Choosing a payment channel does not cha
 Use your own account and sign out before leaving a shared computer. For troubleshooting, administrators can view AI usage records and export response text. Avoid unnecessary personal secrets in your questions.
 
 ## 11. What's new
+
+**v1.3 · Smoother practice in chat**
+
+- Checks for chat exercises and worked answers, shown in the original reply.
+- Better continuity when returning to a conversation and one retry after failure.
+- Updated guidance in both languages.
 
 **v1.2 · Learn through conversation**
 

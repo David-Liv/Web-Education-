@@ -47,8 +47,11 @@ paths['/attachments/upload'].post.requestBody={required:true,content:{'applicati
 route('/chats','post','Create teaching chat for a published unit',obj({topicId:str,mode:{enum:['explain','solve','revision']}},['topicId']));
 route('/chats/{id}','patch','Rename owned chat',obj({title:str},['title']));route('/chats/{id}','delete','Delete owned chat',null);
 for(const action of ['stop','save-summary'])route(`/chats/{id}/${action}`,'post','Stop generation / save learning summary',obj({}));
+route('/chats/{id}','get','Owned public conversation snapshot; expired work fails without provider calls',null);
+route('/chats/{id}/messages/{messageId}/retry','post','One idempotent manual retry on the original floor; no second student charge',obj({requestId:str},['requestId']));
+route('/admin/usage/{id}/review','get','Developer-only protected practice revision export',null);
 route('/chats/{id}/messages','post','Idempotent provider-backed teaching; assessed work assistance recorded',obj({content:str,requestId:str,attachmentIds:{type:'array',items:str}},['content','requestId']));
-paths['/chats/{id}/messages'].post.responses[200]={description:'SSE start/delta/done events; content is Markdown with bounded chart/plot/geometry/diagram/circuit/exercise/suggestions JSON fences. Suggestions share the same call. HTTP errors before stream; provider-native streaming is not implemented.',content:{'text/event-stream':{schema:str}}};
+paths['/chats/{id}/messages'].post.responses[200]={description:'SSE message/done events deliver revisioned public message snapshots in the same floor. Concept text may arrive first; exercises and solutions wait for one site-wide review. No review badges or hidden drafts in the response. Errors after the stream begins are represented by a saved minimal failure/retry state. Disconnect does not cancel; explicit stop does. Provider-native token streaming remains out of scope.',content:{'text/event-stream':{schema:str}}};
 for(const path of ['/admin/users','/admin/content','/admin/model','/admin/grading'])route(path,'get','Role-protected developer/reviewer view',null);
 route('/admin/users','post','Developer assigns invite account',obj({...credentials(10).properties,role:{enum:['student','reviewer','developer']}},['username','password','name','role']));
 const modelDraft=obj({name:str,baseUrl:str,apiKey:str,clearKey:{type:'boolean'},model:str,protocol:{enum:['openai-chat','openai-responses']},enabled:{type:'boolean'}},['baseUrl','protocol']);
@@ -68,7 +71,7 @@ route('/billing/orders','post','Create an owned idempotent simulated order with 
 route('/billing/orders/{id}/pay','post','Mock-only provider: immediately succeed without collecting payment details or calling AI',obj({channel:{enum:['mock-card','mock-alipay','mock-fps']}},['channel']));
 route('/billing/orders/{id}/receipt','get','Download own simulated receipt (JSON); never proof of real payment',null);
 route('/admin/billing/policy','get','Developer-only versioned plan rules and discovered model IDs',null);
-route('/admin/billing/policy','put','Developer-only rules; optimistic version check, audit trail, no retrospective repricing',obj({version:{type:'integer'},plans:{type:'object'},models:{type:'object'}},['version','plans','models']));
+route('/admin/billing/policy','put','Developer-only rules; optimistic version check, audit trail, no retrospective repricing',obj({version:{type:'integer'},plans:{type:'object'},models:{type:'object'},reviewModel:str},['version','plans','models']));
 route('/admin/billing/users','get','Developer-only per-user plan and balance overview',null);
 route('/admin/billing/users/{id}','patch','Developer-only immediate plan assignment; existing monthly usage is preserved',obj({plan},['plan']));
 route('/admin/billing/audit','get','Developer-only recent before/after policy and subscription audit',null);

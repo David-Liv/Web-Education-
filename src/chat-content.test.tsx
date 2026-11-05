@@ -9,6 +9,12 @@ const fence=(kind:string,data:unknown)=>'```'+kind+'\n'+JSON.stringify(data)+'\n
 const exercise={question:'Solve $x^2-5x+6=0$.',hint:'Try factoring.',answer:'$x=2$ or $x=3$',explanation:'$(x-2)(x-3)=0$'};
 const suggestions=[{label:'One step further',prompt:'Explain why both factors can be zero, with a different example.'},{label:'Try a question',prompt:'Give me a related short exercise without revealing the answer.'},{label:'See the graph',prompt:'Plot the quadratic and show how its roots relate to the x-axis.'}];
 describe('controlled chat content',()=>{
+ it('hides review routing metadata from student rendering and subsequent chat history',()=>{
+  const text=fence('review',{scope:'all'})+'\n'+fence('exercise',exercise);
+  expect(parseChatContent(text).reviewScope).toBe('all');expect(chatHistoryText(text)).not.toContain('scope');
+  const html=renderToStaticMarkup(<ChatContent text={text}/>);expect(html).not.toContain('scope');expect(html).not.toContain('review');expect(html).toContain('<details>');
+  expect(parseChatContent('```review\n{"scope":"all"',false).blocks).toEqual([]);
+ });
  it('keeps tables and ordinary code while extracting exercises and exactly three contextual suggestions',()=>{
   const source='# Explanation\n\n| x | y |\n|---|---|\n| 2 | 0 |\n\n'+fence('exercise',exercise)+'\n'+fence('suggestions',suggestions);
   const parsed=parseChatContent(source);expect(parsed.blocks.map(b=>b.kind)).toEqual(['markdown','exercise','markdown']);expect(followUps(source,'Quadratics',true)).toEqual(suggestions);

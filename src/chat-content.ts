@@ -10,7 +10,7 @@ export interface CircuitSpec {title:string;layout:'series'|'parallel';sourceLabe
 export interface ExerciseSpec {question:string;hint?:string;answer:string;explanation?:string}
 export type VisualSpec=({kind:'chart'}&ChartSpec)|({kind:'plot'}&PlotSpec)|({kind:'geometry'}&GeometrySpec)|({kind:'diagram'}&DiagramSpec)|({kind:'circuit'}&CircuitSpec);
 export type ChatBlock={kind:'markdown';text:string}|{kind:'exercise';value:ExerciseSpec}|{kind:'visual';value:VisualSpec}|{kind:'unavailable';pending:boolean};
-const reserved=new Set(['chart','plot','geometry','diagram','circuit','exercise','suggestions']);
+const reserved=new Set(['chart','plot','geometry','diagram','circuit','exercise','suggestions','review']);
 const obj=(v:any)=>v&&typeof v==='object'&&!Array.isArray(v);
 const str=(v:any,n=200)=>typeof v==='string'&&v.trim().length>0&&v.length<=n;
 // Providers commonly emit an empty optional label rather than omitting it.
@@ -20,6 +20,7 @@ const num=(v:any,limit=1e9)=>typeof v==='number'&&Number.isFinite(v)&&Math.abs(v
 const arr=(v:any,min:number,max:number)=>Array.isArray(v)&&v.length>=min&&v.length<=max;
 export function validBlock(kind:string,v:any):boolean {
   if(!obj(v)&&kind!=='suggestions')return false;
+  if(kind==='review')return ['none','exercises','all'].includes(v.scope);
   if(kind==='suggestions')return arr(v,3,3)&&v.every((s:any)=>obj(s)&&str(s.label,60)&&str(s.prompt,1200))&&new Set(v.map((s:any)=>s.prompt.trim())).size===3;
   if(kind==='exercise')return str(v.question,4000)&&str(v.answer,3000)&&optional(v.hint,2000)&&optional(v.explanation,4000);
   if(!str(v.title,120)||!optional(v.caption,600))return false;
@@ -33,26 +34,27 @@ export function validBlock(kind:string,v:any):boolean {
 
 // Reserved fences are never displayed as raw JSON, including incomplete answers.
 export function parseChatContent(source:string,complete=true) {
-  const text=source.slice(0,60000),blocks:ChatBlock[]=[],suggestions:FollowUp[]=[];
+  const text=source.slice(0,60000),blocks:ChatBlock[]=[],suggestions:FollowUp[]=[];let reviewScope:'none'|'exercises'|'all'|undefined;
   const opening=/^ {0,3}(`{3,}|~{3,})([^\r\n]*)\r?\n/gm;let cursor=0,match:RegExpExecArray|null,count=0;
   while((match=opening.exec(text))){const start=match.index,bodyStart=opening.lastIndex,marker=match[1],kind=match[2].trim().split(/\s/)[0].toLowerCase();
     const closing=new RegExp('^ {0,3}'+marker[0]+'{'+marker.length+',}[ \\t]*\\r?$','gm');closing.lastIndex=bodyStart;const end=closing.exec(text);
     if(!reserved.has(kind)){if(end)opening.lastIndex=closing.lastIndex;else break;continue}
     if(start>cursor)blocks.push({kind:'markdown',text:text.slice(cursor,start)});
     cursor=end?closing.lastIndex:text.length;opening.lastIndex=cursor;
-    if(!end){if(kind!=='suggestions')blocks.push({kind:'unavailable',pending:!complete});break}
+    if(!end){if(!['suggestions','review'].includes(kind))blocks.push({kind:'unavailable',pending:!complete});break}
     if(++count>10){blocks.push({kind:'unavailable',pending:false});cursor=text.length;break}
     try {let v=JSON.parse(text.slice(bodyStart,end.index));
       // A tree is a directed concept diagram; render it with our existing flow
       // layout, then apply exactly the same bounded reference validation.
       if(kind==='diagram'&&obj(v)&&v.layout==='tree')v={...v,layout:'flow'};
       if(!validBlock(kind,v))throw new Error('Unsupported block');
-      if(kind==='suggestions'){if(!suggestions.length)suggestions.push(...v.map((s:FollowUp)=>({label:s.label.trim(),prompt:s.prompt.trim()})))}
+      if(kind==='review'){reviewScope=v.scope}
+      else if(kind==='suggestions'){if(!suggestions.length)suggestions.push(...v.map((s:FollowUp)=>({label:s.label.trim(),prompt:s.prompt.trim()})))}
       else if(kind==='exercise')blocks.push({kind:'exercise',value:v});else blocks.push({kind:'visual',value:{...v,kind} as VisualSpec});
-    }catch{if(kind!=='suggestions')blocks.push({kind:'unavailable',pending:false})}
+    }catch{if(!['suggestions','review'].includes(kind))blocks.push({kind:'unavailable',pending:false})}
   }
   if(cursor<text.length)blocks.push({kind:'markdown',text:text.slice(cursor)});
-  return {blocks,suggestions};
+  return {blocks,suggestions,reviewScope};
 }
 export function followUps(source:string,topic:string,english=false):FollowUp[] {
   const parsed=parseChatContent(source);if(parsed.suggestions.length===3)return parsed.suggestions;
@@ -63,6 +65,7 @@ export function followUps(source:string,topic:string,english=false):FollowUp[] {
 }
 export function chatHistoryText(source:string){return parseChatContent(source).blocks.map(b=>b.kind==='markdown'?b.text:b.kind==='exercise'?`\nExercise: ${JSON.stringify(b.value)}\n`:b.kind==='visual'?`\nDiagram: ${JSON.stringify(b.value)}\n`:'').join('\n')}
 export const CHAT_CONTENT_INSTRUCTIONS=`回答使用 Markdown，可用表格、列表、引用、程式碼和 $行內公式$ / $$獨立公式$$。不輸出 HTML、SVG、JavaScript 或外部圖片連結。
+第一個區塊必須是 review fenced JSON：{"scope":"none"}（只有概念講解、沒有任何題目或解答）、{"scope":"exercises"}（先有純概念導讀，再有附加練習）或 {"scope":"all"}（學生貼題、要求解題/批改/出題，或正文包含題目計算和答案）。不可把題解標成純概念。exercises 模式的純概念放在最前，相關圖形、題幹、提示和答案全部放在後面的圖形/exercise區塊，不在前文洩露答案。all模式可用正常Markdown完整解題。此標記不會顯示給學生。
 需要視覺解釋時，用以下同名 fenced code block 包含 JSON；最多兩個圖形和一個 exercise。不可編造觀測數據；假設的例子要在 caption 說明。標題、單位及標籤用對話語言，森林綠由網站統一繪製。
 chart: {"title":"標題","type":"line 或 bar 或 scatter","labels":["1","2"],"series":[{"name":"系列","values":[1,4]}],"xLabel":"含單位","yLabel":"含單位"}。缺值用 null，最多120點、4系列。
 plot: {"title":"函數圖","functions":[{"expression":"x^2-5*x+6","label":"y=x²−5x+6"}],"xMin":-1,"xMax":6,"yMin":-4,"yMax":10}。只支援 x、數字、pi、e、+ - * / ^、括號、sin/cos/tan(弧度)、sqrt、abs、ln(自然對數)、log(常用對數)、exp。乘號必須明寫，最多3條函數，範圍須有限且遞增。

@@ -22,7 +22,7 @@ export interface ReviewSession { id: string; date: string; reviewIds: string[]; 
 export interface Task { schedule?: 'scheduled'|'floating'; id: string; date: string; start: string; minutes: number; title: string; subjectId: string; topicId?: string; skillId?: string; kind: 'study'|'practice'|'review'|'exam'; status: 'pending'|'done'|'skipped'; locked: boolean; reason: string; sourceStatus?: 'demo'|'official'|'provisional'; sourceUrl?: string }
 export interface WeekGoal { week: number; title: string; minutes: number; subjects: string[] }
 export interface PlanPreview { tasks: Task[]; unscheduled: Task[]; allocations: {subjectId:string;minutes:number;reason:string}[]; weeks: WeekGoal[]; source: 'mock-strategy'|'pilot-rules'; previewId?: string; revision?: number; programmeId?: string|null; scoringVersion?: string; }
-export interface ChatMessage { id: string; role: 'user'|'assistant'; content: string; status: 'complete'|'streaming'|'interrupted'; attachmentIds?: string[]; requestId?: string; model?: string }
+export interface ChatMessage { revision?:number; practice?:{pending?:boolean;failed?:boolean;retryAvailable?:boolean}; id: string; role: 'user'|'assistant'; content: string; status: 'complete'|'streaming'|'interrupted'; attachmentIds?: string[]; requestId?: string; model?: string }
 export interface Chat { id: string; title: string; subjectId: string; topicId: string; mode: StudyMode; year: number; teachingLanguage: 'zh-HK'|'en'; createdAt: string; updatedAt: string; messages: ChatMessage[] }
 export interface Note { id: string; title: string; body: string; topicId?: string; date: string }
 export interface WrongItem { questionId: string; topicId: string; lastAnswer: string; date: string; reason: string; resolved: boolean }

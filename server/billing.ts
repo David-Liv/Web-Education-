@@ -35,6 +35,7 @@ function planDefault(policy: BillingPolicy, plan: PlanId, purpose: ModelPurpose)
 // Old JSON settings need no DDL migration. Preserve prices/quotas and historical ledgers.
 export function migrateModelPolicy(input: BillingPolicy): BillingPolicy {
   const p = structuredClone(input);
+  p.reviewModel ??= defaults[1];
   p.models = Object.fromEntries(Object.entries(p.models).filter(([id]) => isAllowedModel(id)));
   for (const id of plans) {
     const rule = p.plans[id];
@@ -61,9 +62,11 @@ function combinedTokens(logs: UsageLog[]): TokenUsage {
   return { input: sum('input'), output: sum('output'), total: sum('total') };
 }
 interface Operation extends CreditUsage { signature: string; result?: string; source: { path: string; requestId: string }; platform: boolean }
-interface UsageContext { billing: Billing; identity: Identity; id: string; signature: string; source: Operation['source']; modelPurpose: ModelPurpose; platform: boolean; op?: Operation; logs: UsageLog[]; discarded: boolean; completed: boolean; signal: AbortSignal }
+interface UsageContext { billing: Billing; identity: Identity; id: string; signature: string; source: Operation['source']; modelPurpose: ModelPurpose; platform: boolean; op?: Operation; logs: UsageLog[]; discarded: boolean; completed: boolean; signal: AbortSignal; deferCheckpoint?: boolean; retry?: boolean }
 const context = new AsyncLocalStorage<UsageContext>();
 export function discardUsage() { const ctx = context.getStore(); if (ctx) ctx.discarded = true; }
+// Chat metadata and hidden drafts are not student deliveries.
+export function deferUsageCheckpoint(defer=true) { const ctx=context.getStore();if(ctx)ctx.deferCheckpoint=defer; }
 export async function usageModel(config: ModelConfig): Promise<ModelConfig> {
   const ctx = context.getStore(); if (!ctx || ctx.platform) return config;
   if (ctx.op) return { ...config, model: ctx.op.model };
@@ -71,12 +74,13 @@ export async function usageModel(config: ModelConfig): Promise<ModelConfig> {
   const model = view.account.models[ctx.modelPurpose];
   return { ...config, model };
 }
-export async function beginProvider(config: ModelConfig) {
+export async function beginProvider(config: ModelConfig, review=false) {
   const ctx = context.getStore(); if (!ctx) return { config, signal: undefined };
   config = await usageModel(config);
   if (!isAllowedModel(config.model)) reject('只可使用抗截斷模型；此模型不可用', 403, 'MODEL_NOT_ALLOWED');
   if (!ctx.op) ctx.op = await ctx.billing.reserve(ctx, config.model);
-  return { config: { ...config, model: ctx.op.model }, signal: ctx.signal };
+  if(review){const policy=await ctx.billing.policy(),model=policy.reviewModel!;if(!isAllowedModel(model)||!policy.models[model]?.enabled)reject('請管理員設定可用的練習復核模型',503,'REVIEW_MODEL_NOT_CONFIGURED');config={...config,model}}
+  return { config: { ...config, model: review ? config.model : ctx.op.model }, signal: ctx.signal };
 }
 export async function recordProvider(log: Omit<UsageLog, 'id' | 'userId' | 'username' | 'name' | 'operationId' | 'plan' | 'purpose'>, content: string, secret: string) {
   const ctx = context.getStore(); if (!ctx || !ctx.op) return;
@@ -92,7 +96,7 @@ export async function finishUsage(result: unknown, status = 200) {
 // A crash after commit can lose the replay cache, but cannot refund a saved result.
 export async function checkpointUsage(store: Store, userId: string) {
   const ctx = context.getStore();
-  if (!ctx || ctx.billing.store !== store || ctx.identity.id !== userId || !ctx.op || ctx.discarded || ctx.signal.aborted || !ctx.logs.some(l => l.status === 'success')) return;
+  if (!ctx || ctx.deferCheckpoint || ctx.billing.store !== store || ctx.identity.id !== userId || !ctx.op || ctx.discarded || ctx.signal.aborted || !ctx.logs.some(l => l.status === 'success')) return;
   const row = await store.db.prepare('SELECT body FROM credit_operations WHERE id=? AND user_id=?').get(ctx.id, userId);
   if (!row) return; const op: Operation = JSON.parse(row.body); if (op.status !== 'held') return;
   op.status = 'charged'; op.updatedAt = ctx.billing.now().toISOString(); op.tokens = combinedTokens(ctx.logs); op.reason = 'Learning result saved atomically';
@@ -159,11 +163,12 @@ export class Billing {
     }
     for (const id of plans) { const p = input.plans[id]; if (!p || !Number.isInteger(p.credits) || p.credits < 0 || p.credits > 10000000 || !Number.isFinite(p.price) || p.price < 0 || p.price > 100000 || !Array.isArray(p.models) || !p.models.length || p.models.some(m => !input.models[m]?.enabled) || new Set(p.models).size !== p.models.length || !p.models.includes(p.defaultModel)) reject('請檢查套餐額度、價格、開放模型與預設模型'); }
     if (input.plans.Free.price !== 0) reject('Free 套餐價格必須為零');
+    if(input.reviewModel!==undefined&&(!isAllowedModel(input.reviewModel)||!input.models[input.reviewModel]?.enabled))reject('請選擇已啟用的練習復核模型');
     for (const id of plans) {
       const rule = input.plans[id];
       if (rule.defaultModels && modelPurposes.some(k => !rule.models.includes(rule.defaultModels![k]))) reject('請為每個用途選擇套餐允許的預設模型');
     }
-    return this.store.transaction(async () => { if(this.store.db.kind==='postgres')await this.store.db.exec('SELECT pg_advisory_xact_lock(1784236904)'); const old = await this.policy(); if (input.version !== old.version) reject('設定已更新，請重新載入', 409, 'STALE_POLICY'); const next = migrateModelPolicy({ version: old.version + 1, plans: input.plans, models: input.models }); await this.store.db.prepare("INSERT INTO settings VALUES('billing-policy',?) ON CONFLICT(id) DO UPDATE SET body=excluded.body").run(JSON.stringify(next)); await this.audit(actor, 'policy', old, next); return next; });
+    return this.store.transaction(async () => { if(this.store.db.kind==='postgres')await this.store.db.exec('SELECT pg_advisory_xact_lock(1784236904)'); const old = await this.policy(); if (input.version !== old.version) reject('設定已更新，請重新載入', 409, 'STALE_POLICY'); const next = migrateModelPolicy({ version: old.version + 1, plans: input.plans, models: input.models, reviewModel: input.reviewModel ?? old.reviewModel }); await this.store.db.prepare("INSERT INTO settings VALUES('billing-policy',?) ON CONFLICT(id) DO UPDATE SET body=excluded.body").run(JSON.stringify(next)); await this.audit(actor, 'policy', old, next); return next; });
   }
   async adminAccount(actor: string, userId: string, plan: PlanId) { if (!plans.includes(plan)) reject('套餐無效'); if (!await this.store.db.prepare('SELECT id FROM users WHERE id=?').get(userId)) reject('帳戶不存在', 404); return this.store.transaction(async () => { const before = await this.account(userId), next = { ...before, plan, pendingPlan: null, renewal: true, model: '', models: purposeModels(''), updatedAt: this.now().toISOString() }; await this.saveAccount(userId, next); await this.audit(actor, 'account:' + userId, before, next); return { ok: true }; }); }
   async subscription(userId: string, action: string) { return this.store.transaction(async () => { const a = await this.account(userId); if (action === 'cancel') { a.renewal = false; a.pendingPlan = 'Free'; } else if (action === 'restore') { a.renewal = true; a.pendingPlan = null; } else reject('訂閱操作無效'); a.updatedAt = this.now().toISOString(); await this.saveAccount(userId, a); await this.audit(userId, action, null, a); return { ok: true }; }); }
@@ -234,6 +239,20 @@ export class Billing {
     if (!item) reject('日誌不存在或已過保留期', 404);
     const op = await this.store.db.prepare('SELECT status,body FROM credit_operations WHERE id=?').get(item.operation_id);
     return { ...JSON.parse(item.body), settlement: op?.status, credit: op ? JSON.parse(op.body).cost : 0, ...(exportContent ? { response: this.store.decrypt(item.content) } : {}) };
+  }
+  async retryChat(identity: Identity, operationId: string, signal: AbortSignal, work:()=>Promise<unknown>) {
+    const row=await this.store.db.prepare('SELECT body FROM credit_operations WHERE id=? AND user_id=?').get(operationId,identity.id);
+    if(!row)reject('找不到原來的聊天操作',404);
+    const op:Operation=JSON.parse(row.body);
+    if(!/^\/chats\/[^/]+\/messages$/.test(op.source.path)||op.status==='held')reject('原操作仍在處理，請稍候',409);
+    const previous=await this.store.db.prepare('SELECT body FROM ai_usage_logs WHERE operation_id=? AND user_id=? ORDER BY started_at').all(operationId,identity.id);
+    const ctx:UsageContext={billing:this,identity,id:op.id,signature:op.signature,source:op.source,modelPurpose:'chat',platform:op.platform,logs:previous.map(r=>JSON.parse(r.body)),discarded:false,completed:false,signal,deferCheckpoint:true,retry:true};
+    // Paid partial deliveries remain paid once. A previously refunded operation
+    // must acquire its original reservation again before any new provider call.
+    ctx.op=op.status==='charged'?op:await this.reserve(ctx,op.model);
+    await context.run(ctx,async()=>{try{const result=await work();await finishUsage(result)}catch(e){await this.settle(identity.id,op.id,false,null,ctx.logs,'Retry did not deliver content');throw e}finally{
+      await this.store.transaction(async()=>{const current=await this.store.db.prepare('SELECT body FROM credit_operations WHERE id=? AND user_id=?').get(op.id,identity.id);if(current){const rows=await this.store.db.prepare('SELECT body FROM ai_usage_logs WHERE operation_id=? AND user_id=? ORDER BY started_at').all(op.id,identity.id);const value:Operation=JSON.parse(current.body);value.tokens=combinedTokens(rows.map(r=>JSON.parse(r.body)));await this.putOperation(value,identity.id)}});
+    }});
   }
   async run(identity: Identity, path: string, input: any, key: string, signal: AbortSignal, work: (send: (data: unknown, status?: number) => void) => Promise<void>, deliver: (data: any, status: number) => void) {
     const requestId = String(input.requestId ?? input.previewId ?? key), id = hash(identity.id + ':' + path + ':' + requestId), signature = hash(JSON.stringify(input));

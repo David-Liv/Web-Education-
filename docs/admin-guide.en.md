@@ -1,6 +1,6 @@
 # HOKSE Administrator Manual
 
-v1.2 · 4 November 2026. For maintaining accounts, content, AI services and programme data.
+v1.3 · 5 November 2026. For maintaining accounts, content, AI services and programme data.
 
 ## 1. Administrator workspace
 
@@ -34,7 +34,11 @@ Search users or models and filter by status and Hong Kong dates. The eye icon sh
 
 Logs retain up to 1,000 upstream calls for 30 days, with at most 30,000 response characters and key redaction. Credit ledgers, orders and learning history are separate. Inspect content only for necessary support and protect exports. The student guide retains notice of this access.
 
-Chat uses controlled Markdown and bounded JSON blocks for charts, plots, geometry, diagrams, circuits and exercises. Suggested next steps are requested in the same conversation-model call; invalid suggestions use local defaults with no repair calls. Clicking only fills a draft. Answer reveals and exports are local operations. Rendering uses app-owned React/SVG components, never model HTML, JavaScript or Python. Diagram format checks do not certify subject accuracy. Old text-only replies remain readable. The current provider path still waits for a complete model response before sending display chunks; native provider streaming is a separate follow-up.
+Chat uses controlled Markdown and bounded JSON blocks for charts, plots, geometry, diagrams, circuits and exercises. Suggested next steps are requested in the same conversation-model call; invalid suggestions use local defaults with no repair calls. Clicking only fills a draft. Answer reveals and exports are local operations. Rendering uses app-owned React/SVG components, never model HTML, JavaScript or Python. Diagram format checks do not certify subject accuracy. Old text-only replies remain readable. The first call completes before ordinary explanations appear; practice is added to the same floor after checking. Native token streaming remains a separate follow-up.
+
+Configure the site-wide chat practice reviewer in Plan and model rules. It defaults to Flash and is independent of students’ three model selections. Hidden review routing metadata and conservative guards gate new exercises and worked answers; unmarked legacy-format responses receive full review. Saved historical replies are not automatically rechecked. Each request has at most one automatic review and one student credit charge. Logs distinguish generation and review; review details link to a protected revision-record export. No usable delivery releases the reservation. A delivered explanation retains its original charge, with one free manual retry for failed practice on that floor.
+
+Jobs use the existing API process, with no paid worker. Hidden drafts and revisions are encrypted in settings; student state contains only displayable content. Disconnecting does not cancel work. Explicit Stop, deletion and server shutdown cancel it. After a restart, expired leases become retryable failures when the conversation is read; they are never automatically re-sent. Native token streaming remains deferred; ordinary explanations are sent as soon as the first call completes. See docs/chat-review-contract.md.
 
 ## 6. Content and learning evidence
 
@@ -66,6 +70,7 @@ For provider failures, inspect status and protocol. For balances, inspect operat
 
 ## 9. Administrator release record
 
+- v1.3 / 5 November 2026: one-pass chat practice review, updates in the original floor, one failure retry, and an administrator-configured reviewer.
 - v1.2 / 4 November 2026: rich chat replies, contextual draft suggestions and collapsible quick-practice answers; one-call generation and local visual exports.
 - v1.1 / 4 November 2026: programme data and reference scoring integration; separate student and administrator guides; student release notes use product-level version summaries.
 - v1.0: account isolation, three-subject coaching, per-purpose models, plan allowances and usage logs.

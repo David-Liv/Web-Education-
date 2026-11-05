@@ -1,5 +1,14 @@
 # HOKSE 更新日誌 / Release notes
 
+## v1.3.0 · 2026-11-05
+
+- 聊天練習與題解加入檢查，並在原回覆展示完整內容。
+- 改善離開後的對話接續，提供一次失敗重試。
+- 管理員可統一設定練習復核模型；學生自動檢查不另扣點。
+- Chat practice and worked-answer checks, delivered within the original reply.
+- Better continuity across navigation and one retry after failure.
+- A site-wide reviewer setting with no additional student charge for automatic checks.
+
 ## v1.2.0 · 2026-11-04
 
 ### 中文

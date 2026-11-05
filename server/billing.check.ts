@@ -11,7 +11,7 @@ async function fixture() {
   const provider = createServer(async (req, res) => { let raw = ''; for await (const c of req) raw += c; const body = JSON.parse(raw); calls++; seenModels.push(body.model); res.setHeader('Content-Type', 'application/json');
     if (mode === 'slow') await new Promise(r => setTimeout(r, 150));
     if (mode === 'error') { res.writeHead(503); res.end(JSON.stringify({ error: { message: 'fixture-secret-key Authorization: Bearer danger-secret' } })); return; }
-    let text = 'Private response fixture-secret-key <script>alert(1)</script>';
+    let text = '```review\n{"scope":"none"}\n```\nPrivate response fixture-secret-key <script>alert(1)</script>';
     if (mode === 'bad' || mode === 'repair' && calls === 1) text = 'invalid quiz';
     else if (mode === 'repair') text = JSON.stringify({ contractVersion: 'learning-contract-v2', items: [{ skillId: units[0].skills[0].id, kind: 'numeric', prompt: 'Solve x²−7x+10=0. Give the larger root.', answer: '5', explanation: 'The roots are 2 and 5.', hint: 'Factorise.', criterion: 'Find the larger root.', check: { a: 1, b: -7, c: 10, root: 'larger' } }] });
     if (mode === 'grade-bad') text = '{}';
@@ -47,7 +47,7 @@ test('server ignores client model override, captures once, replays SSE, and logs
   assert.equal((await c.send('Different content')).status, 409); assert.equal(f.calls(), 1);
 } finally { await f.close(); } });
 test('upstream errors release credits and preserve HTTP code, redacted error, and unknown token values', async () => { const f = await fixture(); try {
-  f.mode('error'); const c = await f.chat(); assert.equal((await c.send()).status, 502); const b = (await f.call('/billing')).data; assert.equal(b.spent, 0); assert.equal(b.available, 500); assert.equal(b.usage[0].status, 'released');
+  f.mode('error'); const c = await f.chat(); assert.equal((await c.send()).status, 200); const b = (await f.call('/billing')).data; assert.equal(b.spent, 0); assert.equal(b.available, 500); assert.equal(b.usage[0].status, 'released');
   const l = (await f.call('/admin/usage', 'GET', undefined, 'owner')).data.rows[0]; assert.equal(l.httpStatus, 503); assert.equal(l.error.type, 'UPSTREAM_ERROR'); assert.ok(!JSON.stringify(l).includes('fixture-secret-key')); assert.equal(l.tokens.total, null);
 } finally { await f.close(); } });
 test('insufficient balance and concurrent requests cannot overspend or make a second provider call', async () => { const f = await fixture(); try {
@@ -127,7 +127,7 @@ test('forbidden model routes are rejected before any provider call, including ad
       assert.equal((await f.call('/admin/billing/policy', 'PUT', p, 'owner')).status, 403);
     }
     assert.equal((await f.call('/billing/model', 'PUT', {model:defaults[0],purpose:'unknown'})).status, 400);
-    const p = await f.billing.policy(); p.models[defaults[1]].enabled=false;
+    const p = await f.billing.policy(); p.models[defaults[1]].enabled=false;p.reviewModel=defaults[0];
     for (const plan of Object.values(p.plans)) {plan.models=plan.models.filter(m=>m!==defaults[1]);plan.defaultModel=defaults[0];plan.defaultModels={quiz:defaults[0],chat:defaults[0],evaluation:defaults[0]};}
     await f.billing.updatePolicy(f.identities.owner.id,p);
     assert.equal((await f.call('/billing/model', 'PUT', {model:defaults[1],purpose:'chat'})).status,403);

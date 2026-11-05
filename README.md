@@ -124,3 +124,6 @@ Render 設為 **After CI Checks Pass**，不需要把 Render 或 AI Key 放到 A
 v1.2 聊天支援 Markdown、表格、KaTeX 與受控圖形／隨堂題區塊，回覆後三個建議只填草稿，由學生發送。正文及建議共用普通對話模型的一次呼叫；本機 SVG 繪圖、答案折疊與下載無需 Python 或新服務。格式、限制及後續備註見 [聊天內容契約](docs/chat-content-contract.md)。
 
 產品版本摘要見 [更新日誌 / Release notes](CHANGELOG.md)。學生指南保留站內可直接閱讀的中英文版本記錄；詳細驗證結果另載於各項驗證文件。
+
+
+v1.3 聊天練習加入全站可配置的單輪復核，使用既有 API 程序及加密 JSON settings 保存工作租約和修訂，不新增服務或 DDL。普通講解先送出、題目在同樓層更新；一次操作只扣一次，失敗可手動重試一次。管理員在套餐模型規則指定 reviewModel。協議與恢復邊界見 [聊天復核契約](docs/chat-review-contract.md)。

@@ -22,14 +22,15 @@ async function provider(config:ModelConfig,path:string,body?:unknown,signal?:Abo
   try{return await result.json() as any}catch{reject('模型服務未返回有效 JSON',502,'PROTOCOL_ERROR')}
 }
 export async function listModels(config:ModelConfig){const result=await provider(config,'models');if(!Array.isArray(result.data))reject('此服務未提供相容模型清單，可手動填寫 model ID',502,'NO_MODEL_LIST');return [...new Set<string>(result.data.map((m:any)=>m.id).filter((id:any)=>isAllowedModel(id)&&id.length<=200))].slice(0,1000)}
-export async function generate(config:ModelConfig,messages:{role:string;content:string}[],signal?:AbortSignal){
+export async function generate(config:ModelConfig,messages:{role:string;content:string}[],signal?:AbortSignal, review=false){
   if(!config.enabled||!config.model)reject('開發者尚未啟用模型或選擇模型 ID',503,'MODEL_NOT_CONFIGURED');
-  const scoped=await beginProvider(config);config=scoped.config;
+  const scoped=await beginProvider(config,review);config=scoped.config;
   if(!isAllowedModel(config.model))reject('只可使用抗截斷模型；此模型不可用',403,'MODEL_NOT_ALLOWED');
   signal=signal&&scoped.signal?AbortSignal.any([signal,scoped.signal]):signal??scoped.signal;
-  const payload=config.protocol==='openai-chat'?{model:config.model,messages,max_tokens:2400}:{model:config.model,input:messages,max_output_tokens:2400};
+  const maxTokens=review?4800:2400;
+  const payload=config.protocol==='openai-chat'?{model:config.model,messages,max_tokens:maxTokens}:{model:config.model,input:messages,max_output_tokens:maxTokens};
   const start=Date.now(),endpoint=new URL(config.baseUrl).pathname.replace(/\/$/,'')+'/'+(config.protocol==='openai-chat'?'chat/completions':'responses');
-  const request={model:config.model,stream:false,msg_count:messages.length,chars:messages.reduce((n,m)=>n+m.content.length,0),has_tools:false,tools_count:0,first_role:messages[0]?.role??null,temperature:null,max_tokens:2400};
+  const request={model:config.model,stream:false,msg_count:messages.length,chars:messages.reduce((n,m)=>n+m.content.length,0),has_tools:false,tools_count:0,first_role:messages[0]?.role??null,temperature:null,max_tokens:maxTokens};
   let httpStatus:number|null=null,raw='',content='',usage:any;
   try{
     const response=await fetch(config.baseUrl+'/'+(config.protocol==='openai-chat'?'chat/completions':'responses'),{method:'POST',headers:{'Content-Type':'application/json',...(config.secret?{Authorization:`Bearer ${config.secret}`}:{})},body:JSON.stringify(payload),redirect:'error',signal:signal?AbortSignal.any([signal,AbortSignal.timeout(45000)]):AbortSignal.timeout(45000)});
@@ -43,7 +44,7 @@ export async function generate(config:ModelConfig,messages:{role:string;content:
     usage=result.usage;
     content=config.protocol==='openai-chat'?result.choices?.[0]?.message?.content:result.output_text??result.output?.flatMap((o:any)=>o.content??[]).filter((c:any)=>c.type==='output_text').map((c:any)=>c.text).join('\n');
     if(typeof content!=='string'||!content.trim())reject('模型沒有回傳可用文字；請檢查協議與能力',502,'EMPTY_MODEL_RESPONSE');
-    await recordProvider({model:config.model,channel:config.model.startsWith('pggo-')?'PGGO':config.model.startsWith('bdgo-')?'BDGO':new URL(config.baseUrl).hostname,endpoint,at:new Date(start).toISOString(),status:'success',httpStatus,durationMs:Date.now()-start,request,tokens:normalizeTokens(usage),error:null,truncated:content.length>30000},content,config.secret);
+    await recordProvider({stage:review?'review':'generation',model:config.model,channel:config.model.startsWith('pggo-')?'PGGO':config.model.startsWith('bdgo-')?'BDGO':new URL(config.baseUrl).hostname,endpoint,at:new Date(start).toISOString(),status:'success',httpStatus,durationMs:Date.now()-start,request,tokens:normalizeTokens(usage),error:null,truncated:content.length>30000},content,config.secret);
     return content.slice(0,30000);
-  }catch(e){const error=e as Error&{code?:string};await recordProvider({model:config.model,channel:config.model.startsWith('pggo-')?'PGGO':config.model.startsWith('bdgo-')?'BDGO':new URL(config.baseUrl).hostname,endpoint,at:new Date(start).toISOString(),status:'error',httpStatus,durationMs:Date.now()-start,request,tokens:normalizeTokens(usage),error:{type:signal?.aborted?'CANCELLED':httpStatus&&httpStatus>=400?'UPSTREAM_ERROR':'PROTOCOL_OR_NETWORK_ERROR',code:httpStatus?`HTTP_${httpStatus}`:error.code??error.name,message:(raw||error.message).slice(0,2000)},truncated:raw.length>30000},raw||error.message,config.secret);throw e}
+  }catch(e){const error=e as Error&{code?:string};await recordProvider({stage:review?'review':'generation',model:config.model,channel:config.model.startsWith('pggo-')?'PGGO':config.model.startsWith('bdgo-')?'BDGO':new URL(config.baseUrl).hostname,endpoint,at:new Date(start).toISOString(),status:'error',httpStatus,durationMs:Date.now()-start,request,tokens:normalizeTokens(usage),error:{type:signal?.aborted?'CANCELLED':httpStatus&&httpStatus>=400?'UPSTREAM_ERROR':'PROTOCOL_OR_NETWORK_ERROR',code:httpStatus?`HTTP_${httpStatus}`:error.code??error.name,message:(raw||error.message).slice(0,2000)},truncated:raw.length>30000},raw||error.message,config.secret);throw e}
 }
