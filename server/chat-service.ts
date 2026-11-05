@@ -112,8 +112,9 @@ export class ChatService {
      const system=`你是香港中學生的耐心導師。提供可檢查步驟、分層提示與清楚解釋。不能改成績、掌握度或日曆；沒有看過圖片錄音，不宣稱專業審校。語言：${chat.teachingLanguage==='en'?'English':'香港繁體中文'}。教材：${JSON.stringify(pack.lessons)}`;
      const history=chat.messages.filter(m=>m.requestId!==r.requestId&&m.status==='complete'&&m.content.trim()).slice(-10).map(m=>({role:m.role,content:m.role==='assistant'?chatHistoryText(m.content):m.content}));
      const text=await generate(config,[{role:'system',content:system+'\n'+CHAT_CONTENT_INSTRUCTIONS},...history,{role:'user',content:r.prompt}],signal);
-     if(!usable(text))throw new Error('NO_USABLE_CHAT_CONTENT');if(signal.aborted)throw new Error('CANCELLED');
-     const parts=splitReview(text,r.prompt,chat.mode);r.body=parts.body;r.draft=parts.draft;
+     const parts=splitReview(text,r.prompt,chat.mode);
+     if(!usable(text)&&!parts.draft.trim())throw new Error('NO_USABLE_CHAT_CONTENT');if(signal.aborted)throw new Error('CANCELLED');
+     r.body=parts.body;r.draft=parts.draft;
      if(!parts.required){r.state='complete';await this.write(r,r.body,'complete');return {chatId:chat.id,messageId:r.messageId}}
      r.state='reviewing';await this.write(r,r.body,'streaming',{pending:true});
     }

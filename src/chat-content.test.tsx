@@ -30,6 +30,13 @@ describe('controlled chat content',()=>{
   expect(followUps(fence('exercise',exercise),'Quadratics',true)[0].prompt).toMatch(/without revealing/);
   expect(parseChatContent(('```chart\ninvalid\n```\n').repeat(100)).blocks.length).toBeLessThan(24);
  });
+ it('retains invalid fences only when explicitly requested by the private review pipeline',()=>{
+  const invalid='```exercise\n'+String.raw`{"question":"P(A \cap B)","answer":"hidden answer"}`+'\n```';
+  expect(parseChatContent(invalid).blocks).toEqual([{kind:'unavailable',pending:false}]);
+  expect(chatHistoryText(invalid)).not.toContain('hidden answer');
+  expect(renderToStaticMarkup(<ChatContent text={invalid}/>)).not.toContain('hidden answer');
+  expect(parseChatContent(invalid,true,{retainInvalid:true}).blocks[0]).toEqual({kind:'unavailable',pending:false,source:invalid,format:'exercise'});
+ });
  it('validates data limits, missing chart values, diagram references and circuit measurement positions',()=>{
   const chart={title:'Values',type:'line',labels:['A','B'],series:[{name:'Observed',values:[0,null]}]};expect(validBlock('chart',chart)).toBe(true);
   expect(validBlock('chart',{...chart,series:[{name:'Bad',values:[Infinity,0]}]})).toBe(false);expect(validBlock('chart',{...chart,labels:Array(121).fill('x')})).toBe(false);

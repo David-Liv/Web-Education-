@@ -115,6 +115,7 @@ Use your own account and sign out before leaving a shared computer. For troubles
 
 - Checks for chat exercises and worked answers, shown in the original reply.
 - Better continuity when returning to a conversation and one retry after failure.
+- More reliable formatting for formulas and chat exercises.
 - Updated guidance in both languages.
 
 **v1.2 · Learn through conversation**

@@ -36,6 +36,18 @@ test('routing is conservative and the reproduced scalar contradiction is rejecte
  assert.throws(()=>reviewedText(JSON.stringify({verdict:'corrected',reason:'Removed it',content:'No exercise'}),original),/CHANGED_EXERCISE_COUNT/);
  assert.throws(()=>reviewedText(JSON.stringify({verdict:'uncertain',reason:'Ambiguous'}),corrected),/UNCERTAIN/);
 });
+
+test('malformed exercise JSON is retained privately, reviewed and repaired without losing a question',async()=>{const f=await fixture();try{
+ const broken='```exercise\n'+String.raw`{"question":"Find P(A \cap B).","answer":"0.032","explanation":"0.8 × 0.2 × 0.2 = 0.032"}`+'\n```';
+ const source=fence('review',{scope:'none'})+'\n'+broken,parts=splitReview(source,'Explain the relation','explain');
+ assert.equal(parts.required,true);assert.equal(parts.body,'');assert.match(parts.draft,/\\cap/);
+ assert.throws(()=>reviewedText(JSON.stringify({verdict:'pass'}),parts.draft),/INVALID_REVIEW_CONTENT/);
+ assert.throws(()=>reviewedText(JSON.stringify({verdict:'corrected',content:'Removed the malformed question.'}),parts.draft),/CHANGED_EXERCISE_COUNT/);
+ assert.match(reviewedText(JSON.stringify({verdict:'corrected',content:corrected}),parts.draft).text,/0\.032/);
+ // Even a pure invalid block reaches the reviewer; it never becomes student content.
+ f.setText(source);f.setVerdict({verdict:'corrected',content:corrected});await (await f.send()).text();
+ const m=(await f.read()).messages[1];assert.equal(m.status,'complete');assert.equal(m.practice,undefined);assert.match(m.content,/0\.032/);assert.equal(f.calls.length,2);assert.equal((await f.billing.view(f.student.id)).spent,2);
+}finally{await f.close()}});
 test('separate generation and reviewer routes share one charge and replay the corrected same floor without new calls',async()=>{const f=await fixture();try{
  const id=crypto.randomUUID(),res=await f.send(id);assert.equal(res.status,200);assert.match(await res.text(),/event: done/);
  const state=await f.app.store.state(f.student.id),m=state.chats[0].messages[1];assert.equal(state.chats[0].messages.length,2);assert.match(m.content,/0\.032/);assert.doesNotMatch(m.content,/0\.128/);assert.ok(parseChatContent(m.content).blocks.some(b=>b.kind==='exercise'));
