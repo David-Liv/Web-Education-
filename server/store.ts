@@ -12,6 +12,7 @@ import { checkpointUsage } from './billing.ts';
 
 export interface PrivateQuiz extends Quiz { snapshot: ContentPack['questions']; blueprints?:Pick<ContentPack,'id'|'version'|'topicId'|'skills'>[]; contentVersions:string[]; purpose:'formal'|'practice'; manualContinue?:boolean; response?:unknown; independence?:Record<string,boolean> }
 export interface StudentState extends Omit<Database,'quizzes'|'evidence'|'studio'> {
+  practice?:import('./practice-state.ts').PracticeState;
   pendingTutorTerms?:Record<string,{term:string;definition:string;recordId:string}>;
   studio?:StudioState;
   revision:number; quizzes:PrivateQuiz[]; evidence:PilotEvidence[]; assists:{questionId:string;at:string;kind:string;quizId:string}[];

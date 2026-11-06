@@ -1,6 +1,6 @@
 # HOKSE Administrator Manual
 
-v1.5 · 6 November 2026. For maintaining accounts, content, AI services and programme data.
+v1.6 · 6 November 2026. For maintaining accounts, content, AI services and programme data.
 
 Navigation can collapse to icons on desktop and remembers the browser preference. Calendar moves and Undo use the same ownership, conflict and budget checks; they do not call AI.
 
@@ -91,3 +91,15 @@ Document metadata is in the owned chat; checked source content, including answer
 Learning-note proposals must quote the student’s current message exactly. Student confirmation can add a personal glossary entry, but does not change independent mastery, grades or calendar. Only relevant topic records enter the tutor context. Three suggestions and chat cards are optional for method-bound conversations; legacy chats keep their previous fallback. The mock uses a labelled, fixed original sample PDF, not a personalised generation.
 
 Run server/tutors.check.ts plus the existing suites and production build; isolated PostgreSQL checks include the same Tutor suite. Verify real-provider file delivery, ownership, restart persistence and visual PDF quality separately. Do not infer those results from a model connection test.
+
+## v1.6 learning-loop operations
+
+The first full targeted-practice flow covers six compulsory-Mathematics quadratic skills. Student JSON retains private question snapshots, tutor/document versions, assistance, attempts and merged next-day review entries. No schema or additional paid service is required. Old coarse records are not redistributed into the six new skills.
+
+Auto selection prefers original, code-checkable variants and avoids previously registered wording; if it cannot supply enough new items, assessment generation uses the quiz model and bounded validation. Numeric expressions use a bounded parser. Unrecognised expressions and missing modelling methods stay uncertain or receive AI reference feedback. These provisional results are separate from the reviewed bank and whole-subject DSE grades.
+
+An explicitly linked chat answer and its feedback share one conversation operation. Hints, answers and discussion assistance are tied to question content, across tutors. One appeal per attempt uses code when possible, otherwise the site-wide review model at platform expense; it remains available at zero student allowance. Repeated claims do not generate more calls. Failure or expired work remains uncertain and excluded, with no automatic retry. The legacy dispute control remains for older records.
+
+Skill reviews merge by skill and learning date. Retests use one or two new items; early practice is allowed but does not bypass the 24-hour, multiple-question and family conditions. Planning still uses budgets, rest days, protected tasks and stale-preview checks. PDF export renders saved questions without generation or revealing reference answers.
+
+Before release, run the practice suite, full server suite, build and isolated PostgreSQL checks. Record browser, real-provider and live checks separately in the v1.6 verification document. Do not describe engineering checks as demonstrated learning gains. OCR, handwritten grading and whole-paper diagnostic exemptions remain outside this release.

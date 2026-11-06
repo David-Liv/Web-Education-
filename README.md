@@ -132,3 +132,7 @@ v1.4 加入日曆直接拖動、觸屏長按及三秒撤銷提醒，側邊欄可
 
 
 v1.5 adds versioned David/Matt teaching methods and private PDF lessons. Install with the committed pnpm lockfile; PDFKit, svg-to-pdfkit, MathJax and the OFL Noto Sans TC font under `server/assets` are required at runtime. Keep that directory in the deployment image. No browser service or paid worker is needed. Lessons and private source use the existing external database; local skill clones are not shipped. The Tutor integration suite is included in `test:server` and `check:postgres`. See [Tutor plan](docs/tutor-teaching-methods-plan.md) and [verification](docs/tutor-verification.md).
+
+## v1.6 targeted learning
+
+Six quadratic skills share a private question/attempt registry across Tutor chats, PDFs and practice packs. Auto selection prefers verifiable original variants; independent AI fallback uses quiz validation. Review claims are once per attempt and platform-funded. No schema migration or new service is required. Run `pnpm test:server` (includes `server/practice.check.ts`), `pnpm test`, `pnpm build:pilot`, and `pnpm check:postgres` before publication. Keep hint/answer/repeat provenance and provisional-vs-formal distinctions intact. See [design](docs/v1.6-learning-loop-plan.md), [API contract](docs/v1.6-learning-contract.md), and [verification](docs/v1.6-verification.md).

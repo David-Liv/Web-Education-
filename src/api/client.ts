@@ -16,7 +16,7 @@ export const getDailyReview=()=>api<DailyReview>('/daily-review');
 export const getQuiz=(id:string)=>api<{quiz:Quiz;questions:PublicQuestion[]}>(`/quizzes/${id}`);
 const pendingMessages=new Map<string,{signature:string;requestId:string}>();
 export function clearPendingChat(id:string){pendingMessages.delete(id);sessionStorage.removeItem('hokse.chat.pending.'+id)}
-export async function streamChat(id:string,content:string,attachmentIds:string[],signal:AbortSignal,onDelta:(text:string)=>void,onMessage?:(message:ChatMessage,user?:ChatMessage)=>void,retryMessageId?:string,lesson?:{lessonAction?:'next'|'revise';sourceDocumentId?:string;documentId?:string}){
+export async function streamChat(id:string,content:string,attachmentIds:string[],signal:AbortSignal,onDelta:(text:string)=>void,onMessage?:(message:ChatMessage,user?:ChatMessage)=>void,retryMessageId?:string,lesson?:{questionId?:string;lessonAction?:'next'|'revise';sourceDocumentId?:string;documentId?:string}){
   const signature=JSON.stringify([content,attachmentIds,retryMessageId,lesson]);let pendingRequest=pendingMessages.get(id);
   if(!pendingRequest)try{pendingRequest=JSON.parse(sessionStorage.getItem('hokse.chat.pending.'+id)??'null')}catch{/* ignore malformed local metadata */}
   if(!pendingRequest||pendingRequest.signature!==signature){pendingRequest={signature,requestId:crypto.randomUUID()};pendingMessages.set(id,pendingRequest)}

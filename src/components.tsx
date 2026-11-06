@@ -73,7 +73,7 @@ export function Formula({ tex }: {
 catch {
     return <code>{tex}</code>;
 } }
-export function RichText({text,assistant=true,complete=true}:{text:string;assistant?:boolean;complete?:boolean}) {return <Suspense fallback={<div className="rich-text">{assistant?ui('正在整理回覆…'):text}</div>}><ChatContent text={text} assistant={assistant} complete={complete}/></Suspense>;}
+export function RichText({text,assistant=true,complete=true,...actions}:{text:string;assistant?:boolean;complete?:boolean;onExerciseAnswer?:(index:number)=>void;onExerciseAssist?:(index:number,kind:'hint'|'answer')=>void}) {return <Suspense fallback={<div className="rich-text">{assistant?ui('正在整理回覆…'):text}</div>}><ChatContent text={text} assistant={assistant} complete={complete} {...actions}/></Suspense>;}
 export function SectionTitle({ title, link, to, children }: {
     title: string;
     link?: string;

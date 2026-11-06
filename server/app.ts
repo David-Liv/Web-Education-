@@ -1,3 +1,4 @@
+import {practiceRoutes} from './practice-routes.ts';
 import {calendarMoveIssue} from '../src/calendar-move.ts';
 import { createServer } from 'node:http';
 import { createHash } from 'node:crypto';
@@ -94,6 +95,7 @@ export function createPilot(options:Options={}){
       const packs=(await store.latestPacks());
       const coaching=units.map(u=>({...u,lessons:[{title:u.title,text:u.lesson,skillIds:u.skills.map(s=>s.id)}]}));
       const allTopics=[...catalog.topics,...units.filter(u=>!catalog.topics.some(t=>t.id===u.topicId)).map(u=>({id:u.topicId,subjectId:u.subjectId,name:u.title,en:u.title,unit:u.title,module:'自主輔導',papers:['技能練習'],ready:true,summary:[u.lesson],source:'本平台原創學習參考；不是官方定級'}))];
+      if(path==='/learning'||path.startsWith('/learning/')||/^\/studio\/quizzes\/[^/]+\/pdf$/.test(path)){const controller=new AbortController();res.once('close',()=>{if(!res.writableEnded)controller.abort()});await practiceRoutes(store,identity,path,method,input,send,res,AbortSignal.any([controller.signal,AbortSignal.timeout(90000)]),options.origin);return;}
       if(path.startsWith('/studio')){const controller=new AbortController();const signal=AbortSignal.any([controller.signal,AbortSignal.timeout(90000)]);res.once('close',()=>{if(!res.writableEnded)controller.abort()});await handleStudio(store,identity,path,method,input,send,signal);return;}
       const quizFor=(data:StudentState,id:string)=>data.quizzes.find(q=>q.id===id)??reject('找不到此帳戶的測驗',404,'NOT_FOUND');
       if(path==='/admin/guide'&&method==='GET'){
@@ -249,7 +251,7 @@ export function createPilot(options:Options={}){
       }
       reject('找不到此接口',404,'NOT_FOUND');
       };
-      const aiRequest=method==='POST'&&(path==='/admin/model/test'||path==='/plans/explain'||/^\/wrong\/[^/]+\/analyse$/.test(path)||path==='/studio/quizzes'&&input.source==='ai'||/^\/studio\/quizzes\/[^/]+\/submit$/.test(path));
+      const aiRequest=method==='POST'&&(/^\/learning\/attempts\/[^/]+\/appeal$/.test(path)||path==='/admin/model/test'||path==='/plans/explain'||/^\/wrong\/[^/]+\/analyse$/.test(path)||path==='/studio/quizzes'&&['ai','auto'].includes(input.source)||/^\/studio\/quizzes\/[^/]+\/submit$/.test(path));
       if(aiRequest){
         const key=String(input.requestId??input.previewId??req.headers['x-hokse-request-id']??(/^\/studio\/quizzes\/[^/]+\/submit$/.test(path)?path:''));
         if(!key||key.length>200)reject('缺少 AI 操作請求 ID',400,'REQUEST_ID_REQUIRED');

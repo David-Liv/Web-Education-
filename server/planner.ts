@@ -24,7 +24,7 @@ export function planStudent(data:StudentState,packs:ContentPack[],programme?:Pro
     if(conflict){unscheduled.push({id:crypto.randomUUID(),date,start:'00:00',minutes:0,title:`${p.title}：個人目標與課程必要要求有衝突`,subjectId:p.subjectId,kind:'study',status:'pending',locked:false,reason:'先檢查升學目標；不自動更改目標'});return []}
     if(maintaining)return [{pack:p,key:`maintain-${p.id}`,title:`維持與抽查 · ${p.title}`,minutes:10,kind:'review' as const,rank:4,reason:preferences.maintainTopic===p.topicId?'你選擇暫時維持此單元；既有弱項和未完成證據保留，整科目標不變':'整科基準已達個人目標；維持所學，主要時間留給未達目標科目',skillId:undefined}];
     const unknown=p.skills.every(s=>states.find(x=>x.id===s.id)?.label==='未評估');
-    if(unknown)return [{pack:p,key:`diagnose-${p.id}`,title:`單元摸底 · ${p.title}`,minutes:12,kind:'practice' as const,rank:2,reason:'缺少單元證據，先做約 10–15 分鐘診斷；不推算整科等級',skillId:undefined}];
+    if(unknown)return [{pack:p,key:`diagnose-${p.topicId}`,title:`單元摸底 · ${p.title}`,minutes:12,kind:'practice' as const,rank:2,reason:'缺少單元證據，先做約 10–15 分鐘診斷；不推算整科等級',skillId:undefined}];
     return p.skills.filter(s=>s.prerequisites.every(id=>{const st=states.find(x=>x.id===id);return st?.label.startsWith('較穩定')||st?.label==='初步掌握'})).map(s=>{
       const st=states.find(x=>x.id===s.id)!;const paused=data.cycles.find(c=>c.skillId===s.id)?.paused;
       return {pack:p,key:`skill-${s.id}`,title:`${paused?'前置補救':st.label.startsWith('較穩定')?'隔時復測':'理解與新題'} · ${s.name}`,minutes:Math.round((s.minutes[0]+s.minutes[1])/2),kind:st.label.startsWith('較穩定')?'review' as const:'study' as const,rank:paused?0:st.label==='需加強'?1:st.label==='未評估'?2:3,reason:paused?'同一補救周期兩次失敗，先看完整示例或補前置能力':`${st.label}；按技能證據及先修安排，不承諾固定升級`,skillId:s.id};
@@ -43,13 +43,15 @@ export function planStudent(data:StudentState,packs:ContentPack[],programme?:Pro
     const put=(task:Task)=>{if(task.minutes>remaining)return false;while(cursor+task.minutes<=1440&&hasConflict({...task,start:minutesTime(cursor)},[...preserved,...tasks]))cursor+=5;if(cursor+task.minutes>1440)return false;task.start=minutesTime(cursor);tasks.push(task);remaining-=task.minutes;cursor+=task.minutes;return true};
     const due=data.reviews.filter(r=>r.lastReviewed!==day&&[r.dueDate<date?date:r.dueDate,addDays(r.lastLearned,3),addDays(r.lastLearned,7)].includes(day));
     const reviewMinutes=Math.floor(Math.min(20,Math.floor(dailyCapacity(data.profile,day)*data.profile.reviewPercent/100),remaining)/5)*5;
-    if(due.length&&reviewMinutes>=5&&!preserved.some(t=>t.date===day&&t.kind==='review'))put({id:crypto.randomUUID(),date:day,start:'00:00',minutes:reviewMinutes,title:'每日溫習 · 到期回顧與小測',subjectId:'all',kind:'review',status:'pending',locked:false,reason:'回顧包含在每日總時間內；未完成項目保留'});
+    const skillDue=data.practice?.reviews.filter(r=>!r.completedAt&&(r.dueDate<date?date:r.dueDate)===day)??[];
+    if((due.length||skillDue.length)&&reviewMinutes>=5&&!preserved.some(t=>t.date===day&&t.kind==='review'))put({id:crypto.randomUUID(),date:day,start:'00:00',minutes:reviewMinutes,title:'每日溫習 · 到期回顧與小測',subjectId:'all',kind:'review',status:'pending',locked:false,reason:'回顧包含在每日總時間內；未完成項目保留'});
     for(const c of candidates){if(scheduled.has(c.key)||preserved.some(t=>t.kind==='exam'&&t.subjectId===c.pack.subjectId&&t.date<=day))continue;
       const task:Task={id:crypto.randomUUID(),date:day,start:'00:00',minutes:c.minutes,title:c.title,subjectId:c.pack.subjectId,topicId:c.pack.topicId,skillId:c.skillId,kind:c.kind,status:'pending',locked:false,reason:c.reason};
       if(put(task)){scheduled.add(c.key);const a=allocations.get(c.pack.subjectId)??{subjectId:c.pack.subjectId,minutes:0,reason:c.reason};a.minutes+=c.minutes;allocations.set(c.pack.subjectId,a)}
     }
   }
-  for(const c of candidates.filter(c=>!scheduled.has(c.key)))unscheduled.push({id:crypto.randomUUID(),date,start:'00:00',minutes:c.minutes,title:c.title,subjectId:c.pack.subjectId,topicId:c.pack.topicId,kind:c.kind,status:'pending',locked:false,reason:'目前 14 天可用時段不足；請選擇取捨，不自動增加時間'});
+  for(const c of candidates.filter(c=>!scheduled.has(c.key)))unscheduled.push({id:crypto.randomUUID(),date,start:'00:00',minutes:c.minutes,title:c.title,subjectId:c.pack.subjectId,topicId:c.pack.topicId,skillId:c.skillId,kind:c.kind,status:'pending',locked:false,reason:'目前 14 天可用時段不足；請選擇取捨，不自動增加時間'});
+  for(const r of data.practice?.reviews.filter(r=>!r.completedAt)??[]){const day=r.dueDate<date?date:r.dueDate;if(day<=addDays(date,13)&&![...tasks,...preserved].some(t=>t.date===day&&t.kind==='review'))unscheduled.push({id:crypto.randomUUID(),date:day,start:'',schedule:'floating',minutes:r.minutes,title:'待安排的技能復測',subjectId:'maths',topicId:'maths-quadratic',skillId:r.skillId,kind:'review',status:'pending',locked:false,reason:'當日復習時間不足；保留在每日溫習，不增加預算'});}
   if(!packs.length)unscheduled.push({id:crypto.randomUUID(),date,start:'00:00',minutes:0,title:'內容仍待雙人復核發布',subjectId:'all',kind:'study',status:'pending',locked:false,reason:'可以先設定目標或自行加入任務；正式診斷在內容發布後開放'});
   const weeks=buildWeekGoals([...preserved,...tasks],date);
   return {tasks,unscheduled,allocations:[...allocations.values()],weeks,source:'pilot-rules',previewId:crypto.randomUUID(),revision:data.revision,ruleVersion:RULE_VERSION,generatedAt:now.toISOString(),planDate:date,contentSignature:packs.map(p=>`${p.id}@${p.version}`).sort().join(','),programmeId:programme?.id??null,scoringVersion:SCORING_VERSION};

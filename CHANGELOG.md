@@ -1,5 +1,14 @@
 # HOKSE 更新日誌 / Release notes
 
+## v1.6.0 · 2026-11-06
+
+- 二次方程加入針對練習、新題復測及可下載練習。
+- 連接導師、聊天與課件的學習歷程，改善下一步與每日回顧。
+- 作答回饋加入一次免費復核。
+- Targeted quadratic practice, new-question retests and downloadable practice sheets.
+- Connected learning histories across tutors, chats and lessons, with clearer next steps and daily review.
+- One free review of each answer judgement.
+
 ## v1.5.0 · 2026-11-06
 
 - Choose a teaching approach and keep it with your conversation.

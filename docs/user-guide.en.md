@@ -1,6 +1,6 @@
 # HOKSE User Guide
 
-v1.5 · 6 November 2026 · Find your direction and make progress at your own pace.
+v1.6 · 6 November 2026 · Find your direction and make progress at your own pace.
 
 Website: [Open HOKSE](https://web-education.onrender.com). Sign in with your invited account to begin. No software installation is needed.
 
@@ -26,6 +26,16 @@ Mathematics, Chinese and English offer unit explanations, exercises and feedback
 - Writing suggestions: improve content, structure and expression step by step.
 
 Use hints when needed. After submitting, review each answer. If something seems wrong, select “There is a problem with this feedback”. AI feedback is study guidance; discuss uncertain points with a teacher or tutor.
+
+### Focus on one skill
+
+In Mathematics, use “Focus on one skill, then try something new”. Choose standard form and coefficients, factorisation, the quadratic formula, the discriminant, parameter conditions, or contextual modelling. Read the short explanation and try one to five questions, with three as the default. Review a prerequisite first when needed.
+
+Enter numbers, fractions or expressions such as (5+sqrt(13))/2. For modelling, also enter the equation you formed. A final number alone does not establish the method. An expression that cannot be reliably checked is saved for further reference checking.
+
+“Download practice PDF” uses the same questions and numbers. Print it, then follow its link back to enter your answers. Repeat exports use no AI credits.
+
+Use “Question this judgement” to explain what should be checked. Each answer can be reviewed automatically once, at no credit cost to you. The result may correct or uphold the judgement, or leave it uncertain and excluded. Your original answer is retained; reviewing it does not create another attempt.
 
 ## 3. AI Study Room
 
@@ -57,11 +67,15 @@ Include the question, your own thinking and where you got stuck. With an image o
 
 Listening and speaking features labelled “Demo” are for trying the experience, not formal listening or speaking assessment.
 
+Choose “Answer this question” under a chat exercise, or the answer button for a PDF question, then send your answer directly. A small label identifies the question. Close it to return to ordinary discussion. You can also specify the lesson, version and question number. Select the actual question if its identity is unclear. Ordinary questions are not scored as answers. Tutors share your skill history while retaining the tutor and document version used for each attempt.
+
 ## 4. Daily Review and mistakes
 
 Daily Review brings recent learning and due reviews together. Recall key points, try a short quiz, add notes or revisit a conversation summary.
 
-The Mistake Notebook keeps answers and possible error causes. Find the step that went wrong, then use a different question to check understanding. Reading a solution, using hints or repeating the same question helps practice but does not by itself establish secure mastery.
+After targeted practice, the skill appears under “For your next practice”. Activities for the same skill and learning date are merged. Start a retest with one or two new questions, or practise early. Moving to the next calendar date alone does not establish stable understanding: at least 24 hours, different question families and independent performance are considered together. Calendar changes still require a preview; items that do not fit remain unscheduled.
+
+The Mistake Notebook keeps answers and possible error causes. “Practice answers to revisit” also shows these practice answers, feedback and sources, with a link to try new questions. Find the step that went wrong, then use a different question to check understanding. Reading a solution, using hints or repeating the same question helps practice but does not by itself establish secure mastery.
 
 ## 5. Study Calendar and checklist
 
@@ -124,6 +138,13 @@ The current checkout is a demonstration. Choosing a payment channel does not cha
 Use your own account and sign out before leaving a shared computer. For troubleshooting, administrators can view AI usage records and export response text. Avoid unnecessary personal secrets in your questions.
 
 ## 11. What's new
+
+**v1.6 · Connect each round of practice · 6 November 2026**
+
+- Targeted quadratic practice, short explanations and new-question retests.
+- Connected answer histories across chats, lessons and tutors.
+- Practice PDFs and one free feedback review per answer.
+- Clearer daily review and next steps.
 
 **v1.5 · Find your way to learn · 6 November 2026**
 

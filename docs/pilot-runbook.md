@@ -1,3 +1,5 @@
+2026-11-06／v1.6：使用原有學生 JSON 保存統一題目、作答及技能復習，不需 DDL／新服務。免費復核由平台承擔真實 API 成本，每筆一次；先代碼，否則全站復核模型。維持既有 Render Free／Supabase Free，檢查通過才發布。見 [v1.6 契約](v1.6-learning-contract.md) 與 [驗證紀錄](v1.6-verification.md)。
+
 2026-11-06／v1.5：Tutor 方法及 PDF 課程使用既有 API 程序、settings 和 files；無需 DDL／新服務。必須打包 server/assets 的字體與許可。新對話 tutorId 可選 david/matt，方法版本固定；普通對話模型生成課件，練習沿用 Flash 復核。成功持久保存 PDF 才結算 PDF-only 操作；檔案失敗可復用私有已檢查內容重排，不另呼叫模型。保持外部 PostgreSQL 和 100 MiB files 容量保護。中英文學生／管理指南已同步，詳見 [Tutor 驗證](tutor-verification.md)。
 
 2026-11-05／v1.4：日曆拖動及撤銷使用原有任務 PATCH，加上 `moveFrom:{date,start,minutes}` 來源快照；此模式只允許更新 date/start，服務端核對任務狀態、來源與排程限制。撤銷提醒保留三秒。主側邊欄收起偏好保存於瀏覽器 `hokse.sidebar-collapsed`，手機維持抽屜導覽。聊天輸入區移除重複說明，扣點與模型設定仍在套餐頁。無需新服務或資料庫遷移，見 [v1.4 驗證紀錄](v1.4-verification.md)。
