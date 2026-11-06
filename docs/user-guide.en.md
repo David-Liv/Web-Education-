@@ -144,7 +144,7 @@ Use your own account and sign out before leaving a shared computer. For troubles
 - Targeted quadratic practice, short explanations and new-question retests.
 - Connected answer histories across chats, lessons and tutors.
 - Practice PDFs and one free feedback review per answer.
-- Clearer daily review and next steps.
+- Clearer daily review, next steps and English conversation starters.
 
 **v1.5 · Find your way to learn · 6 November 2026**
 
