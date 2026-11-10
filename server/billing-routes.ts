@@ -2,6 +2,7 @@ import type { ServerResponse } from 'node:http';
 import type { Identity } from '../src/pilot-types.ts';
 import type { BillingPolicy, PlanId } from '../src/billing-types.ts';
 import { Billing } from './billing.ts';
+import { readOperationReview } from './chat-service.ts';
 import { reject } from './learning.ts';
 import { isAllowedModel } from '../src/model-catalog.ts';
 
@@ -24,9 +25,8 @@ export async function billingRoutes(billing: Billing, identity: Identity, path: 
   else if (path === '/admin/usage/export' && method === 'GET') download((await billing.logs(query, true)).rows, 'hokse-ai-usage.jsonl', true);
   else if (/^\/admin\/usage\/[^/]+\/review$/.test(path) && method === 'GET') {
     const log=await billing.logDetail(path.split('/')[3]);
-    const ref=await billing.store.db.prepare('SELECT body FROM settings WHERE id=?').get('chat-review-operation:'+log.operationId);
-    const row=ref?await billing.store.db.prepare('SELECT body FROM settings WHERE id=?').get('chat-review:'+log.userId+':'+ref.body):null;
-    if(!row)reject('找不到練習修訂記錄',404);download(JSON.parse(billing.store.decrypt(row.body)),`hokse-practice-review-${log.id}.json`);
+    const review=await readOperationReview(billing.store,log.userId,log.operationId);
+    if(!review)reject('找不到練習修訂記錄',404);download(review,`hokse-practice-review-${log.id}.json`);
   }
   else if (/^\/admin\/usage\/[^/]+\/export$/.test(path) && method === 'GET') download(await billing.logDetail(path.split('/')[3], true), `hokse-ai-${path.split('/')[3]}.json`);
   else if (/^\/admin\/usage\/[^/]+$/.test(path) && method === 'GET') send(await billing.logDetail(path.split('/')[3]));

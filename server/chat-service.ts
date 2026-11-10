@@ -1,4 +1,4 @@
-import {practiceState,resolveQuestion,answerIntent,putAttempt,updateAttempt,assistQuestion,registerChatQuestions,markReferencedAssistance} from './practice-state.ts';
+import {practiceState,resolveQuestion,answerIntent,putAttempt,updateAttempt,failPendingAttempt,assistQuestion,registerChatQuestions,markReferencedAssistance} from './practice-state.ts';
 import {createHash} from 'node:crypto';
 import type {ServerResponse} from 'node:http';
 import type {Store,ModelConfig} from './store.ts';
@@ -20,6 +20,12 @@ interface Running {requestId:string;signature?:string;controller:AbortController
 const digest=(value:string)=>createHash('sha256').update(value).digest('hex');
 const validId=(v:unknown)=>typeof v==='string'&&/^[a-zA-Z0-9-]{8,80}$/.test(v);
 const key=(userId:string,messageId:string)=>'chat-review:'+userId+':'+messageId;
+const operationReviewKey=(operationId:string)=>'chat-review-operation:'+operationId;
+export async function readOperationReview(store:Store,userId:string,operationId:string):Promise<unknown|null>{
+ const ref=await store.db.prepare('SELECT body FROM settings WHERE id=?').get(operationReviewKey(operationId));
+ const row=ref?await store.db.prepare('SELECT body FROM settings WHERE id=?').get(key(userId,ref.body)):null;
+ return row?JSON.parse(store.decrypt(row.body)):null;
+}
 const messageSignature=(content:string,attachments:unknown,action?:string,sourceId?:string,documentId?:string,questionId?:string)=>digest(JSON.stringify(action||sourceId||documentId||questionId?[content,attachments,action??null,sourceId??null,documentId??null,...(questionId?[questionId]:[])]:[content,attachments]));
 
 export class ChatService {
@@ -27,7 +33,7 @@ export class ChatService {
  private store:Store;private billing:Billing;private origin?:string;
  constructor(store:Store,billing:Billing,origin?:string){this.store=store;this.billing=billing;this.origin=origin}
  private async record(userId:string,messageId:string):Promise<Record|null>{const row=await this.store.db.prepare('SELECT body FROM settings WHERE id=?').get(key(userId,messageId));return row?JSON.parse(this.store.decrypt(row.body)):null}
- private async put(record:Record){await this.store.db.prepare('INSERT INTO settings VALUES(?,?) ON CONFLICT(id) DO UPDATE SET body=excluded.body').run(key(record.userId,record.messageId),this.store.encrypt(JSON.stringify(record)));await this.store.db.prepare('INSERT INTO settings VALUES(?,?) ON CONFLICT(id) DO UPDATE SET body=excluded.body').run('chat-review-operation:'+record.operationId,record.messageId)}
+ private async put(record:Record){await this.store.db.prepare('INSERT INTO settings VALUES(?,?) ON CONFLICT(id) DO UPDATE SET body=excluded.body').run(key(record.userId,record.messageId),this.store.encrypt(JSON.stringify(record)));await this.store.db.prepare('INSERT INTO settings VALUES(?,?) ON CONFLICT(id) DO UPDATE SET body=excluded.body').run(operationReviewKey(record.operationId),record.messageId)}
  private async write(record:Record,content:string,status:ChatMessage['status'],practice?:ChatMessage['practice'],document?:PreparedDocument){
   let message:ChatMessage|undefined;
   await this.store.transaction(async()=>{
@@ -36,7 +42,7 @@ export class ChatService {
    if(!m||m.revision!==record.revision)return;
    if(document){await saveDocument(this.store,record.userId,document);chat!.documents??=[];if(!chat!.documents.some(d=>d.id===document.meta.id))chat!.documents.push(document.meta);m.documentId=document.meta.id}
    if(status==='complete'&&!practice?.failed&&chat!.tutor)applyTeachingRecord(data,chat!,m.id,record.prompt,record.update);
-   if(status==='complete'&&!practice?.failed){registerChatQuestions(data,chat!,m.id,document?.content??content,document?.meta.id,record.update?.exerciseSkills);const ref=record.update?.attempt;if(record.attemptId)updateAttempt(data,record.attemptId,ref&&ref.questionId===record.questionId?{...ref,source:'ai'}:undefined)}else if(status==='interrupted'||practice?.failed){const a=data.studio?.attempts.find(a=>a.id===record.attemptId);if(a){a.pending=false;a.feedback={source:'unavailable',score:null,verdict:'uncertain',text:'作答已保存；回覆未完成，可稍後繼續。',reason:'服務未完成'};}}
+   if(status==='complete'&&!practice?.failed){registerChatQuestions(data,chat!,m.id,document?.content??content,document?.meta.id,record.update?.exerciseSkills);const ref=record.update?.attempt;if(record.attemptId)updateAttempt(data,record.attemptId,ref&&ref.questionId===record.questionId?{...ref,source:'ai'}:undefined)}else if(status==='interrupted'||practice?.failed){failPendingAttempt(data,record.attemptId)}
    m.content=content;m.status=status;m.practice=practice;m.model=record.model;m.revision=(m.revision??0)+1;record.revision=m.revision;chat!.updatedAt=new Date().toISOString();
    await this.put(record);
    deferUsageCheckpoint(!usable(content));try{await this.store.save(record.userId,data)}finally{deferUsageCheckpoint()}
@@ -49,7 +55,7 @@ export class ChatService {
   // Expired leases are failed, never automatically re-sent to the provider.
   const expired:string[]=[];
   await this.store.transaction(async()=>{const data=await this.store.state(userId),chat=data.chats.find(c=>c.id===chatId)??reject('對話不存在',404);let changed=false;
-   for(const m of chat.messages.filter(m=>m.role==='assistant'&&m.status==='streaming')){const r=await this.record(userId,m.id);if(!r&&!this.running.has(userId+chatId)){m.status='interrupted';m.revision=(m.revision??0)+1;changed=true}else if(r&&r.leaseUntil<Date.now()&&!this.running.has(userId+chatId)){const attempt=data.studio?.attempts.find(a=>a.id===r.attemptId);if(attempt){attempt.pending=false;attempt.feedback={source:'unavailable',score:null,verdict:'uncertain',text:'作答已保存；回覆未完成，可稍後繼續。',reason:'服務未完成'};}r.state='failed';r.revision=(m.revision??0)+1;m.revision=r.revision;m.status='complete';m.practice={failed:true,retryAvailable:r.retries<1};await this.put(r);expired.push(r.operationId);changed=true}}
+   for(const m of chat.messages.filter(m=>m.role==='assistant'&&m.status==='streaming')){const r=await this.record(userId,m.id);if(!r&&!this.running.has(userId+chatId)){m.status='interrupted';m.revision=(m.revision??0)+1;changed=true}else if(r&&r.leaseUntil<Date.now()&&!this.running.has(userId+chatId)){failPendingAttempt(data,r.attemptId);r.state='failed';r.revision=(m.revision??0)+1;m.revision=r.revision;m.status='complete';m.practice={failed:true,retryAvailable:r.retries<1};await this.put(r);expired.push(r.operationId);changed=true}}
    if(changed)await this.store.save(userId,data);
   });
   for(const id of expired)await this.billing.settle(userId,id,false,null,[],'Chat review lease expired');
@@ -58,11 +64,11 @@ export class ChatService {
  async stop(userId:string,chatId:string){
   this.running.get(userId+chatId)?.controller.abort();
   await this.store.transaction(async()=>{const data=await this.store.state(userId),chat=data.chats.find(c=>c.id===chatId)??reject('對話不存在',404);
-   for(const m of chat.messages.filter(m=>m.status==='streaming')){const r=await this.record(userId,m.id);if(r){const attempt=data.studio?.attempts.find(a=>a.id===r.attemptId);if(attempt){attempt.pending=false;attempt.feedback={source:'unavailable',score:null,verdict:'uncertain',text:'作答已保存；回覆未完成，可稍後繼續。',reason:'服務未完成'};}r.state='stopped';r.revision=(m.revision??0)+1;await this.put(r);m.revision=r.revision}m.status='interrupted';delete m.practice}
+   for(const m of chat.messages.filter(m=>m.status==='streaming')){const r=await this.record(userId,m.id);if(r){failPendingAttempt(data,r.attemptId);r.state='stopped';r.revision=(m.revision??0)+1;await this.put(r);m.revision=r.revision}m.status='interrupted';delete m.practice}
    await this.store.save(userId,data);
   });return {ok:true};
  }
- async remove(userId:string,chatId:string){await this.stop(userId,chatId);await this.store.transaction(async()=>{const data=await this.store.state(userId),chat=data.chats.find(c=>c.id===chatId)??reject('對話不存在',404);for(const m of chat.messages){const r=await this.record(userId,m.id);if(r)await this.store.db.prepare('DELETE FROM settings WHERE id=?').run('chat-review-operation:'+r.operationId);await this.store.db.prepare('DELETE FROM settings WHERE id=?').run(key(userId,m.id))}for(const d of chat.documents??[]){await this.store.db.prepare('DELETE FROM files WHERE id=? AND user_id=?').run(d.id,userId);await this.store.db.prepare('DELETE FROM settings WHERE id=?').run(documentKey(userId,d.id))}data.chats=data.chats.filter(c=>c.id!==chatId);await this.store.save(userId,data)})}
+ async remove(userId:string,chatId:string){await this.stop(userId,chatId);await this.store.transaction(async()=>{const data=await this.store.state(userId),chat=data.chats.find(c=>c.id===chatId)??reject('對話不存在',404);for(const m of chat.messages){const r=await this.record(userId,m.id);if(r)await this.store.db.prepare('DELETE FROM settings WHERE id=?').run(operationReviewKey(r.operationId));await this.store.db.prepare('DELETE FROM settings WHERE id=?').run(key(userId,m.id))}for(const d of chat.documents??[]){await this.store.db.prepare('DELETE FROM files WHERE id=? AND user_id=?').run(d.id,userId);await this.store.db.prepare('DELETE FROM settings WHERE id=?').run(documentKey(userId,d.id))}data.chats=data.chats.filter(c=>c.id!==chatId);await this.store.save(userId,data)})}
  private async watch(job:Running,res:ServerResponse){
   const frame=(event:string,data:unknown)=>{if(res.destroyed||res.writableEnded)return;if(!res.headersSent){res.writeHead(200,{'Content-Type':'text/event-stream','Cache-Control':'no-store','X-Accel-Buffering':'no'});res.flushHeaders()}res.write('event: '+event+'\ndata: '+JSON.stringify(data)+'\n\n')};
   const notify=(message:ChatMessage)=>frame('message',{message,user:job.user});job.listeners.add(notify);if(job.last)notify(job.last);

@@ -26,6 +26,8 @@ export function requestModelPurpose(path: string, input: any): ModelPurpose {
   if (path.endsWith('/submit') || path.endsWith('/analyse') || /^\/learning\/attempts\/[^/]+\/appeal$/.test(path)) return 'evaluation';
   return 'chat'; // Chat, guided/quick exercises and plan explanations stay on the fast path.
 }
+export function isPlatformAiRoute(path: string): boolean { return path === '/admin/model/test' || /^\/learning\/attempts\/[^/]+\/appeal$/.test(path); }
+export function isBillableAiRoute(method: string, path: string, input: any): boolean { return method === 'POST' && (isPlatformAiRoute(path) || path === '/plans/explain' || /^\/wrong\/[^/]+\/analyse$/.test(path) || (path === '/studio/quizzes' && ['ai', 'auto'].includes(input?.source)) || /^\/studio\/quizzes\/[^/]+\/submit$/.test(path)); }
 function permitted(policy: BillingPolicy, plan: PlanId, model: string) {
   return isAllowedModel(model) && policy.plans[plan].models.includes(model) && !!policy.models[model]?.enabled;
 }
@@ -258,7 +260,7 @@ export class Billing {
     const requestId = String(input.requestId ?? input.previewId ?? key), id = hash(identity.id + ':' + path + ':' + requestId), signature = hash(JSON.stringify(input));
     const previous = await this.store.db.prepare('SELECT body FROM credit_operations WHERE id=? AND user_id=?').get(id, identity.id);
     if (previous) { const op: Operation = JSON.parse(previous.body); if(op.status==='held'&&Date.parse(op.createdAt)>this.now().getTime()-5*60000)reject('此 AI 操作仍在處理，請稍候',409,'AI_IN_PROGRESS'); if (op.signature !== signature) reject('AI 請求 ID 已用於不同內容', 409, 'REQUEST_CONFLICT'); if (op.status === 'charged' && op.result) { const saved = JSON.parse(this.store.decrypt(op.result)); deliver(saved.data, saved.status); return; } }
-    const ctx: UsageContext = { billing: this, identity, id, signature, source: { path, requestId }, modelPurpose: requestModelPurpose(path, input), platform: path === '/admin/model/test'||/^\/learning\/attempts\/[^/]+\/appeal$/.test(path), logs: [], discarded: false, completed: false, signal };
+    const ctx: UsageContext = { billing: this, identity, id, signature, source: { path, requestId }, modelPurpose: requestModelPurpose(path, input), platform: isPlatformAiRoute(path), logs: [], discarded: false, completed: false, signal };
     await context.run(ctx, async () => { let response: { data: unknown; status: number } | undefined; try { await work((data, status = 200) => { response = { data, status }; }); if (response) { await finishUsage(response, response.status); deliver(response.data, response.status); } } catch (e) { if (ctx.op && !ctx.completed) await this.settle(identity.id, id, false, null, ctx.logs, (e as Error).message); throw e; } });
   }
 }

@@ -1,9 +1,16 @@
 import {assessmentMath} from './quadratic-practice.ts';
 import { createHash } from 'node:crypto';
-import type { StudyItem, StudioUnit } from '../src/studio-types.ts';
+import type { StudyFeedback, StudyItem, StudioUnit } from '../src/studio-types.ts';
 export const QUIZ_CONTRACT={version:'learning-contract-v2',maxAttempts:3,maxItems:5,maxChars:30000,itemFields:['skillId','kind','prompt','passage','options','answer','explanation','hint','criterion','check']} as const;
 export type Issue={code:string;path:string;message:string};
 export function parseObject(text:string):any {return JSON.parse(text.trim().replace(/^```(?:json)?\s*/,'').replace(/\s*```$/,''))}
+export function parseAiFeedback(raw:unknown):StudyFeedback|null{
+ if(!raw||typeof raw!=='object'||Array.isArray(raw))return null;const f=raw as Record<string,unknown>;
+ if(!['correct','partly-correct','incorrect','uncertain'].includes(String(f.verdict)))return null;
+ if(!(f.score===null||typeof f.score==='number'&&Number.isFinite(f.score)&&f.score>=0&&f.score<=100)||((f.score===null)!==(f.verdict==='uncertain')))return null;
+ if(typeof f.text!=='string'||!f.text.trim()||f.text.length>4000||typeof f.reason!=='string'||f.reason.length>2000)return null;
+ return {verdict:f.verdict as StudyFeedback['verdict'],score:f.score as number|null,text:f.text,reason:f.reason,source:'ai'};
+}
 export function validateQuiz(text:string,unit:StudioUnit,count:number):{items:StudyItem[];issues:Issue[]}{
  const issues:Issue[]=[],items:StudyItem[]=[];const fail=(path:string,message:string)=>issues.push({code:'INVALID_QUIZ',path,message});
  if([...text].length>QUIZ_CONTRACT.maxChars){fail('$','輸出過長');return {items,issues}}

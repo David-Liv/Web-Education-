@@ -21,7 +21,8 @@ import type { ContentPack, Identity, VersionedPreview } from '../src/pilot-types
 import type { Task } from '../src/types.ts';
 import { addDays, validateTask } from '../src/domain.ts';
 import { catalog } from '../src/data/catalog.ts';
-import { Billing, discardUsage } from './billing.ts';
+import { Billing, discardUsage, isBillableAiRoute } from './billing.ts';
+import { EDITABLE_PROFILE_FIELDS } from '../src/profile-update.ts';
 import { billingRoutes } from './billing-routes.ts';
 import { programmeComparison, SCORING_VERSION } from '../src/admissions.ts';
 import { ChatService } from './chat-service.ts';
@@ -157,7 +158,7 @@ export function createPilot(options:Options={}){
       if(path==='/profile'&&method==='GET'){send((await store.state(identity.id)).profile);return}
       if(path==='/profile'&&method==='PATCH'){
         send((await change(data=>{
-          const allowed=['name','year','teachingLanguage','subjects','mathModule','chemistryElectives','grades','targetGrades','gradeSource','primaryProgramme','backupProgrammes','dailyMinutes','availability','reviewPercent'];
+          const allowed:readonly string[]=EDITABLE_PROFILE_FIELDS;
           if(Object.keys(input).some(k=>!allowed.includes(k)))reject('此設定不能修改');
           if(input.name!==undefined&&(!String(input.name).trim()||String(input.name).length>30))reject('名字須為 1–30 字');
           if(input.year!==undefined&&![2028,2029].includes(input.year))reject('目前支援 2028／2029 備試');
@@ -251,7 +252,7 @@ export function createPilot(options:Options={}){
       }
       reject('找不到此接口',404,'NOT_FOUND');
       };
-      const aiRequest=method==='POST'&&(/^\/learning\/attempts\/[^/]+\/appeal$/.test(path)||path==='/admin/model/test'||path==='/plans/explain'||/^\/wrong\/[^/]+\/analyse$/.test(path)||path==='/studio/quizzes'&&['ai','auto'].includes(input.source)||/^\/studio\/quizzes\/[^/]+\/submit$/.test(path));
+      const aiRequest=isBillableAiRoute(method,path,input);
       if(aiRequest){
         const key=String(input.requestId??input.previewId??req.headers['x-hokse-request-id']??(/^\/studio\/quizzes\/[^/]+\/submit$/.test(path)?path:''));
         if(!key||key.length>200)reject('缺少 AI 操作請求 ID',400,'REQUEST_ID_REQUIRED');

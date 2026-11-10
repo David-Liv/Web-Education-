@@ -12,6 +12,13 @@ export const units:StudioUnit[]=[
  {subjectId:'eng',topicId:'eng-reading',title:'English: reading, usage and writing',skills:[{id:'eng-evidence',name:'Reading evidence and inference'},{id:'eng-expression',name:'Language and paragraph organisation'}],lesson:'Support an inference with details from the passage. Explain the link instead of copying a whole sentence. For writing, use a clear point, a concrete detail and an explanation. Check tense, agreement and whether each sentence supports the main idea.'}
 ];
 export function studioState(data:StudentState):StudioState {return data.studio??={quizzes:[],attempts:[]}}
+export function disputeStudioAttempt(data:StudentState,id:string,reason:string,reject:(msg:string,status?:number)=>never){
+ const a=studioState(data).attempts.find(a=>a.id===id)??reject('記錄不存在',404);a.disputed=true;a.corrections.push({at:new Date().toISOString(),reason:reason.trim()});return a;
+}
+export function seenStudioFamilies(data:StudentState,skillId?:string):string[]{return data.studio?.attempts.filter(a=>!skillId||a.skillId===skillId).map(a=>a.family)??[]}
+export function studioAttemptCount(data:StudentState):number{return data.studio?.attempts.length??0}
+export function hasSeenAttemptFamily(data:StudentState,family:string):boolean{return studioState(data).attempts.some(a=>a.family===family)}
+export function appendStudioAttempt(data:StudentState,record:StudyAttempt){studioState(data).attempts.push(record)}
 export function planningPacks(packs:ContentPack[]):ContentPack[]{return [...packs,...units.map(u=>({...u,skills:u.skills.filter(s=>!packs.some(p=>p.skills.some(x=>x.id===s.id)))})).filter(u=>u.skills.length).map(u=>({id:`coach-${u.subjectId}`,version:1,subjectId:u.subjectId,topicId:u.topicId,title:u.title,source:'自主輔導參考；不是已審校測驗題庫',status:'draft' as const,skills:u.skills.map(s=>({...s,minutes:[10,20] as [number,number],prerequisites:[...(quadraticSkills.find(q=>q.id===s.id)?.prerequisites??[])]})),questions:[],lessons:[{title:u.title,text:u.lesson,skillIds:u.skills.map(s=>s.id)}],reviews:[],professionalVerified:false}))]}
 export function publicStudyQuiz(q:StudyQuiz,s:StudioState):StudyQuizView {const {items,answerRevision,generationTrace,...pub}=q;return {...pub,questions:items.map(({answer,explanation,hint,criterion,check,mathRule,...item})=>item),results:q.submittedAt?s.attempts.filter(a=>a.quizId===q.id):[]}}
 export function studySkills(data:StudentState):StudySkill[]{const s=studioState(data);return units.flatMap(u=>u.skills.map(skill=>{

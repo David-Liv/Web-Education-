@@ -62,6 +62,24 @@ export function putAttempt(data:StudentState,q:LearningItem,requestId:string,ans
  const a:StudyAttempt={id:crypto.randomUUID(),requestId,itemId:q.id,quizId:q.source.quizId,origin:origin??q.source,family:q.family,subjectId:'maths',topicId:'maths-quadratic',skillId:q.skillId,at:new Date().toISOString(),answer,steps,independent:!!answer.trim()&&!seen&&!hinted,hinted,feedback:attemptFeedback(q,answer,steps,reference),disputed:false,corrections:[]};data.studio.attempts.push(a);return a;
 }
 export function updateAttempt(data:StudentState,id:string,reference?:StudyFeedback){const a=data.studio?.attempts.find(a=>a.id===id),q=practiceState(data).items.find(q=>q.id===a?.itemId);if(!a||!q||a.appeal)return; a.pending=false;a.feedback=attemptFeedback(q,a.answer,a.steps,reference);queueReview(data,a.skillId,q.id);assistQuestion(data,q.id,'feedback');}
+export function failPendingAttempt(data:StudentState,id?:string){
+ if(!id)return;const a=data.studio?.attempts.find(a=>a.id===id);
+ if(a){a.pending=false;a.feedback={source:'unavailable',score:null,verdict:'uncertain',text:'作答已保存；回覆未完成，可稍後繼續。',reason:'服務未完成'};}
+}
+export function beginAttemptAppeal(data:StudentState,id:string,reason:string,reject:(msg:string,status?:number)=>never){
+ const a=data.studio?.attempts.find(a=>a.id===id)??reject('作答不存在',404),q=practiceState(data).items.find(q=>q.id===a.itemId)??reject('這筆舊作答尚未提供自動復核，可先保留質疑。',422);
+ if(a.appeal)return {done:true as const,a,q};if(a.pending)reject('請先等這次回覆完成',409);
+ a.disputed=true;a.appeal={status:'pending',at:new Date().toISOString(),reason:reason.trim(),previous:structuredClone(a.feedback)};a.corrections.push({at:a.appeal.at,reason:reason.trim()});
+ return {done:false as const,language:data.profile.teachingLanguage,a:structuredClone(a),q:structuredClone(q)};
+}
+export function completeAttemptAppeal(data:StudentState,id:string,item:StudyItem,feedback:StudyFeedback,reject:(msg:string,status?:number)=>never){
+ const a=data.studio?.attempts.find(a=>a.id===id)??reject('作答不存在',404);if(a.appeal?.status!=='pending')return a;
+ const before=a.appeal.previous,final=attemptFeedback(item,a.answer,a.steps,feedback);
+ a.feedback=final;a.pending=false;a.disputed=final.score===null;a.appeal.feedback=final;a.appeal.status=final.score===null?'uncertain':before.score===final.score&&before.verdict===final.verdict?'upheld':'corrected';return a;
+}
+export function recentSharedAttempts(data:StudentState,topicId:string){
+ return (data.studio?.attempts??[]).filter(a=>a.topicId===topicId&&!a.pending).slice(-15).map(a=>({skill:a.skillId,answer:a.answer,feedback:a.feedback,assisted:!a.independent,origin:a.origin,disputed:a.disputed}));
+}
 export function queueReview(data:StudentState,skillId:string,sourceId:string){
  if(!quadraticSkill(skillId))return;const s=practiceState(data),date=data.profile.date;let r=s.reviews.find(r=>r.skillId===skillId&&r.lastLearned===date);
  if(!r){r={id:crypto.randomUUID(),skillId,dueDate:addDays(date,1),lastLearned:date,sourceIds:[],minutes:5};s.reviews.push(r)}if(!r.sourceIds.includes(sourceId))r.sourceIds.push(sourceId);

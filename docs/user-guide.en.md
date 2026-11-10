@@ -1,6 +1,6 @@
 # HOKSE User Guide
 
-v1.6 · 6 November 2026 · Find your direction and make progress at your own pace.
+v1.7 · 11 November 2026 · Find your direction and make progress at your own pace.
 
 Website: [Open HOKSE](https://web-education.onrender.com). Sign in with your invited account to begin. No software installation is needed.
 
@@ -138,6 +138,12 @@ The current checkout is a demonstration. Choosing a payment channel does not cha
 Use your own account and sign out before leaving a shared computer. For troubleshooting, administrators can view AI usage records and export response text. Avoid unnecessary personal secrets in your questions.
 
 ## 11. What's new
+
+**v1.7 · Cleaner AI code structure and module boundaries · 11 November 2026**
+
+- Cleaned up tangled and duplicated AI-generated legacy code so each feature has clearer boundaries.
+- Unified data contracts across practice attempts, feedback reviews, chat checks and profile settings.
+- Added automated architecture checks to keep future updates stable and reliable.
 
 **v1.6 · Connect each round of practice · 6 November 2026**
 

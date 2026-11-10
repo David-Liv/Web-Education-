@@ -1,5 +1,12 @@
 # HOKSE 更新日誌 / Release notes
 
+## v1.7.0 · 2026-11-11
+
+- 整理並簡化 AI 生成的重複與雜亂代碼（清理「屎山代碼」），收斂模組邊界與接口數量。
+- 統一練習作答紀錄、回饋復核、聊天檢查與個人設定的資料契約，並加入自動化架構護欄測試。
+- Cleaned up tangled and duplicated AI-generated legacy code, balancing module boundaries and interface count.
+- Unified data contracts across practice attempts, feedback reviews, chat checks and profile settings, backed by automated structural architecture checks.
+
 ## v1.6.0 · 2026-11-06
 
 - 二次方程加入針對練習、新題復測及可下載練習。
