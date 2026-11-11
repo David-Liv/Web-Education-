@@ -31,6 +31,8 @@ export function AppProvider({ children }: {
     const [error, setError] = useState('');
     const [auth, setAuth] = useState<{
         setup: boolean;
+        registrationMode?: 'closed' | 'passcode' | 'open';
+        passwordResetEnabled?: boolean;
     } | null>(null);
     const [network, setNetworkState] = useState(localStorage.getItem('hokse.network') ?? 'normal');
     const [toasts, setToasts] = useState<{
@@ -50,7 +52,7 @@ export function AppProvider({ children }: {
             if (!status.identity) {
                 setDb(undefined);
                 setCatalog(undefined);
-                setAuth({ setup: status.setupRequired });
+                setAuth({ setup: status.setupRequired, registrationMode: status.registrationMode ?? 'closed', passwordResetEnabled: Boolean(status.passwordResetEnabled) });
                 return;
             }
             setAuth(null);
@@ -76,7 +78,7 @@ export function AppProvider({ children }: {
         throw e;
     } }, [refresh, toast]);
     if (auth)
-        return <Login setup={auth.setup} onDone={() => void load()}/>;
+        return <Login setup={auth.setup} registrationMode={auth.registrationMode} passwordResetEnabled={auth.passwordResetEnabled} onDone={() => void load()}/>;
     if (error)
         return <main className="boot-state"><LanguageSwitch/><img src="/favicon.svg" width="52"/><h1>{ui("暫時未能載入學習工作室")}</h1><p>{ui(error)}</p><button className="btn primary" onClick={() => { localStorage.setItem('hokse.network', 'normal'); setNetworkState('normal'); void load(); }}>{ui("恢復正常連線並重試")}</button></main>;
     if (!db || !catalog)

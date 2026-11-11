@@ -1,3 +1,4 @@
+2026-11-11／v1.7：新增 Google Apps Script 私有 HTTPS Webhook 電郵驗證碼方案（`server/auth-mail.ts`），支援管理員在 `/developer?tab=users` 切換「僅管理員手動建立」、「電郵驗證碼 + 班級通行碼」及「公開電郵驗證碼註冊」，並支援帳戶名稱或已驗證電郵登入、忘記密碼重設（撤銷舊會話，管理員帳戶除外）及 `/settings` 補綁電郵。發信設定、驗證碼雜湊與綁定電郵均以 AES-256-GCM 加密保存在既有 `settings` 表，無需 DDL 遷移並兼容 `hokse-cloud-v2` 備份。
 2026-11-06／v1.6：使用原有學生 JSON 保存統一題目、作答及技能復習，不需 DDL／新服務。免費復核由平台承擔真實 API 成本，每筆一次；先代碼，否則全站復核模型。維持既有 Render Free／Supabase Free，檢查通過才發布。見 [v1.6 契約](v1.6-learning-contract.md) 與 [驗證紀錄](v1.6-verification.md)。
 
 2026-11-06／v1.5：Tutor 方法及 PDF 課程使用既有 API 程序、settings 和 files；無需 DDL／新服務。必須打包 server/assets 的字體與許可。新對話 tutorId 可選 david/matt，方法版本固定；普通對話模型生成課件，練習沿用 Flash 復核。成功持久保存 PDF 才結算 PDF-only 操作；檔案失敗可復用私有已檢查內容重排，不另呼叫模型。保持外部 PostgreSQL 和 100 MiB files 容量保護。中英文學生／管理指南已同步，詳見 [Tutor 驗證](tutor-verification.md)。

@@ -10,6 +10,16 @@ route('/auth/status','get','Current identity and local first-setup availability'
 route('/auth/setup','post','Create local first developer',credentials(10),ref('Identity'));
 route('/auth/login','post','Sign in with existing credentials, including privately assigned short trial passwords',credentials(3),ref('Identity'));
 route('/auth/logout','post','End this session',obj({}));
+route('/auth/register/code','post','Send 6-digit registration verification code via Google Apps Script webhook',obj({email:str,passcode:str},['email']));
+route('/auth/register','post','Verify 6-digit email OTP and create a student account',obj({email:str,passcode:str,code:str,username:str,name:str,password:{type:'string',minLength:10,maxLength:200}},['email','code','username','name','password']),ref('Identity'));
+route('/auth/reset/code','post','Send 6-digit password reset verification code to linked email',obj({email:str},['email']));
+route('/auth/reset','post','Reset password with 6-digit email OTP and revoke active sessions',obj({email:str,code:str,password:{type:'string',minLength:10,maxLength:200}},['email','code','password']));
+route('/auth/email','get','Current account linked email status',null);
+route('/auth/email/code','post','Send 6-digit email linking verification code for signed-in user',obj({email:str},['email']));
+route('/auth/email/bind','post','Verify 6-digit code and link email to signed-in user',obj({email:str,code:str},['email','code']));
+route('/admin/auth-mail','get','Developer-only Google Apps Script email OTP and registration configuration',null);
+route('/admin/auth-mail','put','Developer-only update of encrypted email webhook and registration mode',obj({senderName:str,webhookUrl:str,secret:str,enabled:{type:'boolean'},mode:{enum:['closed','passcode','open']},passcode:str}));
+route('/admin/auth-mail/test','post','Developer-only test of Google Apps Script email webhook delivery',obj({config:{type:'object'},to:str},['to']));
 for(const path of ['/bootstrap','/catalog','/profile','/question-options','/daily-review','/learning-state'])route(path,'get','Authenticated student-scoped view',null);
 route('/profile','patch','Update allowed goals, grades and time fields; demo clock is rejected',ref('ProfilePatch'));
 route('/quizzes','post','Build a version-bound quiz from published content',obj({subjectId:str,topicIds:{type:'array',items:str},skillId:str,kind:{enum:['practice','timed','diagnostic','review']},count:{type:'integer',minimum:1,maximum:20},durationMinutes:{type:'integer'},manualContinue:{type:'boolean'}}));

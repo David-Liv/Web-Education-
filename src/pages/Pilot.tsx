@@ -76,5 +76,139 @@ function StrategyPanel({ onPreview }: {
 }
 export function PilotSettings() { useInterfaceLanguage(); const { db } = useApp(); return <div className="page-enter"><PageHeading eyebrow="YOUR OWN SPACE" title={ui("帳戶與學習設定")} description={ui("記錄保存於服務端，使用自己的邀請帳戶繼續。")}/><section className="card pilot-card"><h2>{db.profile.name}</h2><p>{db.pilot?.identity.username} · {db.pilot?.identity.role === 'student' ? ui("學生") : db.pilot?.identity.role === 'reviewer' ? ui("內容復核者") : ui("開發者")}</p><div className="pilot-actions"><Link className="btn primary" to="/goals?tab=profile">{ui("成績、目標與每日時間")}</Link>{db.pilot?.identity.role !== 'student' && <Link className="btn secondary" to="/developer">{ui("開發者與內容設定")}</Link>}<button className="btn secondary" onClick={async () => { const blob = new Blob([JSON.stringify(db, null, 2)], { type: 'application/json' }), url = URL.createObjectURL(blob), a = document.createElement('a'); a.href = url; a.download = '我的學序記錄.json'; a.click(); URL.revokeObjectURL(url); }}>{ui("匯出我的記錄")}</button><button className="btn ghost" onClick={() => void api('/auth/logout', 'POST').then(() => { for (const key of Object.keys(localStorage))
     if (key.startsWith('hokse.quiz-draft.'))
-        localStorage.removeItem(key); window.location.assign('/'); })}>{ui("登出")}</button></div><p className="small muted">{ui("真實帳戶使用香港日期；示範資料重設與演示時鐘只存在於演示模式。")}</p></section></div>; }
+        localStorage.removeItem(key); window.location.assign('/'); })}>{ui("登出")}</button></div><p className="small muted">{ui("真實帳戶使用香港日期；示範資料重設與演示時鐘只存在於演示模式。")}</p></section><PilotEmailBinding /></div>; }
+
+function PilotEmailBinding() {
+    useInterfaceLanguage();
+    const { toast } = useApp();
+    const [boundEmail, setBoundEmail] = useState<string | null>(null);
+    const [serviceEnabled, setServiceEnabled] = useState(false);
+    const [email, setEmail] = useState('');
+    const [code, setCode] = useState('');
+    const [cooldown, setCooldown] = useState(0);
+    const [sending, setSending] = useState(false);
+    const [busy, setBusy] = useState(false);
+    const [error, setError] = useState('');
+    const [notice, setNotice] = useState('');
+
+    useEffect(() => {
+        let active = true;
+        void api<{ email: string | null; emailServiceEnabled: boolean }>('/auth/email')
+            .then(res => {
+                if (!active) return;
+                setBoundEmail(res.email);
+                setServiceEnabled(res.emailServiceEnabled);
+            })
+            .catch(() => {});
+        return () => { active = false; };
+    }, []);
+
+    useEffect(() => {
+        if (cooldown <= 0) return;
+        const timer = setTimeout(() => setCooldown(c => Math.max(0, c - 1)), 1000);
+        return () => clearTimeout(timer);
+    }, [cooldown]);
+
+    return (
+        <section className="card pilot-card">
+            <div className="row-between">
+                <h2>{ui("電郵綁定與密碼重設保障")}</h2>
+                <Badge tone={boundEmail ? 'green' : 'neutral'}>
+                    {boundEmail ? ui("已綁定：{0}", [boundEmail]) : ui("尚未綁定驗證電郵")}
+                </Badge>
+            </div>
+            <p className="small muted">
+                {boundEmail
+                    ? ui("你可使用帳戶名稱或已驗證電郵登入；忘記密碼時亦可憑此電郵接收 6 位驗證碼重設密碼。")
+                    : ui("綁定驗證電郵後，可直接以電郵登入，並在忘記密碼時憑 6 位電郵驗證碼自助重設密碼。")}
+            </p>
+            {serviceEnabled && (
+                <form
+                    onSubmit={async e => {
+                        e.preventDefault();
+                        setBusy(true);
+                        setError('');
+                        setNotice('');
+                        try {
+                            const res = await api<{ email: string }>('/auth/email/bind', 'POST', {
+                                email: email.trim(),
+                                code: code.trim(),
+                            });
+                            setBoundEmail(res.email);
+                            setEmail('');
+                            setCode('');
+                            setNotice('電郵已完成驗證並綁定至此帳戶。');
+                            toast('電郵已驗證並綁定');
+                        } catch (e) {
+                            setError((e as Error).message);
+                        } finally {
+                            setBusy(false);
+                        }
+                    }}
+                >
+                    <div className="form-grid" style={{ marginTop: 10 }}>
+                        <label className="field">
+                            <span>{boundEmail ? ui("更換綁定電郵地址") : ui("綁定電郵地址")}</span>
+                            <div style={{ display: 'flex', gap: 8 }}>
+                                <input
+                                    required
+                                    type="email"
+                                    maxLength={120}
+                                    value={email}
+                                    onChange={e => setEmail(e.target.value)}
+                                    placeholder="student@example.com"
+                                    style={{ flex: 1 }}
+                                />
+                                <button
+                                    type="button"
+                                    className="btn secondary"
+                                    disabled={sending || cooldown > 0 || !email.trim()}
+                                    onClick={async () => {
+                                        setSending(true);
+                                        setError('');
+                                        setNotice('');
+                                        try {
+                                            const res = await api<{ cooldownSeconds?: number }>('/auth/email/code', 'POST', {
+                                                email: email.trim(),
+                                            });
+                                            setCooldown(res.cooldownSeconds ?? 60);
+                                            setNotice('6 位驗證碼已寄出（10 分鐘內有效）');
+                                        } catch (e) {
+                                            setError((e as Error).message);
+                                        } finally {
+                                            setSending(false);
+                                        }
+                                    }}
+                                >
+                                    {sending
+                                        ? ui("發送中…")
+                                        : cooldown > 0
+                                            ? ui("{0} 秒後重發", [cooldown])
+                                            : ui("獲取驗證碼")}
+                                </button>
+                            </div>
+                        </label>
+                        <label className="field">
+                            <span>{ui("6 位電郵驗證碼")}</span>
+                            <input
+                                required
+                                pattern="\d{6}"
+                                maxLength={6}
+                                inputMode="numeric"
+                                value={code}
+                                onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                placeholder="123456"
+                            />
+                        </label>
+                    </div>
+                    {error && <p role="alert" className="form-error">{ui(error)}</p>}
+                    {notice && <p role="status" className="model-explanation">{ui(notice)}</p>}
+                    <button className="btn primary" disabled={busy}>
+                        {busy ? ui("正在驗證…") : boundEmail ? ui("驗證並更換電郵") : ui("驗證並綁定電郵")}
+                    </button>
+                </form>
+            )}
+        </section>
+    );
+}
 export function PilotMistakes() { useInterfaceLanguage(); const { db, catalog, mutate } = useApp(); const latest = [...new Map(db.pilot?.errors.map(e => [e.questionId, e])).values()]; return <div className="page-enter"><PageHeading eyebrow="MISTAKES ARE CLUES" title={ui("留下依據，慢慢解開卡住的地方。")} description={ui("訂正、錯因確認和較穩定掌握分開記錄；一次重答不會清除弱項歷史。")}/><PracticeMistakes/>{!latest.length && <section className="card pilot-card"><p>{ui("完成測驗後，有依據的錯誤會收進這裡。")}</p><Link className="btn primary" to="/quizzes">{ui("開始練習")}</Link></section>}{latest.map(e => <section className="card pilot-card" key={e.questionId}><div className="row-between"><h2>{catalog.topics.find(t => t.id === e.topicId)?.name}</h2><Badge>{e.status === 'uncertain' ? ui("原因待確認") : e.status === 'reviewed' ? ui("已有復核依據") : ui("學生已確認")}</Badge></div><p>{ui(e.observed)}</p>{e.candidates.map((c, i) => <p key={i}>{ui("候選：{0} — {1}（{2}）", [c.reason, c.evidence, c.source === 'ai' ? ui("AI 建議") : ui("規則依據")])}</p>)}<label className="field"><span>{ui("你認為較接近哪種情況？")}</span><select value={e.selected ?? '不確定'} onChange={x => void mutate(`/wrong/${e.questionId}`, 'PATCH', { reason: x.target.value }).catch(() => { })}>{['不確定', '概念混淆', '運算失誤', '條件遺漏', '單位換算', '方法選擇', '輸入失誤', '前置知識不足'].map(s => <option key={s} value={s}>{ui(s)}</option>)}</select></label><p className="small muted">{ui("已保留 {0} 次確認／修訂記錄。", [e.history.length])}</p><div className="pilot-actions"><Link className="btn secondary" to={`/quizzes/${e.quizId}`}>{ui("查看原作答與解析")}</Link><Link className="btn primary" to="/pilot">{ui("補弱與前置檢查")}</Link></div></section>)}</div>; }

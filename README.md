@@ -7,7 +7,7 @@
 學生操作見 [中文使用指南](docs/user-guide.md)／[English User Guide](docs/user-guide.en.md)，網站側欄與頁尾亦可開啟 `/help`，英文直達 `/help?lang=en`。站內直接渲染這兩份Markdown；每次影響使用者的更新須同步修訂兩個版本與更新紀錄，見 [專案維護約定](AGENTS.md)。邀請訊息和帳戶密碼只保存在被忽略的私有目錄，不得寫入指南或公開程式碼。帳戶名稱支援2–40個英文字母、數字、句點、底線或連字號，不分大小寫。
 
 管理員操作另見 [中文管理員手冊](docs/admin-guide.md)／[Administrator Manual](docs/admin-guide.en.md)。站內入口為開發工作台的「管理員使用指南」（`/admin/help`）；內容及下載由服務端驗證 developer 角色，不混入學生指南。學生更新記錄採 v1.1 等版本摘要；技術驗收留在管理及部署文件。
-試用入口：[web-education.onrender.com](https://web-education.onrender.com)。現採 Render Free＋Supabase Free，已驗證公開 HTTPS 登入、資料隔離、日曆／附件與重啟持久性；沒有公開自行註冊。分享與不同帳戶見 [上線與帳戶分享指南](docs/deployment-guide.md)。
+試用入口：[web-education.onrender.com](https://web-education.onrender.com)。現採 Render Free＋Supabase Free，已驗證公開 HTTPS 登入、資料隔離、日曆／附件與重啟持久性；管理員可在 `/developer?tab=users` 選擇維持手動邀請，或啟用 Google Apps Script 電郵驗證碼自助註冊（支援可選班級通行碼）、忘記密碼重設及舊帳戶補綁電郵。分享與不同帳戶見 [上線與帳戶分享指南](docs/deployment-guide.md)。
 
 指定試用帳戶可使用負責人私下分配的短密碼；一般邀請／首次設定仍至少10字元。登入、重設後重新登入及最新邀請說明已同步至中英文指南；密碼不在公開文件中列出。
 

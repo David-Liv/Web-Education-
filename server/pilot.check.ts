@@ -190,3 +190,59 @@ test('provider failure is explicit, Responses adapter works, and stopping preser
     const state=(await call('/bootstrap',cookie)).data;assert.equal(state.chats[0].messages.length,2);assert.equal(state.chats[0].messages[1].status,'interrupted');
   }finally{await new Promise<void>(resolve=>provider.close(()=>resolve()))}
 });
+
+test('Google Apps Script email OTP supports passcode/open registration, Gmail canonicalisation, 5-attempt lockout, email login, password reset and account email binding',async()=>{
+  const sent:{to:string;subject:string;text:string}[]=[];
+  const gas=createServer(async(req,res)=>{
+    if(req.url==='/redirect-echo'){res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({ok:true,remainingDailyQuota:96}));return}
+    let raw='';for await(const c of req)raw+=c;const body=JSON.parse(raw||'{}');
+    if(body.secret!=='test-only-gas-secret'){res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({ok:false,error:'SHARED_SECRET_MISMATCH'}));return}
+    sent.push({to:body.to,subject:body.subject,text:body.text});
+    res.writeHead(302,{Location:'/redirect-echo'});res.end();
+  });
+  await new Promise<void>(resolve=>gas.listen(0,'127.0.0.1',resolve));
+  const codeFromLastMail=()=>{const m=sent.at(-1)?.text.match(/(\d{6})/);assert.ok(m);return m[1]};
+  try{
+    const webhookUrl=`http://127.0.0.1:${(gas.address() as any).port}/exec`;
+    assert.equal((await call('/auth/register/code','','POST',{email:'student1@gmail.com'})).status,403);
+    assert.equal((await call('/admin/auth-mail',reviewer)).status,403);
+    const saved=await call('/admin/auth-mail',admin,'PUT',{senderName:'學序測試',webhookUrl,secret:'test-only-gas-secret',enabled:true,mode:'passcode',passcode:'DSE2028-CLASS'});
+    assert.equal(saved.status,200);assert.equal(saved.data.hasSecret,true);assert.equal(saved.data.hasPasscode,true);
+    assert.ok(!JSON.stringify(saved.data).includes('test-only-gas-secret'));assert.ok(!JSON.stringify(saved.data).includes('DSE2028-CLASS'));
+    const draftTest=await call('/admin/auth-mail/test',admin,'POST',{config:{senderName:'學序測試',webhookUrl,secret:'',enabled:true,mode:'passcode'},to:'admin-check@gmail.com'});
+    assert.equal(draftTest.status,200);assert.equal(draftTest.data.tested.remainingDailyQuota,96);
+
+    const beforeCount=sent.length;
+    assert.equal((await call('/auth/register/code','','POST',{email:'student1@gmail.com',passcode:'WRONG'})).status,403);
+    assert.equal(sent.length,beforeCount);
+    assert.equal((await call('/auth/register/code','','POST',{email:'temp@10minutemail.com',passcode:'DSE2028-CLASS'})).status,400);
+    assert.equal(sent.length,beforeCount);
+
+    assert.equal((await call('/auth/register/code','','POST',{email:'Student.One+dse@gmail.com',passcode:'DSE2028-CLASS'})).status,200);
+    assert.equal((await call('/auth/register/code','','POST',{email:'studentone@gmail.com',passcode:'DSE2028-CLASS'})).status,429);
+    const otp1=codeFromLastMail();
+    const reg=await call('/auth/register','','POST',{email:'Student.One+dse@gmail.com',passcode:'DSE2028-CLASS',code:otp1,username:'stu_one',name:'陳同學',password:'student-pass-123'});
+    assert.equal(reg.status,201);assert.equal(reg.data.role,'student');assert.ok(reg.cookie);
+
+    assert.equal((await call('/auth/register/code','','POST',{email:'studentone+another@googlemail.com',passcode:'DSE2028-CLASS'})).status,409);
+
+    const emailLogin=await call('/auth/login','','POST',{username:'studentone@gmail.com',password:'student-pass-123'});
+    assert.equal(emailLogin.status,200);assert.equal(emailLogin.data.username,'stu_one');
+
+    assert.equal((await call('/auth/reset/code','','POST',{email:'studentone@gmail.com'})).status,200);
+    for(let i=0;i<4;i++)assert.equal((await call('/auth/reset','','POST',{email:'studentone@gmail.com',code:'000000',password:'new-student-pass-456'})).status,400);
+    assert.equal((await call('/auth/reset','','POST',{email:'studentone@gmail.com',code:'000000',password:'new-student-pass-456'})).status,429);
+
+    const manual=await student();
+    assert.equal((await call('/auth/email/code',manual.cookie,'POST',{email:'manual.student@outlook.com'})).status,200);
+    const bindOtp=codeFromLastMail();
+    assert.equal((await call('/auth/email/bind',manual.cookie,'POST',{email:'manual.student@outlook.com',code:bindOtp})).status,200);
+    assert.equal((await call('/auth/email',manual.cookie)).data.email,'manual.student@outlook.com');
+
+    assert.equal((await call('/auth/reset/code','','POST',{email:'manual.student@outlook.com'})).status,200);
+    const resetOtp=codeFromLastMail();
+    assert.equal((await call('/auth/reset','','POST',{email:'manual.student@outlook.com',code:resetOtp,password:'reset-pass-7890'})).status,200);
+    assert.equal((await call('/bootstrap',manual.cookie)).status,401);
+    assert.equal((await call('/auth/login','','POST',{username:'manual.student@outlook.com',password:'reset-pass-7890'})).status,200);
+  }finally{await new Promise<void>(resolve=>gas.close(()=>resolve()))}
+});

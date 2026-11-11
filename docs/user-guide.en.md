@@ -2,7 +2,7 @@
 
 v1.7 · 11 November 2026 · Find your direction and make progress at your own pace.
 
-Website: [Open HOKSE](https://web-education.onrender.com). Sign in with your invited account to begin. No software installation is needed.
+Website: [Open HOKSE](https://web-education.onrender.com). Sign in with your username or verified email, or create an account with a 6-digit email verification code (and class passcode when required) when self-registration is enabled. No software installation is needed.
 
 On desktop, use the button at the top of the sidebar to collapse navigation to icons. Hover over an icon or focus it with the keyboard to see its name. Your choice is remembered in this browser. On mobile, open navigation with the menu button.
 
@@ -122,7 +122,7 @@ Source difficulty labels and target levels help you find material; they are not 
 
 ## 9. Personal settings and AI credits
 
-Adjust subjects, grades, language and available time in Personal Settings. Plan & Billing shows available credits and lets you choose separate default models for quizzes, conversations and assessment. Each model displays its credit price per operation.
+Adjust subjects, grades, language and available time in Personal Settings, where you can also link or update your verified email. Once linked, you can sign in with your email address and reset a forgotten password on the sign-in page using a 6-digit verification code (valid for 10 minutes). Plan & Billing shows available credits and lets you choose separate default models for quizzes, conversations and assessment. Each model displays its credit price per operation.
 
 AI operations reserve credits first and charge when a usable result is available. Failure or cancellation releases the reservation if nothing usable was delivered. An explanation already delivered retains its original charge. Fixed-question generation and rule-only marking use no AI credits. If credits run out, you can still keep notes, do fixed practice and arrange your calendar.
 
@@ -144,6 +144,7 @@ Use your own account and sign out before leaving a shared computer. For troubles
 - Cleaned up tangled and duplicated AI-generated legacy code so each feature has clearer boundaries.
 - Unified data contracts across practice attempts, feedback reviews, chat checks and profile settings.
 - Added automated architecture checks to keep future updates stable and reliable.
+- Added 6-digit email verification code self-registration (with optional class passcode), username or verified-email sign-in, password reset, and email linking in Personal Settings.
 
 **v1.6 · Connect each round of practice · 6 November 2026**
 

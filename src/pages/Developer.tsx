@@ -48,7 +48,7 @@ export function DeveloperPage() {
     return <div className="page-enter"><PageHeading eyebrow="MAKE THE RULES REVIEWABLE" title={ui("內容與開發工作台")} action={developer?<Link className="btn secondary" to="/admin/help">{ui("管理員使用指南")}</Link>:undefined} description={ui("復核、發布及模型設定各自留存狀態；學生不會取得 API 密鑰。")}/><div className="pilot-actions">{[['content', '內容復核'], ['grading', '待批改'], ...(developer ? [['users', '邀請帳戶'], ['model', '模型服務'], ['billing', '套餐設定'], ['usage', 'AI 使用日誌']] : [])].map(([id, label]) => <button className={`btn ${tab === id ? 'primary' : 'secondary'}`} key={id} onClick={() => { setTab(id); setError(''); }}>{ui(label)}</button>)}</div>{error && <p role="alert" className="form-error">{ui(error)}</p>}
     {tab === 'content' && <><section className="card pilot-card"><div className="row-between"><h2>{ui("逐題復核與版本發布")}</h2><Badge>{ui("不是教師認證／難度校準")}</Badge></div><label className="field"><span>{ui("內容包")}</span><select value={pack ? `${pack.id}@${pack.version}` : ''} onChange={e => { setSelected(e.target.value); setIndex(0); setConfirmed(false); setMethod(''); }}>{packs.map(p => <option value={`${p.id}@${p.version}`} key={`${p.id}@${p.version}`}>{ui(p.title)} v{p.version} · {p.status === 'published' ? ui("已發布") : ui("待復核")}</option>)}</select></label>{pack && <><p>{ui("{0} 題 · {1} 題完成雙人復核", [pack.questions.length, pack.questions.filter(q => new Set(pack.reviews.filter(r => r.questionId === q.id).map(r => r.userId)).size >= 2).length])}</p><div className="pilot-actions"><a className="btn secondary" href={`/api/v1/admin/content/${pack.id}/${pack.version}/csv`}>{ui("下載 CSV 審核包")}</a><button className="btn primary" disabled={busy || pack.status === 'published'} onClick={() => void action(async () => { await api(`/admin/content/${pack.id}/${pack.version}/publish`, 'POST', {}); await load(); await refresh(); toast('內容版本已發布，學生頁現在可用'); })}>{ui("發布此版本")}</button></div><div className="question-dots">{pack.questions.map((item, n) => <button key={item.id} className={q?.id === item.id ? 'active' : ''} onClick={() => { setIndex(n); setConfirmed(false); setMethod(''); }}>{n + 1}</button>)}</div>{pack.lessons.map((l, i) => <LessonReview key={`${pack.id}:${pack.version}:${i}`} pack={pack} index={i} done={load}/>)}{q && <div className="review-question"><Badge>{q.id} · {q.familyId}</Badge><h3>{q.prompt}</h3>{q.options && <p>{q.options.map((x, n) => `${String.fromCharCode(65 + n)}. ${x}`).join('；')}</p>}<p><strong>{ui("答案：")}</strong>{q.answer}</p><p><strong>{ui("解析：")}</strong>{q.explanation}</p><p><strong>{ui("技能：")}</strong>{q.skillIds.map(id => ui(pack.skills.find(s => s.id === id)?.name ?? id)).join(', ')}</p><p><strong>{ui("評分點：")}</strong>{q.scoring.map(s => ui('{0}，{1} 分{2}',[s.id,s.marks,s.critical?ui('，關鍵條件'):''])).join('; ')}</p><p className="small muted">{ui("來源：{0}", [q.source])}</p>{pack.reviews.filter(r => r.questionId === q.id).map(r => <p key={r.userId} className="review-receipt">✓ {r.reviewer} · {r.method} · {new Date(r.at).toLocaleString(interfaceLocale())}</p>)}{pack.status === 'draft' && <><label className="field"><span>{ui("本次如何核對答案、步驟及標籤？")}</span><textarea value={method} onChange={e => setMethod(e.target.value)} rows={3} placeholder={ui("請先獨立解題，再記下核對方法、等價答案或仍有疑問的地方。")}/></label><label className="checkbox-label"><input type="checkbox" checked={confirmed} onChange={e => setConfirmed(e.target.checked)}/>{ui("我已實際檢查此題的條件、答案、評分點及技能標籤")}</label><button className="btn primary" disabled={busy || !confirmed || method.trim().length < 8} onClick={() => void action(async () => { await api(`/admin/content/${pack.id}/${pack.version}/review`, 'POST', { questionId: q.id, method, confirmed }); setConfirmed(false); setMethod(''); await load(); toast('已記錄本帳戶的復核；發布仍需第二個不同帳戶'); })}>{ui("保存這一題的復核")}</button></>}</div>}</>}</section><section className="card pilot-card"><h2>{ui("匯入新的審核版本")}</h2><p className="muted">{ui("可匯入完整 JSON 內容包，或用選中內容包作技能與教學範本匯入 CSV。先校驗預覽，再確認新增草稿；不覆寫已發布版本。")}</p><input type="file" accept=".csv,.json,text/csv,application/json" onChange={e => { const file = e.target.files?.[0]; if (file)
         void file.text().then(text => { setImportText(text); setCsv(file.name.toLowerCase().endsWith('.csv')); setValidation(null); }); }}/><label className="field"><span>{ui("內容（亦可直接貼上）")}</span><textarea rows={6} value={importText} onChange={e => { setImportText(e.target.value); setValidation(null); }}/></label><label className="checkbox-label"><input type="checkbox" checked={csv} onChange={e => { setCsv(e.target.checked); setValidation(null); }}/>{ui("CSV 格式，使用所選內容包的下一版本")}</label><div className="pilot-actions"><button className="btn secondary" disabled={busy || !importText.trim()} onClick={() => void action(async () => setValidation(await api('/admin/content/import', 'POST', { ...importBody(), preview: true })))}>{ui("校驗與預覽")}</button><button className="btn primary" disabled={busy || !validation?.valid} onClick={() => void action(async () => { await api('/admin/content/import', 'POST', { ...importBody(), preview: false }); setValidation(null); setImportText(''); await load(); toast('新版本草稿已建立，仍需逐題復核'); })}>{ui("確認匯入草稿")}</button></div>{validation && <p>{validation.valid ? ui("校驗通過：{0} v{1}，{2} 題。尚未發布。", [validation.pack.title, validation.pack.version, validation.pack.questions.length]) : validation.errors?.join('；')}</p>}</section></>}
-    {tab === 'users' && developer && <section className="card pilot-card"><h2>{ui("分配邀請帳戶")}</h2><form onSubmit={e => { e.preventDefault(); void action(async () => { await api('/admin/users', 'POST', account); setAccount({ username: '', name: '', password: '', role: 'student' }); await load(); toast('邀請帳戶已建立；請自行交給指定使用者'); }); }}><div className="form-grid"><label className="field"><span>{ui("帳戶名稱")}</span><input required pattern="[a-zA-Z0-9_.-]{2,40}" value={account.username} onChange={e => setAccount({ ...account, username: e.target.value })}/></label><label className="field"><span>{ui("顯示名字")}</span><input required maxLength={30} value={account.name} onChange={e => setAccount({ ...account, name: e.target.value })}/></label><label className="field"><span>{ui("初始密碼（至少 10 字元）")}</span><input required type="password" minLength={10} value={account.password} onChange={e => setAccount({ ...account, password: e.target.value })} autoComplete="new-password"/></label><label className="field"><span>{ui("角色")}</span><select value={account.role} onChange={e => setAccount({ ...account, role: e.target.value })}><option value="student">{ui("學生")}</option><option value="reviewer">{ui("內容復核者")}</option><option value="developer">{ui("開發者")}</option></select></label></div><button className="btn primary" disabled={busy}>{ui("建立帳戶")}</button></form>{users.map(u => <div className="pilot-list-row" key={u.id}><strong>{u.name}</strong><span>{u.role}</span><small>{u.username}</small></div>)}</section>}
+    {tab === 'users' && developer && <><AuthMailSettings /><section className="card pilot-card"><h2>{ui("分配邀請帳戶")}</h2><form onSubmit={e => { e.preventDefault(); void action(async () => { await api('/admin/users', 'POST', account); setAccount({ username: '', name: '', password: '', role: 'student' }); await load(); toast('邀請帳戶已建立；請自行交給指定使用者'); }); }}><div className="form-grid"><label className="field"><span>{ui("帳戶名稱")}</span><input required pattern="[a-zA-Z0-9_.-]{2,40}" value={account.username} onChange={e => setAccount({ ...account, username: e.target.value })}/></label><label className="field"><span>{ui("顯示名字")}</span><input required maxLength={30} value={account.name} onChange={e => setAccount({ ...account, name: e.target.value })}/></label><label className="field"><span>{ui("初始密碼（至少 10 字元）")}</span><input required type="password" minLength={10} value={account.password} onChange={e => setAccount({ ...account, password: e.target.value })} autoComplete="new-password"/></label><label className="field"><span>{ui("角色")}</span><select value={account.role} onChange={e => setAccount({ ...account, role: e.target.value })}><option value="student">{ui("學生")}</option><option value="reviewer">{ui("內容復核者")}</option><option value="developer">{ui("開發者")}</option></select></label></div><button className="btn primary" disabled={busy}>{ui("建立帳戶")}</button></form>{users.map((u: any) => <div className="pilot-list-row" key={u.id}><strong>{u.name}</strong><span>{u.role}</span><small>{u.username} · {u.email ? u.email : ui("未綁定電郵")}</small></div>)}</section></>}
     {tab === 'billing' && developer && <AdminBilling/>}{tab === 'usage' && developer && <AdminUsage/>}{tab === 'model' && developer && <ModelServiceSettings />}
     {tab === 'grading' && <section className="card pilot-card"><h2>{ui("需要人工核對的作答")}</h2>{!pending.length && <p>{ui("目前沒有待批改作答。")}</p>}{pending.map((row: any) => <ManualGrade key={`${row.userId}:${row.quizId}:${row.question.id}`} row={row} done={() => void load()}/>)}</section>}
   </div>;
@@ -84,3 +84,235 @@ catch (e) {
 finally {
     setBusy(false);
 } }}>{ui("保存本段復核")}</button></>}</details>; }
+
+interface SavedAuthMail {
+    senderName: string;
+    webhookUrl: string;
+    enabled: boolean;
+    mode: 'closed' | 'passcode' | 'open';
+    hasSecret: boolean;
+    hasPasscode: boolean;
+    tested?: { at: string; to: string; ok: boolean; remainingDailyQuota?: number };
+    gasTemplate: string;
+}
+
+function AuthMailSettings() {
+    useInterfaceLanguage();
+    const { toast } = useApp();
+    const [saved, setSaved] = useState<SavedAuthMail | null>(null);
+    const [draft, setDraft] = useState({
+        senderName: '學序 HOKSE',
+        webhookUrl: '',
+        secret: '',
+        enabled: false,
+        mode: 'closed' as SavedAuthMail['mode'],
+        passcode: '',
+        clearSecret: false,
+        clearPasscode: false,
+    });
+    const [testEmail, setTestEmail] = useState('');
+    const [loading, setLoading] = useState(true);
+    const [busy, setBusy] = useState('');
+    const [error, setError] = useState('');
+    const [notice, setNotice] = useState('');
+
+    function accept(val: SavedAuthMail) {
+        setSaved(val);
+        setDraft({
+            senderName: val.senderName || '學序 HOKSE',
+            webhookUrl: val.webhookUrl || '',
+            secret: '',
+            enabled: val.enabled,
+            mode: val.mode,
+            passcode: '',
+            clearSecret: false,
+            clearPasscode: false,
+        });
+    }
+
+    useEffect(() => {
+        let active = true;
+        void api<SavedAuthMail>('/admin/auth-mail')
+            .then(val => { if (active) accept(val); })
+            .catch(e => { if (active) setError((e as Error).message); })
+            .finally(() => { if (active) setLoading(false); });
+        return () => { active = false; };
+    }, []);
+
+    if (loading) return <section className="card pilot-card"><p role="status">{ui("正在讀取電郵與自助註冊設定…")}</p></section>;
+
+    const sameUrl = !!saved && draft.webhookUrl.trim() === saved.webhookUrl.trim();
+    const secretReady = Boolean(draft.secret.trim() || (sameUrl && saved?.hasSecret && !draft.clearSecret));
+    const passcodeReady = draft.mode !== 'passcode' || Boolean(draft.passcode.trim() || (saved?.hasPasscode && !draft.clearPasscode));
+    const serviceActive = Boolean(saved?.enabled && saved.webhookUrl && saved.hasSecret);
+
+    return (
+        <section className="card pilot-card">
+            <div className="row-between">
+                <h2>{ui("自助註冊與 Google Apps Script 電郵驗證")}</h2>
+                <Badge tone={serviceActive ? 'green' : 'amber'}>
+                    {serviceActive
+                        ? saved?.mode === 'passcode'
+                            ? ui("已啟用 · 通行碼 + 電郵註冊")
+                            : saved?.mode === 'open'
+                                ? ui("已啟用 · 公開電郵註冊")
+                                : ui("已啟用 · 僅密碼重設與綁定")
+                        : ui("尚未啟用電郵驗證")}
+                </Badge>
+            </div>
+            <p className="small muted">
+                {ui("透過 Google Apps Script 私有 HTTPS Webhook 寄送 6 位數字驗證碼，免購買域名並繞過 Render Free 的 SMTP 端口限制。啟用後可支援學生自助註冊、忘記密碼重設與舊帳戶補綁電郵。")}
+            </p>
+            <fieldset className="model-settings-fields" disabled={!!busy}>
+                <div className="form-grid">
+                    <label className="field">
+                        <span>{ui("發件顯示名稱")}</span>
+                        <input
+                            maxLength={60}
+                            value={draft.senderName}
+                            onChange={e => setDraft(d => ({ ...d, senderName: e.target.value }))}
+                        />
+                    </label>
+                    <label className="field">
+                        <span>Google Apps Script Webhook URL</span>
+                        <input
+                            type="url"
+                            value={draft.webhookUrl}
+                            onChange={e => setDraft(d => ({ ...d, webhookUrl: e.target.value }))}
+                            placeholder="https://script.google.com/macros/s/.../exec"
+                            autoComplete="off"
+                        />
+                    </label>
+                    <label className="field">
+                        <span>{ui("共享密鑰")} {sameUrl && saved?.hasSecret && !draft.clearSecret ? ui("（已保存；留空保留）") : ''}</span>
+                        <input
+                            type="password"
+                            maxLength={200}
+                            value={draft.secret}
+                            onChange={e => setDraft(d => ({ ...d, secret: e.target.value }))}
+                            placeholder={sameUrl && saved?.hasSecret && !draft.clearSecret ? ui("不需要重新輸入密鑰") : ui("與 GAS 腳本 SHARED_SECRET 一致")}
+                            autoComplete="new-password"
+                        />
+                    </label>
+                    <label className="field">
+                        <span>{ui("自助註冊模式")}</span>
+                        <select
+                            value={draft.mode}
+                            onChange={e => setDraft(d => ({ ...d, mode: e.target.value as SavedAuthMail['mode'] }))}
+                        >
+                            <option value="closed">{ui("僅管理員手動建立（關閉自助註冊）")}</option>
+                            <option value="passcode">{ui("電郵驗證碼 + 班級通行碼（推薦）")}</option>
+                            <option value="open">{ui("公開電郵驗證碼註冊")}</option>
+                        </select>
+                    </label>
+                </div>
+                {draft.mode === 'passcode' && (
+                    <label className="field">
+                        <span>{ui("班級註冊通行碼")} {saved?.hasPasscode && !draft.clearPasscode ? ui("（已保存；留空保留）") : ''}</span>
+                        <input
+                            type="password"
+                            minLength={4}
+                            maxLength={80}
+                            value={draft.passcode}
+                            onChange={e => setDraft(d => ({ ...d, passcode: e.target.value }))}
+                            placeholder={saved?.hasPasscode && !draft.clearPasscode ? ui("留空保留現有通行碼，或輸入新通行碼（4–80 字元）") : ui("設定 4–80 字元通行碼（學生須先填對才發送驗證碼）")}
+                            autoComplete="new-password"
+                        />
+                    </label>
+                )}
+                <label className="checkbox-label">
+                    <input
+                        type="checkbox"
+                        checked={draft.enabled}
+                        onChange={e => setDraft(d => ({ ...d, enabled: e.target.checked }))}
+                    />
+                    {ui("啟用電郵驗證服務（開放綁定電郵、忘記密碼重設及所選註冊模式）")}
+                </label>
+                <div className="form-grid" style={{ marginTop: 10 }}>
+                    <label className="field">
+                        <span>{ui("測試收件電郵")}</span>
+                        <input
+                            type="email"
+                            value={testEmail}
+                            onChange={e => setTestEmail(e.target.value)}
+                            placeholder="your-email@gmail.com"
+                        />
+                    </label>
+                </div>
+                <div className="pilot-actions">
+                    <button
+                        type="button"
+                        className="btn secondary"
+                        disabled={!!busy || !draft.webhookUrl.trim() || !secretReady || !testEmail.trim()}
+                        onClick={async () => {
+                            setBusy('test');
+                            setError('');
+                            setNotice('');
+                            try {
+                                const res = await api<{ tested: SavedAuthMail['tested'] }>('/admin/auth-mail/test', 'POST', {
+                                    config: draft,
+                                    to: testEmail.trim(),
+                                });
+                                const quota = res.tested?.remainingDailyQuota;
+                                setNotice(
+                                    quota !== undefined
+                                        ? ui("測試郵件已寄出至 {0}（今日 Gmail 剩餘發信配額：{1}）", [testEmail.trim(), quota])
+                                        : ui("測試郵件已寄出至 {0}", [testEmail.trim()])
+                                );
+                            } catch (e) {
+                                setError((e as Error).message);
+                            } finally {
+                                setBusy('');
+                            }
+                        }}
+                    >
+                        {busy === 'test' ? ui("正在測試發信…") : ui("測試發送電郵")}
+                    </button>
+                    <button
+                        type="button"
+                        className="btn primary"
+                        disabled={!!busy || (draft.enabled && (!draft.webhookUrl.trim() || !secretReady)) || !passcodeReady}
+                        onClick={async () => {
+                            setBusy('save');
+                            setError('');
+                            setNotice('');
+                            try {
+                                const updated = await api<SavedAuthMail>('/admin/auth-mail', 'PUT', draft);
+                                accept(updated);
+                                setNotice('電郵驗證與自助註冊設定已保存。');
+                                toast('電郵與註冊設定已更新');
+                            } catch (e) {
+                                setError((e as Error).message);
+                            } finally {
+                                setBusy('');
+                            }
+                        }}
+                    >
+                        {busy === 'save' ? ui("正在儲存…") : ui("儲存電郵與註冊設定")}
+                    </button>
+                </div>
+            </fieldset>
+            {error && <p role="alert" className="form-error">{ui(error)}</p>}
+            {notice && <p role="status" className="model-explanation">{ui(notice)}</p>}
+            {saved?.gasTemplate && (
+                <details className="model-manual" style={{ marginTop: 12 }}>
+                    <summary>{ui("查看 Google Apps Script 部署步驟與代碼範本（免域名）")}</summary>
+                    <p className="small muted" style={{ margin: '8px 0' }}>
+                        {ui("前往 script.google.com 新建專案，貼上下方代碼並設定相同的 SHARED_SECRET，右上角點選「部署 → 新增部署作業 → 網頁應用程式」，執行身分選「我」，存取權限選「所有人」，複製產生的 /exec 網址填入上方即可。")}
+                    </p>
+                    <pre style={{ overflowX: 'auto', padding: 12, borderRadius: 8, fontSize: 12 }}>{saved.gasTemplate}</pre>
+                    <button
+                        type="button"
+                        className="btn secondary"
+                        onClick={() => {
+                            void navigator.clipboard?.writeText(saved.gasTemplate);
+                            toast('已複製 Google Apps Script 代碼範本');
+                        }}
+                    >
+                        {ui("複製 GAS 代碼範本")}
+                    </button>
+                </details>
+            )}
+        </section>
+    );
+}

@@ -1,6 +1,6 @@
 # HOKSE Administrator Manual
 
-v1.6 · 6 November 2026. For maintaining accounts, content, AI services and programme data.
+v1.7 · 11 November 2026. For maintaining accounts, content, AI services and programme data.
 
 Navigation can collapse to icons on desktop and remembers the browser preference. Calendar moves and Undo use the same ownership, conflict and budget checks; they do not call AI.
 
@@ -10,7 +10,7 @@ Sign in with the developer role and open Content & Developer Settings. Students 
 
 ## 2. Accounts and data
 
-Create students or reviewers under Invite Accounts. New accounts normally require passwords of at least 10 characters; previously assigned short trial passwords still work. Student data is account-scoped. Signing out revokes that session.
+Create students or reviewers under Invite Accounts, or configure a private Google Apps Script HTTPS webhook and shared secret to enable 6-digit email verification code self-registration (supporting Administrator-only, Passcode + Email OTP, and Open Email OTP modes), password reset (for non-developer accounts), and email linking in Personal Settings. New accounts normally require passwords of at least 10 characters; previously assigned short trial passwords still work. Webhook configuration, OTP hashes and linked emails are encrypted in the existing `settings` table without DDL migrations, remaining compatible with `hokse-cloud-v2` backups. Student data is account-scoped. Signing out or resetting a password revokes active sessions.
 
 Attachments are stored for viewing and authorised manual review. Text models do not automatically read attached images or recordings. Do not describe paper OCR or diagnostic exemptions as implemented. The upload limit is 20 MB per file; accepted types are shown by the picker. Keep exports and backups private and out of public assets and Git.
 
@@ -72,6 +72,7 @@ For provider failures, inspect status and protocol. For balances, inspect operat
 
 ## 9. Administrator release record
 
+- v1.7 / 11 November 2026: Google Apps Script email verification code self-registration (with optional class passcode), username or verified-email sign-in, password reset and email linking; unified module contracts and architecture checks.
 - v1.3 / 5 November 2026: one-pass chat practice review, updates in the original floor, one failure retry, and an administrator-configured reviewer.
 - v1.2 / 4 November 2026: rich chat replies, contextual draft suggestions and collapsible quick-practice answers; one-call generation and local visual exports.
 - v1.1 / 4 November 2026: programme data and reference scoring integration; separate student and administrator guides; student release notes use product-level version summaries.

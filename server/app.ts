@@ -1,4 +1,5 @@
 import {practiceRoutes} from './practice-routes.ts';
+import {handleAuthedAuthMailRoutes,handlePublicAuthMailRoutes,listUserBoundEmails,publicAuthStatus,resolveLoginUsername} from './auth-mail.ts';
 import {calendarMoveIssue} from '../src/calendar-move.ts';
 import { createServer } from 'node:http';
 import { createHash } from 'node:crypto';
@@ -71,11 +72,11 @@ export function createPilot(options:Options={}){
       const token=(req.headers.cookie??'').split(';').map(c=>c.trim()).find(c=>c.startsWith('hokse_session='))?.slice(14)??'';
       const identity=(await store.identity(token));
       const cookie=(value:string,maxAge:number)=>res.setHeader('Set-Cookie',`hokse_session=${value}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${maxAge}${options.secureCookie?'; Secure':''}`);
-      if(path==='/auth/status'&&method==='GET'){send({identity,setupRequired:(await store.userCount())===0&&options.allowSetup!==false});return}
+      if(path==='/auth/status'&&method==='GET'){send(await publicAuthStatus(store,identity,options.allowSetup));return}
       if((path==='/auth/login'||path==='/auth/setup')&&method==='POST'){
         const username=String(input.username??'').trim().toLowerCase(),password=String(input.password??'');
         const minimumPasswordLength=path==='/auth/setup'?10:3;
-        if(!/^[a-z0-9_.-]{2,40}$/.test(username)||password.length<minimumPasswordLength||password.length>200)reject(`帳戶需 2–40 個英數字元；密碼至少 ${minimumPasswordLength} 字元`);
+        if(password.length<minimumPasswordLength||password.length>200||(path==='/auth/setup'||!username.includes('@')?!/^[a-z0-9_.-]{2,40}$/.test(username):username.length>120))reject(`帳戶需 2–40 個英數字元；密碼至少 ${minimumPasswordLength} 字元`);
         const ip=req.socket.remoteAddress??'unknown',key=ip+':'+username,rate=attempts.get(key);
         if(rate&&rate.until>Date.now()&&rate.n>=12)reject('嘗試次數較多，請十分鐘後再試',429);
         attempts.set(key,{n:rate&&rate.until>Date.now()?rate.n+1:1,until:Date.now()+600000});
@@ -83,12 +84,12 @@ export function createPilot(options:Options={}){
         if(path==='/auth/setup'){
           if((await store.userCount())||options.allowSetup===false||!['127.0.0.1','::1','::ffff:127.0.0.1'].includes(ip))reject('初始設定只可在本機且無帳戶時執行',403);
           user=(await store.createUser(username,password,String(input.name??'開發者').slice(0,30),'developer',true));
-        }else user=(await store.authenticate(username,password));
+        }else user=(await store.authenticate(await resolveLoginUsername(store,username),password));
         if(!user)reject('帳戶或密碼不正確',401,'UNAUTHENTICATED');
         attempts.delete(key);cookie((await store.session(user)),604800);send(user);return;
       }
-      if(!identity)reject('請先登入邀請帳戶',401,'UNAUTHENTICATED');
-      if(path==='/auth/logout'&&method==='POST'){(await store.logout(token));cookie('',0);send({ok:true});return}
+      if(await handlePublicAuthMailRoutes(store,path,method,input,req.socket.remoteAddress??'unknown',attempts,cookie,send))return;if(!identity)reject('請先登入邀請帳戶',401,'UNAUTHENTICATED');
+      if(path==='/auth/logout'&&method==='POST'){(await store.logout(token));cookie('',0);send({ok:true});return}if(await handleAuthedAuthMailRoutes(store,identity,path,method,input,send))return;
       if(await billingRoutes(billing,identity,path,method,input,url.searchParams,send,res))return;
       const handle=async(send:(data:any,status?:number)=>void)=>{
       const role=(allowed:string[])=>{if(!allowed.includes(identity.role))reject('此功能僅供獲授權的開發者／內容復核者',403,'FORBIDDEN')};
@@ -105,7 +106,7 @@ export function createPilot(options:Options={}){
         if(url.searchParams.get('download')==='1'){res.writeHead(200,{'Content-Type':'text/markdown; charset=utf-8','Content-Disposition':`attachment; filename="HOKSE-Admin-Guide-${language}.md"`,'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'});res.end(markdown)}else send({markdown,version:'1.1',language});return;
       }
       if(path==='/admin/users'){
-        role(['developer']);if(method==='GET'){send((await store.db.prepare('SELECT id,username,name,role FROM users ORDER BY username').all()));return}
+        role(['developer']);if(method==='GET'){const [rows,emails]=await Promise.all([store.db.prepare('SELECT id,username,name,role FROM users ORDER BY username').all(),listUserBoundEmails(store)]);send(rows.map((u:any)=>({...u,email:emails[u.id]??null})));return}
         if(method==='POST'){if(!/^[a-z0-9_.-]{2,40}$/i.test(input.username??'')||typeof input.password!=='string'||input.password.length<10||input.password.length>200||!validRoles.includes(input.role)||!String(input.name??'').trim())reject('請檢查帳戶、密碼、角色及名字');send((await store.createUser(input.username,input.password,String(input.name).slice(0,30),input.role)),201);return}
       }
       if(path==='/admin/content'&&method==='GET'){role(['developer','reviewer']);send((await store.packs()));return}
