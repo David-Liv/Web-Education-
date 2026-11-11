@@ -84,9 +84,10 @@ const SHARED_SECRET = '請替換為你的共享密鑰';
 
 function doPost(e) {
   try {
+    const quota = MailApp.getRemainingDailyQuota();
     const data = JSON.parse((e && e.postData && e.postData.contents) || '{}');
     if (!SHARED_SECRET || data.secret !== SHARED_SECRET) {
-      return json({ ok: false, error: 'SHARED_SECRET_MISMATCH' });
+      return json({ ok: false, error: 'SHARED_SECRET_MISMATCH', remainingDailyQuota: quota });
     }
     if (!data.to || !data.subject || !data.text) {
       return json({ ok: false, error: 'MISSING_FIELDS' });
@@ -573,6 +574,13 @@ export async function deliverMail(
   }
   const raw = (await response.text()).slice(0, 4096);
   if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      reject(
+        `電郵發信服務回傳 HTTP ${response.status}（Google 拒絕存取）：請在 Google Apps Script 按 Ctrl+S 儲存程式碼、完成「授權存取權」，並點選「部署 → 新增部署作業」（只選「網頁應用程式」、誰可以存取選「所有人 Anyone」），再把新的 /exec 網址貼回此處`,
+        502,
+        'MAIL_PROVIDER_ERROR'
+      );
+    }
     reject(`電郵發信服務回傳 HTTP ${response.status}`, 502, 'MAIL_PROVIDER_ERROR');
   }
   let data: any;
