@@ -1,6 +1,6 @@
 # HOKSE User Guide
 
-v1.9 · 13 November 2026 · Find your direction and make progress at your own pace.
+v1.9 · 14 November 2026 · Find your direction and make progress at your own pace.
 
 Website: [Open HOKSE](https://web-education.onrender.com). Sign in with your username or verified email, or create an account with a 6-digit email verification code (and class passcode when required) when self-registration is enabled. Visitors can also browse public posts in the [Student Forum](/forum) before signing in; sign in to post, reply and vote. No software installation is needed.
 
@@ -75,7 +75,12 @@ Choose “Answer this question” under a chat exercise, or the answer button fo
 
 Daily Review brings recent learning and due reviews together. Recall key points, try a short quiz, add notes or revisit a conversation summary.
 
-The Focused Study tool and “Start focus session” (or “25-min open focus” once today's tasks are done) on Study Overview share one focus timer. Once started, it stays in the top bar while you move to lessons, the AI Study Room or quizzes. Immersive desk mode tucks away the sidebar, mobile bottom bar, notifications and search by default; use the desk-lamp toggle beside the timer to show or hide navigation, pause, or end the session (with a **5-second** Undo option if ended early). When a countdown started from a scheduled task finishes, a top-bar prompt lets you choose “Mark task done” in one tap. The timer continues after a page refresh. It is saved in this browser only, does not automatically add to recorded study mins, and does not count as practice evidence.
+Focus sessions offer two modes to match either in-app study or printed Past Paper drills:
+
+- **Task focus**: Start from your next scheduled task on Study Overview or from the Focused Study tool in Daily Review. The timer stays in the top bar (and mirrors the live countdown in the browser tab title) while you move between lessons, the AI Study Room and quizzes. Immersive desk mode tucks away the sidebar, mobile bottom bar, notifications and search by default; use the expand/collapse icon beside the timer to show or hide navigation, or use the top-bar breadcrumb to return to Study Overview. Ending early offers a **5-second** Undo option, and finishing a scheduled task countdown shows a one-tap “Mark task done” button.
+- **Open focus (full-screen locked study desk)**: Select “Open focus” at the top of Today's learning checklist on Study Overview (or inside Daily Review's focus tool) at any time, choose **15, 25, 45 or 75 minutes**, and optionally add a custom label such as a Past Paper drill. Starting enters browser full screen (keeping the screen awake where supported) and locks in-app navigation behind a dedicated study desk; even if you press `Esc` to exit system full screen, the web app stays on the locked focus desk with a one-click “Return to full screen” button. To leave before `00:00`, you must select “Cancel open focus” and confirm. A built-in “Stuck-point scratchpad” lets you jot down tricky question numbers or concepts without leaving focus, then carry them into the AI Study Room or Student Forum in one click once finished.
+
+Active timers resume across page refreshes. Both focus modes and your daily completed open-focus minutes are stored in this browser only; they never write to recorded study minutes or count towards mastery evidence.
 
 After targeted practice, the skill appears under “For your next practice”. Activities for the same skill and learning date are merged. Start a retest with one or two new questions, or practise early. Moving to the next calendar date alone does not establish stable understanding: at least 24 hours, different question families and independent performance are considered together. Calendar changes still require a preview; items that do not fit remain unscheduled.
 
@@ -156,12 +161,12 @@ Use your own account and sign out before leaving a shared computer. For troubles
 
 ## 12. What's new
 
-**v1.9 · A calmer Study Overview · 13 November 2026**
+**v1.9 · A calmer Study Overview and full-screen Open Focus · 14 November 2026**
 
-- Study Overview now centres on Today's learning checklist: start a focus session on your next task directly (or a 25-min open focus once today's tasks are complete), reach your last AI conversation or the Student Forum, and view weekly recorded study mins separately from the browser timer.
-- Added a focus timer that keeps running across pages, with a desk-lamp toggle for immersive desk mode, 5-second Undo when ended early, and a one-tap Mark task done prompt when a task countdown finishes.
+- Study Overview now centres on Today's learning checklist: start task focus on your next scheduled item, open a full-screen Open Focus session at any time, view a unified My learning report modal (integrating the two-week studio review in invited mode), fold secondary suggestions while tasks are pending, and follow a calmer University direction card to University Goals; weekly bars show Hong Kong weekdays and recorded study minutes separately from browser focus timers.
+- Added dual-mode focus sessions: Task focus stays in the top bar with immersive desk toggling, 5-second Undo and one-tap Mark task done on completion; Open focus offers 15 / 25 / 45 / 75-minute presets, native browser full screen plus an app-level locked study desk (requiring Cancel open focus + confirmation to leave early), live tab-title countdowns, a Stuck-point scratchpad with one-click handoff to AI Study Room or Student Forum, and a separate browser-local daily open-focus tally.
 - Regrouped the sidebar by task, added a mobile bottom shortcut bar (Overview, Daily Review, AI Study, Forum, More) with 44 px touch targets, and set Study Overview as the landing page after sign-in.
-- Raised small text size and contrast across the site; search matches both Chinese and English terms with arrow-key and Enter support; notifications clear only when you open a reply or choose Mark all as read.
+- Raised small text size and contrast across the site; search matches both Chinese and English terms (with a one-click handoff to AI Study Room when nothing matches) and supports arrow keys and Enter; notifications clear only when you open a reply or choose Mark all as read.
 
 **v1.8 · Student Forum · 13 November 2026**
 

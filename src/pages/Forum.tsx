@@ -1024,7 +1024,7 @@ export function ForumPage({
                   if (postId) navigate('/forum');
                 }}
               >
-                <span className="forum-board-dot" style={{ background: b.color }}>{b.icon}</span>
+                <span className="forum-board-dot" style={{ background: `color-mix(in srgb, ${b.color} 66%, #142019)` }}>{b.icon}</span>
                 <span>{b.name}</span>
               </button>
             ))}
@@ -1043,7 +1043,7 @@ export function ForumPage({
                       if (postId) navigate('/forum');
                     }}
                   >
-                    <span className="forum-board-dot" style={{ background: b.color }}>{b.icon}</span>
+                    <span className="forum-board-dot" style={{ background: `color-mix(in srgb, ${b.color} 66%, #142019)` }}>{b.icon}</span>
                     <span>{b.name}</span>
                   </button>
                 ))}
@@ -1072,7 +1072,7 @@ export function ForumPage({
                     if (postId) navigate('/forum');
                   }}
                 >
-                  <span className="forum-board-dot" style={{ background: b.color }}>{b.icon}</span>
+                  <span className="forum-board-dot" style={{ background: `color-mix(in srgb, ${b.color} 66%, #142019)` }}>{b.icon}</span>
                   <span>{b.name}</span>
                 </button>
               ))}

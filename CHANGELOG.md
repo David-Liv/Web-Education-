@@ -1,13 +1,13 @@
 # HOKSE 更新日誌 / Release notes
 
-## v1.9.0 · 2026-11-13
+## v1.9.0 · 2026-11-14
 
-- 學習總覽改為以「今天的學習清單」為中心的書桌式版面：下一項任務可直接開始專注，完成當日排程後亦可開啟 25 分鐘自由專注，旁邊提供接續 AI 對話及同學討論區入口；本週統計標明「已記錄學習分鐘」，問候語按香港時間轉換。
-- 新增跨頁持續、只保存在瀏覽器的專注計時（`src/focus.tsx`）：提供檯燈「沉浸書桌模式」切換導覽顯示、提前結束 5 秒撤銷及倒數完成後一鍵標記任務完成，不自動寫入學習紀錄或練習證據。
-- 側邊欄按用途分組（每組不多於四項），手機版新增底部快捷導覽列及 44px 觸控目標，登入後統一進入 `/overview`；全站文字不小於 12px 並提高對比；中英雙語搜尋互通並支援鍵盤選取；通知改為按回覆或「全部標為已讀」才清除。
-- Study Overview is now a study desk centred on Today's learning checklist, with focus sessions for the next task (plus 25-min open focus once today's tasks are complete), entry points to the last AI conversation and the Student Forum, weekly recorded study mins, and Hong Kong time greetings.
-- Added a browser-only focus timer that persists across pages (`src/focus.tsx`) with a desk-lamp immersive toggle, 5-second Undo when ended early, and one-tap task completion handoff; it writes no study records or evidence.
-- Regrouped the sidebar by task (at most four items per group), added a mobile bottom shortcut bar with 44 px touch targets, and made `/overview` the landing page in every mode; raised all text to at least 12px with higher contrast; added cross-language Chinese/English search with keyboard selection; notifications now clear only when a reply is opened or Mark all as read is chosen.
+- 學習總覽改為以「今天的學習清單」為中心的書桌式版面：下一項任務可直接開始任務專注，頂部亦常駐「自由專注」入口；合併「我的學習報告」視窗（真實版整合雙周學習回顧），待辦進行時摺疊次要建議，簡化「我的升學方向」卡片，並按香港星期與「已記錄學習分鐘」呈現每週統計。
+- 新增雙模式瀏覽器專注計時（`src/focus.tsx`）：任務專注保留在頂欄並支援沉浸書桌切換、提前結束 5 秒撤銷及完成後一鍵標記任務完成；自由專注支援 15／25／45／75 分鐘預設、瀏覽器原生全屏與全畫面書桌鎖定（須按「取消自由專注」並再次確認才可中途離開）、分頁標題即時倒數、卡點暫存便條（完成後一鍵帶去 AI 學習室或討論區提問）及獨立保存在瀏覽器的今日自由專注統計，絕不混入學習紀錄或掌握證據。
+- 側邊欄按用途分組（每組不多於四項），手機版新增底部快捷導覽列及 44px 觸控目標，修復 1024px 及 390px 頂欄在專注與英文狀態下的斷行／溢出，提高討論區版塊標籤對比度並消除溫習工具卡的重複堆疊圖標；中英雙語搜尋互通（支援無結果一鍵問 AI）並支援鍵盤選取；通知改為按回覆或「全部標為已讀」才清除。
+- Study Overview is now a study desk centred on Today's learning checklist, with task focus for the next scheduled item, an always-available Open Focus launcher, a unified My learning report modal, calmer secondary cards, and Hong Kong weekday bars for recorded study minutes.
+- Added a dual-mode browser focus system (`src/focus.tsx`): Task focus stays in the top bar with immersive desk toggling, 5-second Undo and one-tap task completion; Open focus provides 15 / 25 / 45 / 75-minute presets, native browser full screen plus an app-level locked focus desk (requiring explicit two-step cancel confirmation to exit early), live tab-title countdowns, a Stuck-point scratchpad with one-click handoff to AI Study Room or Student Forum, and a separate browser-local daily open-focus tally without touching study records or mastery evidence.
+- Regrouped the sidebar by task (at most four items per group), added a mobile bottom shortcut bar with 44 px touch targets, fixed 1024 px and 390 px topbar wrapping/overflow across active focus and English states, raised forum board pill contrast above WCAG AA, streamlined review tool headers, and added cross-language search with zero-result AI handoff.
 
 ## v1.8.0 · 2026-11-13
 
