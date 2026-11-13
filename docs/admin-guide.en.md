@@ -1,6 +1,6 @@
 # HOKSE Administrator Manual
 
-v1.7 · 11 November 2026. For maintaining accounts, content, AI services and programme data.
+v1.8 · 13 November 2026. For maintaining accounts, content, AI services, forum moderation and programme data.
 
 Navigation can collapse to icons on desktop and remembers the browser preference. Calendar moves and Undo use the same ownership, conflict and budget checks; they do not call AI.
 
@@ -72,6 +72,7 @@ For provider failures, inspect status and protocol. For balances, inspect operat
 
 ## 9. Administrator release record
 
+- v1.8 / 13 November 2026: Student Forum (`/forum`) schema migration v3, separate 40 MiB compressed image quota, 3-report auto-hide, reviewer/developer moderation queue, developer-only account mute and `hokse-cloud-v3` backup support.
 - v1.7 / 11 November 2026: Google Apps Script email verification code self-registration (with optional class passcode), username or verified-email sign-in, password reset and email linking; unified module contracts and architecture checks.
 - v1.3 / 5 November 2026: one-pass chat practice review, updates in the original floor, one failure retry, and an administrator-configured reviewer.
 - v1.2 / 4 November 2026: rich chat replies, contextual draft suggestions and collapsible quick-practice answers; one-call generation and local visual exports.
@@ -104,3 +105,13 @@ An explicitly linked chat answer and its feedback share one conversation operati
 Skill reviews merge by skill and learning date. Retests use one or two new items; early practice is allowed but does not bypass the 24-hour, multiple-question and family conditions. Planning still uses budgets, rest days, protected tasks and stale-preview checks. PDF export renders saved questions without generation or revealing reference answers.
 
 Before release, run the practice suite, full server suite, build and isolated PostgreSQL checks. Record browser, real-provider and live checks separately in the v1.6 verification document. Do not describe engineering checks as demonstrated learning gains. OCR, handwritten grading and whole-paper diagnostic exemptions remain outside this release.
+
+## v1.8 Student Forum moderation and storage
+
+The Student Forum adds schema migration `v3` (`forum_profiles`, `forum_posts`, `forum_images`, `forum_comments`, `forum_reactions`, `forum_poll_votes`, `forum_reports`, `forum_notifications`) with PostgreSQL RLS and `REVOKE ALL`. Cloud backups advance to `hokse-cloud-v3` while restores still accept `v1` and `v2` snapshots with empty forum tables.
+
+The forum makes zero AI calls, consumes zero student or platform credits, and never writes formal mastery evidence. Real mode idempotently seeds only three official HOKSE starter posts (with the Treehole megathread defaulting to `members` visibility) and never fabricates student accounts. Signed-out visitors can read only `public` posts and OpenGraph metadata; `members` posts and their images require an active session and return `private, no-store`.
+
+Forum images require browser compression and server-side magic-byte validation (WebP/JPEG/PNG, up to 200 KB per image and 3 images per post) within a dedicated 40 MiB site-wide `forum_images` quota, separate from the 100 MiB private `files` attachment cap so forum uploads cannot exhaust free-tier database storage.
+
+Post-moderation runs from the Moderation Queue tab inside `/forum`: 3 distinct user reports automatically set `auto_hidden`. Both `reviewer` and `developer` roles can pin, lock, restore or soft-delete posts and comments; only `developer` can mute or unmute the underlying author account (`muteHours`) across anonymous and non-anonymous posts without exposing anonymous identities in ordinary views.

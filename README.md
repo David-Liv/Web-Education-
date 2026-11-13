@@ -136,3 +136,7 @@ v1.5 adds versioned David/Matt teaching methods and private PDF lessons. Install
 ## v1.6 targeted learning
 
 Six quadratic skills share a private question/attempt registry across Tutor chats, PDFs and practice packs. Auto selection prefers verifiable original variants; independent AI fallback uses quiz validation. Review claims are once per attempt and platform-funded. No schema migration or new service is required. Run `pnpm test:server` (includes `server/practice.check.ts`), `pnpm test`, `pnpm build:pilot`, and `pnpm check:postgres` before publication. Keep hint/answer/repeat provenance and provisional-vs-formal distinctions intact. See [design](docs/v1.6-learning-loop-plan.md), [API contract](docs/v1.6-learning-contract.md), and [verification](docs/v1.6-verification.md).
+
+## v1.8 同學討論區（Student Forum）
+
+新增 `/forum` 與 `/forum/post/:postId` Reddit 式全科討論區：支援未登入訪客唯讀瀏覽公開貼文及服務端 OpenGraph 預覽、`members` 僅登入可見保護、獨立論壇暱稱與單貼重置匿名編號、摺疊蓋樓留言、單選投票，以及前端 Canvas 壓縮（≤ 200 KB）＋服務端魔術字節校驗與全站獨立 40 MiB `forum_images` 配額。討論區 100% 純真人、零 AI credit 消耗，不影響個人掌握證據；真實模式僅冪等建立 3 篇「學序官方」引導貼。資料庫遷移升至 `v3`、雲端備份升至 `hokse-cloud-v3`（向下兼容 `v1`/`v2` 還原），`pnpm test:server` 已包含 `server/forum.check.ts`。

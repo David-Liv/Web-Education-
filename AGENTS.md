@@ -16,3 +16,17 @@
 - Do not persist copied third-party question banks, stems, answers, explanations, credentials, or source PDFs in public assets. A source access failure must remain visible; do not fabricate extraction results.
 
 Subagent preferences supplied by the user remain applicable; this file does not authorize extra delegation.
+
+## Agent skills
+
+### Issue tracker
+
+Issues and specs are tracked in GitHub Issues (`David-Liv/Web-Education-`) via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Uses the default five canonical triage labels (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context layout (`GLOSSARY.md` and `docs/adr/` at the repo root). See `docs/agents/domain.md`.

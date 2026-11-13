@@ -1,4 +1,5 @@
 import { AiCostNotice } from './Billing';
+import { boardForSubject } from '../forum-types';
 import { ui, interfaceLocale, useInterfaceLanguage } from "../i18n";
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
@@ -24,7 +25,7 @@ function Session({ id }: {
     id: string;
 }) {
     useInterfaceLanguage();
-    const { db, mutate, toast } = useApp(), navigate = useNavigate();
+    const { db, catalog, mutate, toast } = useApp(), navigate = useNavigate();
     const [loaded, setLoaded] = useState<{
         quiz: Quiz;
         questions: PublicQuestion[];
@@ -74,7 +75,7 @@ function Session({ id }: {
         catch { }
         finally {
             setBusy(false);
-        } }}>{ui("請 AI 提出錯因候選")}</button></div>}</article>; })}{response?.nextStep && <section className="card pilot-card next-step"><Badge tone="green">{ui("下一步")}</Badge><h2>{ui("把這次發現，變成下一個小進步。")}</h2><p>{response.pausedSkills?.length ? ui("有技能需要先做前置補救，請回學習流程查看。") : ui("你可以繼續補弱，也可預覽把部分時間轉移到其他學科。整科是否達標仍依學校或完整模擬試。")}</p><div className="pilot-actions"><Link className="btn primary" to="/pilot">{ui("繼續補強／前置補救")}</Link><Link className="btn secondary" to={`/pilot?maintain=${encodeURIComponent(quiz.topicIds[0])}`}>{ui("預覽維持與時間調配")}</Link><Link className="btn secondary" to="/goals">{ui("查看較高目標情景")}</Link></div></section>}<div className="pilot-actions"><Link className="btn primary" to="/review">{ui("每日復習")}</Link><Link className="btn secondary" to="/pilot">{ui("查看學習與計劃")}</Link><Link className="btn ghost" to="/quizzes">{ui("所有練習")}</Link></div></div>;
+        } }}>{ui("請 AI 提出錯因候選")}</button></div>}<div style={{ marginTop: 10 }}><Link className="text-link" to="/forum" state={{ composeDraft: { boardId: boardForSubject(quiz.subjectId, catalog.subjects), flair: 'help', title: '', questionRef: { sourceKind: 'quiz-result', subjectId: quiz.subjectId, topicName: catalog.topics.find(t => t.id === q.topicId)?.name, title: `${quiz.title} · Q${i + 1}`, promptExcerpt: q.prompt.slice(0, 260) } } }}>{ui("去討論區討論此題")}</Link></div></article>; })}{response?.nextStep && <section className="card pilot-card next-step"><Badge tone="green">{ui("下一步")}</Badge><h2>{ui("把這次發現，變成下一個小進步。")}</h2><p>{response.pausedSkills?.length ? ui("有技能需要先做前置補救，請回學習流程查看。") : ui("你可以繼續補弱，也可預覽把部分時間轉移到其他學科。整科是否達標仍依學校或完整模擬試。")}</p><div className="pilot-actions"><Link className="btn primary" to="/pilot">{ui("繼續補強／前置補救")}</Link><Link className="btn secondary" to={`/pilot?maintain=${encodeURIComponent(quiz.topicIds[0])}`}>{ui("預覽維持與時間調配")}</Link><Link className="btn secondary" to="/goals">{ui("查看較高目標情景")}</Link></div></section>}<div className="pilot-actions"><Link className="btn primary" to="/review">{ui("每日復習")}</Link><Link className="btn secondary" to="/pilot">{ui("查看學習與計劃")}</Link><Link className="btn ghost" to="/quizzes">{ui("所有練習")}</Link></div></div>;
     }
     const q = loaded.questions[index], answer = answers[q.id] ?? { value: '' };
     const update = (patch: Partial<Answer>) => { setSaved('保存中…'); setAnswers(a => ({ ...a, [q.id]: { ...(a[q.id] ?? { value: '' }), ...patch } })); };

@@ -1,5 +1,6 @@
 import { LanguageSwitch, ui, useInterfaceLanguage } from './i18n';
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from './api/client';
 
 type Mode = 'login' | 'register' | 'reset';
@@ -9,13 +10,16 @@ export function Login({
   registrationMode = 'closed',
   passwordResetEnabled = false,
   onDone,
+  onBackToForum,
 }: {
   setup: boolean;
   registrationMode?: 'closed' | 'passcode' | 'open';
   passwordResetEnabled?: boolean;
   onDone: () => void;
+  onBackToForum?: () => void;
 }) {
   useInterfaceLanguage();
+  const navigate = useNavigate();
   const [mode, setMode] = useState<Mode>('login');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -412,6 +416,19 @@ export function Login({
               ? ui("每個電郵地址限綁定一個學習帳戶；驗證碼於 10 分鐘內有效。")
               : ui("尚未有帳戶？請向試用負責人索取邀請。")}
         </small>
+        {!setup && (
+          <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--border)', textAlign: 'center' }}>
+            {onBackToForum ? (
+              <button type="button" className="btn secondary" onClick={onBackToForum}>
+                {ui("返回同學討論區繼續瀏覽")}
+              </button>
+            ) : (
+              <button type="button" className="btn secondary" onClick={() => navigate('/forum')}>
+                {ui("先逛逛同學討論區")}
+              </button>
+            )}
+          </div>
+        )}
       </section>
     </main>
   );

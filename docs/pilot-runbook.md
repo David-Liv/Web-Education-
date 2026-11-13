@@ -1,3 +1,4 @@
+2026-11-13／v1.8：新增「同學討論區」（`/forum`，`server/forum.ts` 與 `server/forum-routes.ts`），資料庫遷移升至 `v3`（八張 `forum_*` 表，PostgreSQL 啟用 RLS 及 `REVOKE ALL`），雲端備份升至 `hokse-cloud-v3` 並向下兼容 `v1`／`v2` 空庫還原。附圖經前端壓縮與服務端魔術字節校驗（≤ 200 KB），獨立受 40 MiB `forum_images` 配額保護（與 `files` 100 MiB 分開）。討論區不呼叫 AI、不扣 credit、不寫掌握證據；真實模式僅冪等建立 3 篇學序官方引導貼。`pnpm test:server` 已包含 `server/forum.check.ts`。
 2026-11-11／v1.7：新增 Google Apps Script 私有 HTTPS Webhook 電郵驗證碼方案（`server/auth-mail.ts`），支援管理員在 `/developer?tab=users` 切換「僅管理員手動建立」、「電郵驗證碼 + 班級通行碼」及「公開電郵驗證碼註冊」，並支援帳戶名稱或已驗證電郵登入、忘記密碼重設（撤銷舊會話，管理員帳戶除外）及 `/settings` 補綁電郵。發信設定、驗證碼雜湊與綁定電郵均以 AES-256-GCM 加密保存在既有 `settings` 表，無需 DDL 遷移並兼容 `hokse-cloud-v2` 備份。
 2026-11-06／v1.6：使用原有學生 JSON 保存統一題目、作答及技能復習，不需 DDL／新服務。免費復核由平台承擔真實 API 成本，每筆一次；先代碼，否則全站復核模型。維持既有 Render Free／Supabase Free，檢查通過才發布。見 [v1.6 契約](v1.6-learning-contract.md) 與 [驗證紀錄](v1.6-verification.md)。
 

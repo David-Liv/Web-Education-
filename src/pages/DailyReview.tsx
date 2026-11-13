@@ -3,6 +3,7 @@ import { ui, useInterfaceLanguage, readableDate } from "../i18n";
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useApp } from '../state';
+import { clock, useFocus } from '../focus';
 import { api, getDailyReview } from '../api/client';
 import { StudyReportButton } from './StudyWidgets';
 import { addDays, mastery} from '../domain';
@@ -47,8 +48,7 @@ export function DailyReviewPage() {
     const [teachText, setTeachText] = useState('');
     const [feedback, setFeedback] = useState(false);
     const [attachments, setAttachments] = useState<Attachment[]>([]);
-    const [seconds, setSeconds] = useState(0);
-    const [running, setRunning] = useState(false);
+    const focus = useFocus();
     const [wrap, setWrap] = useState('');
     const load = useCallback(async () => { setError(''); try {
         setData(await getDailyReview());
@@ -57,18 +57,12 @@ export function DailyReviewPage() {
         setError((e as Error).message);
     } }, []);
     useEffect(() => { void load(); }, [db, load]);
-    useEffect(() => { if (!running || tool !== 'focus')
-        return; const id = setInterval(() => setSeconds(s => { if (s <= 1) {
-        setRunning(false);
-        toast('這一段專注完成了，休息一下。');
-        return 0;
-    } return s - 1; }), 1000); return () => clearInterval(id); }, [running, tool]);
-    const open = (id: string, reviewId?: string) => { setFocusId(reviewId ?? null); setTool(id); setCardIndex(0); setFlipped(false); setFeedback(false); setSeconds((data?.budget ?? 10) * 60); setRunning(false); if (id === 'notes') {
+    const open = (id: string, reviewId?: string) => { setFocusId(reviewId ?? null); setTool(id); setCardIndex(0); setFlipped(false); setFeedback(false); if (id === 'notes') {
         setNoteId(undefined);
         setNoteTitle('');
         setNoteBody('');
     } };
-    const close = () => { setTool(null); setRunning(false); };
+    const close = () => { setTool(null); };
     const allItems = (data?.items ?? []).map(item => {
         const displayTopic=catalog.topics.find(t=>t.id===item.topicId);
         return {...item,topic:displayTopic?{...item.topic,name:displayTopic.name,module:displayTopic.module,unit:displayTopic.unit,papers:displayTopic.papers}:item.topic};
@@ -135,7 +129,7 @@ export function DailyReviewPage() {
  {tool === 'drills' && <div className="subject-drills">{[['chi', '古文與閱讀', 'chi-classic-9'], ['eng', '語境詞義與搭配', 'eng-vocab'], ['maths', '公式與解題步驟', 'maths-quadratic'], ['chem', '酸鹼與實驗判斷', 'chem-acids']].map(([id, label, topicId]) => <button key={id} className="drill-card" disabled={busy} onClick={() => void beginQuiz([topicId], id)}><SubjectIcon id={id}/><div><h3>{ui(label)}</h3><p>{ui("短題練習 · 做完再看解析")}</p></div></button>)}</div>}
  {tool === 'teach' && <><div className="info-callout"><Icon name="bulb"/><p>{ui("試著向一位同學解釋「{0}」。可以先講核心，再舉例子。評價目前為示範。", [unique[0]?.topic.name ?? ui("一個剛學過的概念")])}</p></div><textarea className="question-answer-input" value={teachText} onChange={e => setTeachText(e.target.value)} placeholder={ui("用自己的話說說看……")}/><MediaInput onAttached={a => setAttachments(old => [...old, a])}/><div>{attachments.map(a => <AttachmentPreview key={a.id} attachment={a} onRemove={() => setAttachments(old => old.filter(x => x.id !== a.id))}/>)}</div><div className="modal-actions"><button className="btn primary" disabled={!teachText.trim() && !attachments.length} onClick={() => setFeedback(true)}>{ui("看看示範回饋")}<Icon name="arrow" size={15}/></button></div>{feedback && <div className="summary-item" style={{ marginTop: 20 }}><Badge tone="amber">{ui("模擬回饋 · 尚未分析文字或錄音")}</Badge><h3 style={{ marginTop: 14 }}>{ui("核對你的解釋是否有這三部分")}</h3><ul><li>{ui("一句清楚的核心概念")}</li><li>{ui("一個相關例子或計算步驟")}</li><li>{ui("指出一個常見混淆")}</li></ul><p className="small muted">{ui("你可以對照剛才的回答，自行補充其中一點。")}</p></div>}</>}
  {tool === 'notes' && <><div className="form-grid"><label className="field full"><span>{ui("筆記標題")}</span><input value={noteTitle} onChange={e => setNoteTitle(e.target.value)} placeholder={ui("給這個小發現一個名字")}/></label><label className="field full"><span>{ui("用自己的話留下來")}</span><textarea rows={5} value={noteBody} onChange={e => setNoteBody(e.target.value)} placeholder={ui("我理解到……我的例子是……還想問的是……")}/></label></div><div className="modal-actions"><button className="btn ghost" onClick={() => { setNoteId(undefined); setNoteTitle(''); setNoteBody(''); }}>{ui("新增另一則")}</button><button className="btn primary" onClick={() => void saveNote()}><Icon name="check" size={16}/>{ui("儲存筆記")}</button></div><SectionTitle title={ui("已保存的發現")}/><input className="question-answer-input" style={{ margin: '0 0 15px' }} value={notesQuery} onChange={e => setNotesQuery(e.target.value)} placeholder={ui("搜尋筆記")} aria-label={ui("搜尋筆記")}/><div className="notes-list">{db.notes.filter(n => `${n.title}${n.body}`.includes(notesQuery)).map(n => <section className="note-item" key={n.id}><div className="row-between"><h3>{n.title}</h3><div><button className="icon-btn" aria-label={ui("編輯 {0}", [n.title])} onClick={() => { setNoteId(n.id); setNoteTitle(n.title); setNoteBody(n.body); }}><Icon name="pencil" size={14}/></button><button className="icon-btn" aria-label={ui("刪除 {0}", [n.title])} onClick={() => void mutate(`/notes/${n.id}`, 'DELETE').then(() => toast('已移除這則筆記')).catch(() => { })}><Icon name="trash" size={14}/></button></div></div><p>{n.body}</p><small>{n.date}</small></section>)}</div>{!db.notes.length && <p className="small muted">{ui("第一則筆記，從今天的一個小發現開始。")}</p>}</>}
- {tool === 'focus' && <><p className="small muted" style={{ textAlign: 'center' }}>{ui("一次只專注一小段，完成後再休息。")}</p><div className="focus-clock" aria-live="off">{Math.floor(seconds / 60).toString().padStart(2, '0')}:{(seconds % 60).toString().padStart(2, '0')}</div><div className="focus-tools"><button className="btn primary" onClick={() => setRunning(!running)} disabled={!seconds}><Icon name={running ? 'pause' : 'play'}/>{running ? ui("暫停") : ui("開始專注")}</button><button className="btn secondary" onClick={() => { setRunning(false); setSeconds(data.budget * 60); }}><Icon name="reset"/>{ui("重新計時")}</button></div>{unique.slice(0, 4).map(i => <div className="plan-allocation" key={i.id}><SubjectIcon id={i.topic.subjectId}/><div><h3>{i.topic.name}</h3><p>{i.lastReviewed === db.profile.date ? ui("已完成回顧") : ui(i.reason)}</p></div><button className="icon-btn" aria-label={ui("完成回顧 {0}", [i.topic.name])} onClick={() => void finish([i.id])}><Icon name={i.lastReviewed === db.profile.date ? 'checkCircle' : 'check'} size={19}/></button></div>)}</>}
+ {tool === 'focus' && <><p className="small muted" style={{ textAlign: 'center' }}>{ui("一次只專注一小段，完成後再休息。")}</p><div className="focus-clock" aria-live="off">{clock(focus.session ? focus.remaining : data.budget * 60)}</div><div className="focus-tools">{focus.session ? <><button className="btn primary" onClick={focus.running ? focus.pause : focus.resume}><Icon name={focus.running ? 'pause' : 'play'}/>{focus.running ? ui("暫停") : ui("繼續專注")}</button><button className="btn secondary" onClick={focus.stop}><Icon name="x"/>{ui("結束專注")}</button></> : <button className="btn primary" onClick={() => { focus.start(data.budget, '每日溫習'); close(); }}><Icon name="play"/>{ui("開始專注")}</button>}</div>{unique.slice(0, 4).map(i => <div className="plan-allocation" key={i.id}><SubjectIcon id={i.topic.subjectId}/><div><h3>{i.topic.name}</h3><p>{i.lastReviewed === db.profile.date ? ui("已完成回顧") : ui(i.reason)}</p></div><button className="icon-btn" aria-label={ui("完成回顧 {0}", [i.topic.name])} onClick={() => void finish([i.id])}><Icon name={i.lastReviewed === db.profile.date ? 'checkCircle' : 'check'} size={19}/></button></div>)}</>}
  {tool === 'wrap' && <><h3>{ui("今天，你想把哪個發現帶到明天？")}</h3><p className="small muted" style={{ marginTop: 9 }}>{ui("可以記下已弄懂的事，也可以誠實留下仍然不清楚的問題。")}</p><textarea className="question-answer-input" rows={5} value={wrap} onChange={e => setWrap(e.target.value)} placeholder={ui("今天我弄懂了……但我還想再看看……")}/><div className="info-callout"><Icon name="sun"/><p>{ui("你的紀錄會保存在溫習筆記。未完成項目繼續留在清單，明天可依可用時間安排。")}</p></div><div className="modal-actions"><button className="btn primary" disabled={!wrap.trim()} onClick={() => void mutate('/notes', 'POST', { title: `${readableDate(db.profile.date)} · 晚間收尾`, body: wrap }).then(() => { toast('今天的小發現已留下來'); close(); }).catch(() => { })}>{ui("保存今天的收尾")}<Icon name="check" size={16}/></button></div></>}
  {tool === 'report' && <><div className="report-numbers"><div><strong>{data.session?.completedIds.length ?? 0}</strong><span>{ui("今天回顧的知識點")}</span></div><div><strong>{db.reviewSessions.length}</strong><span>{ui("有複習紀錄的日子")}</span></div><div><strong>{db.notes.length}</strong><span>{ui("自己的溫習筆記")}</span></div></div>{catalog.topics.filter(t => db.evidence.some(e => e.topicId === t.id)).map(t => { const m = mastery(t.id, db.evidence); return <div className="report-topic" key={t.id}><div><strong>{t.name}</strong><small>{ui("{0} 道獨立題目 · {1}", [m.count, ui(m.label)])}</small></div><Progress value={m.score ?? 0}/><strong>{m.score}%</strong></div>; })}<div className="info-callout"><Icon name="bulb"/><p>{ui("翻卡和閱讀總結代表完成回顧；獨立作答才累積練習證據。兩種進步，都值得分開看清楚。")}</p></div></>}
  </Modal>}</div>;

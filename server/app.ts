@@ -1,4 +1,6 @@
 import {practiceRoutes} from './practice-routes.ts';
+import {ForumService} from './forum.ts';
+import {handleForumRoutes,injectForumOpenGraph} from './forum-routes.ts';
 import {handleAuthedAuthMailRoutes,handlePublicAuthMailRoutes,listUserBoundEmails,publicAuthStatus,resolveLoginUsername} from './auth-mail.ts';
 import {calendarMoveIssue} from '../src/calendar-move.ts';
 import { createServer } from 'node:http';
@@ -40,6 +42,9 @@ export function createPilot(options:Options={}){
   const store=new Store(options.database??resolve('.data/pilot.sqlite'),{databaseUrl:options.databaseUrl,encryptionKey:options.encryptionKey});
   const billing=new Billing(store);
   const chats=new ChatService(store,billing,options.origin);
+  const forum=new ForumService(store);
+  let forumSeeded=false;
+  const ensureForum=async()=>{if(!forumSeeded){await store.ready;await forum.ensureStarterPosts();forumSeeded=true}};
   const attempts=new Map<string,{n:number;until:number}>();
   const assets=new Map<string,{mtime:number;bytes:Buffer;gzip?:Buffer;etag:string}>();
   function bodyLimit(req:IncomingMessage,max=3*1024*1024):Promise<Buffer>{return new Promise((resolve,reject)=>{const chunks:Buffer[]=[];let size=0;req.on('data',c=>{size+=c.length;if(size>max){reject(Object.assign(new Error('內容超過允許大小'),{status:413}));req.pause();return}chunks.push(c)});req.on('end',()=>resolve(Buffer.concat(chunks)));req.on('error',reject)})}
@@ -55,6 +60,18 @@ export function createPilot(options:Options={}){
         if(candidate!==root&&!candidate.startsWith(root+sep))reject('無法讀取',404);
         const file=existsSync(candidate)&&statSync(candidate).isFile()?candidate:resolve(root,'index.html');
         if(!existsSync(file))reject('請先建立正式前端',503);
+        if(file===resolve(root,'index.html')&&url.pathname.startsWith('/forum/post/')){
+          await ensureForum();
+          const postId=decodeURIComponent(url.pathname.slice('/forum/post/'.length).split('/')[0]??'');
+          const og=postId?await forum.getPublicPostMeta(postId):null;
+          if(og){
+            const html=injectForumOpenGraph(readFileSync(file,'utf8'),og);
+            const raw=Buffer.from(html,'utf8');
+            const out=raw.length>1024&&/\bgzip\b/.test(req.headers['accept-encoding']??'')?gzipSync(raw):raw;
+            res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','X-Content-Type-Options':'nosniff','Cache-Control':'no-cache',Vary:'Accept-Encoding',...(out!==raw?{'Content-Encoding':'gzip'}:{}),'Content-Length':String(out.length)});
+            res.end(method==='HEAD'?undefined:out);return;
+          }
+        }
         const mtime=statSync(file).mtimeMs,type=MIME[extname(file)]??'application/octet-stream';
         let asset=assets.get(file);if(!asset||asset.mtime!==mtime){const bytes=readFileSync(file);asset={mtime,bytes,etag:`W/"${createHash('sha256').update(bytes).digest('base64url')}"`};assets.set(file,asset)}
         const headers:Record<string,string>={'Content-Type':type,'X-Content-Type-Options':'nosniff','Cache-Control':file!==resolve(root,'index.html')&&url.pathname.startsWith('/assets/')?'public, max-age=31536000, immutable':'no-cache',ETag:asset.etag,Vary:'Accept-Encoding'};
@@ -68,7 +85,7 @@ export function createPilot(options:Options={}){
         if(req.headers.origin&&req.headers.origin!==origin)reject('請從本網站提交操作',403,'ORIGIN');
         if(req.headers['x-hokse-client']!=='1')reject('缺少網站請求標記',403,'ORIGIN');
       }
-      const input=method==='GET'||method==='DELETE'?{}:path==='/attachments/upload'?{}:await (async()=>{const raw=await bodyLimit(req);if(!raw.length)return {};try{return JSON.parse(raw.toString())}catch{reject('請提供有效 JSON')}})();
+      const input=method==='GET'||method==='DELETE'?{}:(path==='/attachments/upload'||path==='/forum/images')?{}:await (async()=>{const raw=await bodyLimit(req);if(!raw.length)return {};try{return JSON.parse(raw.toString())}catch{reject('請提供有效 JSON')}})();
       const token=(req.headers.cookie??'').split(';').map(c=>c.trim()).find(c=>c.startsWith('hokse_session='))?.slice(14)??'';
       const identity=(await store.identity(token));
       const cookie=(value:string,maxAge:number)=>res.setHeader('Set-Cookie',`hokse_session=${value}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${maxAge}${options.secureCookie?'; Secure':''}`);
@@ -88,7 +105,9 @@ export function createPilot(options:Options={}){
         if(!user)reject('帳戶或密碼不正確',401,'UNAUTHENTICATED');
         attempts.delete(key);cookie((await store.session(user)),604800);send(user);return;
       }
-      if(await handlePublicAuthMailRoutes(store,path,method,input,req.socket.remoteAddress??'unknown',attempts,cookie,send))return;if(!identity)reject('請先登入邀請帳戶',401,'UNAUTHENTICATED');
+      if(await handlePublicAuthMailRoutes(store,path,method,input,req.socket.remoteAddress??'unknown',attempts,cookie,send))return;
+      if(path==='/forum'||path.startsWith('/forum/')){await ensureForum();await handleForumRoutes(store,forum,identity,path,method,input,url.searchParams,req,res,bodyLimit,send);return}
+      if(!identity)reject('請先登入邀請帳戶',401,'UNAUTHENTICATED');
       if(path==='/auth/logout'&&method==='POST'){(await store.logout(token));cookie('',0);send({ok:true});return}if(await handleAuthedAuthMailRoutes(store,identity,path,method,input,send))return;
       if(await billingRoutes(billing,identity,path,method,input,url.searchParams,send,res))return;
       const handle=async(send:(data:any,status?:number)=>void)=>{

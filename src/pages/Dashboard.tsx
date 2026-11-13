@@ -1,14 +1,38 @@
 import { ui, useInterfaceLanguage, readableDate } from "../i18n";
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import type { CSSProperties } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useApp } from '../state';
+import { useFocus } from '../focus';
+import { api, realMode } from '../api/client';
 import { StudyReportButton } from './StudyWidgets';
 import { addDays, calculateScore, dailyCapacity, mastery, selectedGrades } from '../domain';
-import { Badge, Icon, Modal, PageHeading, Progress, SectionTitle, SubjectIcon, TinyChart } from '../components';
+import { Badge, Icon, Modal, Progress, SectionTitle, SubjectIcon } from '../components';
+import type { Task } from '../types';
+
+// Seven real daily totals, one labelled column per day.
+function TinyChartBars({ dates, minutes, today }: { dates: string[]; minutes: number[]; today: string }) {
+    const max = Math.max(...minutes, 1);
+    return <ol className="desk-bars" aria-label={ui("最近七天學習時間變化")}>{dates.map((d, i) => <li key={d} className={d === today ? 'today' : ''}><span className="desk-bar-value">{minutes[i] || ''}</span><span className="desk-bar-track" aria-hidden="true"><span className="desk-bar" style={{ height: `${Math.max(minutes[i] ? 6 : 2, minutes[i] / max * 100)}%` }}/></span><span className="desk-bar-day"><span className="sr-only">{readableDate(d)} · {ui("{0} 分鐘", [minutes[i]])}</span><span aria-hidden="true">{new Date(d + 'T12:00:00Z').getUTCDate()}</span></span></li>)}</ol>;
+}
+
+// One destination per task, shared by the title, the row arrow and the focus button.
+const taskHref = (task: Task) => task.kind === 'review' ? '/review' : task.kind === 'practice' ? `/quizzes?subjectId=${task.subjectId}&topicId=${task.topicId ?? ''}` : `/subjects/${task.subjectId}?topic=${task.topicId ?? ''}`;
+const taskTone = (task: Task) => task.kind === 'review' ? 'green' : task.kind === 'practice' ? 'blue' : 'amber';
+function greeting(name: string) {
+    const hour = Number(new Intl.DateTimeFormat('en-GB', { hour: 'numeric', hourCycle: 'h23', timeZone: 'Asia/Hong_Kong' }).format(new Date()));
+    if (hour >= 5 && hour < 12) return ui("早晨，{0}。", [name]);
+    if (hour >= 12 && hour < 18) return ui("午安，{0}。", [name]);
+    if (hour >= 18 && hour < 23) return ui("晚上好，{0}。", [name]);
+    return ui("夜深了，{0}。", [name]);
+}
 export function Dashboard() {
     useInterfaceLanguage();
-    const { db, catalog, mutate, toast } = useApp();
+    const { db, catalog, applyTask, refresh, toast } = useApp();
+    const focus = useFocus();
+    const navigate = useNavigate();
     const [report, setReport] = useState(false);
+    const [busyId, setBusyId] = useState<string | null>(null);
     const today = db.profile.date;
     const weekDates = Array.from({ length: 7 }, (_, i) => addDays(today, i - 6));
     const minutes = weekDates.map(date => db.events.filter(e => e.date === date).reduce((s, e) => s + e.minutes, 0));
@@ -17,19 +41,83 @@ export function Dashboard() {
     const scoredTopics = catalog.topics.map(t => ({ ...t, ...mastery(t.id, db.evidence) })).filter(t => t.count > 0);
     const stable = scoredTopics.filter(t => db.pilot ? t.label.startsWith('較穩定') : t.count >= 3 && t.score! >= 80);
     const due = db.reviews.filter(r => r.dueDate <= today && r.lastReviewed !== today);
-    const tasks = db.tasks.filter(t => t.date === today && t.kind !== 'exam');
+    const tasks = db.tasks.filter(t => t.date === today && t.kind !== 'exam').sort((a, b) => a.start.localeCompare(b.start));
     const finished = tasks.filter(t => t.status === 'done').length;
+    const next = tasks.find(t => t.status === 'pending');
+    const nextTitle = next ? ui(next.title) : '';
+    const rest = tasks.filter(t => t !== next);
     const goal = catalog.programmes.find(p => p.id === db.profile.primaryProgramme);
     const score = goal?.formula ? calculateScore(selectedGrades(db.profile), goal.formula) : null;
     const target = goal?.formula ? calculateScore(selectedGrades(db.profile, true), goal.formula) : null;
     const recent = db.chats[0];
     const weakest = scoredTopics.filter(t => t.count >= 3).sort((a, b) => (a.score ?? 100) - (b.score ?? 100))[0];
-    return <div className="dashboard page-enter"><PageHeading eyebrow={new Intl.DateTimeFormat('en', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date(today + 'T12:00:00Z')).toUpperCase()} title={ui("早晨，{0}。", [db.profile.name])} description={ui("每一點小進步，都讓你離想去的地方更近。")} action={<><StudyReportButton /><button className="btn secondary" onClick={() => setReport(true)}><Icon name="trend" size={17}/>{ui("我的學習報告")}</button></>}/>
- <div className="dashboard-hero-grid"><section className="welcome-card"><div className="welcome-copy"><span className="hero-eyebrow"><i />{ui("每一天，都有新的可能")}</span><h2>{ui("找到自己的節奏，")}<br />{ui("把學習慢慢變成力量。")}</h2><p>{ui("從昨天學過的內容開始，")}<br className="desktop-only"/>{ui("今天為自己留一點鞏固的時間。")}</p><Link className="btn cream" to={db.events.length ? "/review" : "/start"}>{db.events.length ? ui("開始今日溫習") : ui("設定我的備試計劃")} <Icon name="arrow" size={17}/></Link><span className="hero-note"><Icon name="clock" size={13}/>{ui('建議 {0} 分鐘 · {1} 個待回顧知識點',[Math.min(20,Math.floor(dailyCapacity(db.profile,today)*db.profile.reviewPercent/100)),due.length])}</span></div><div className="study-illustration" aria-hidden="true"><div className="orbit orbit-one"/><div className="orbit orbit-two"/><div className="float-note"><Icon name="checkCircle" size={18}/><span>{ui("小小累積，大大進步")}</span></div><svg viewBox="0 0 280 240"><ellipse cx="145" cy="208" rx="106" ry="13" fill="#123e34" opacity=".25"/><path d="M79 171 172 150 230 168 137 193Z" fill="#ccad78"/><path d="m79 171 58 22v16l-58-21Z" fill="#ecd8ae"/><path d="m137 193 93-25v15l-93 26Z" fill="#a17e4e"/><path d="m89 147 94-22 54 20-94 24Z" fill="#c5d3b0"/><path d="m89 147 54 22v17l-54-21Z" fill="#f0edda"/><path d="m143 169 94-24v17l-94 24Z" fill="#8faaa0"/><path d="m72 125 96-24 57 22-96 26Z" fill="#efe7ca"/><path d="m72 125 57 24v18l-57-23Z" fill="#fff8e7"/><path d="m129 149 96-26v18l-96 26Z" fill="#d2c39c"/><path d="M126 122q-24-42-7-76 27 25 17 62M131 103q20-47 57-44-3 32-50 51" fill="#7dab88"/><path d="M122 59q14 34 10 64m4-18 41-37" stroke="#2c6854" strokeWidth="2" fill="none"/><path d="m165 88 15 7 16-36-15-7Z" fill="#edb875"/><path d="m165 88 2 16 13-9Z" fill="#efe3c3"/><path d="m167 104 4-6-4-2Z" fill="#355d4b"/><path d="m184 53 10 4 4-10q-4-6-10-4Z" fill="#e3a593"/><path d="m63 71 3-9 3 9 9 3-9 3-3 9-3-9-9-3Z" fill="#ead8a7"/><circle cx="215" cy="104" r="4" fill="#aac2a2"/></svg><div className="illustration-label">GROW A LITTLE, EVERY DAY</div></div></section>
- <section className="goal-card"><div className="card-topline"><span><Icon name="target" size={16}/>{ui("我的升學方向")}</span><Link to="/goals" aria-label={ui("編輯升學目標")}><Icon name="arrowUp" size={18}/></Link></div><div className="university-stamp">{goal?.institution ?? 'DSE'}<span>MY NEXT CHAPTER</span></div><h3>{goal?.name ?? ui("先為自己定一個目標")}</h3><p className="small muted">{goal?.institutionName ?? ui("成績目標與升學方向")}</p><div className="goal-score"><div><small>{ui("目前參考分數")}</small><strong>{score?.score?.toFixed(1) ?? '—'}</strong></div><Icon name="arrow" size={19}/><div><small>{ui("我的目標")}</small><strong>{target?.score?.toFixed(1) ?? '—'}</strong></div></div><Progress value={score?.score && target?.score ? score.score / target.score * 100 : 0}/><p className="score-source">{ui("{0} 規則參考 · 目標由本人設定", [goal?.formulaYear ?? 2027])}</p></section></div>
- <div className="stats-grid"><div className="stat-card"><span className="stat-icon green"><Icon name="clock" size={20}/></span><div><span>{ui("本週學習時間")}</span><strong>{(weekTotal / 60).toFixed(1)}<small>{ui("小時")}</small></strong></div><span className="stat-foot">{ui("每天一點點")}</span></div><div className="stat-card"><span className="stat-icon blue"><Icon name="checkCircle" size={20}/></span><div><span>{ui("較穩固的知識點")}</span><strong>{stable.length}<small>{ui("/ {0} 已評估", [scoredTopics.length])}</small></strong></div><span className="stat-foot">{ui("依獨立作答證據")}</span></div><div className="stat-card"><span className="stat-icon amber"><Icon name="review" size={20}/></span><div><span>{ui("今天待溫習")}</span><strong>{due.length}<small>{ui("個知識點")}</small></strong></div><Link to="/review" className="stat-link" aria-label={ui("前往每日溫習")}><Icon name="arrow" size={17}/></Link></div><div className="stat-card"><span className="stat-icon lavender"><Icon name="list" size={20}/></span><div><span>{ui("今日計劃完成")}</span><strong>{finished}<small>{ui("/ {0} 項", [tasks.length])}</small></strong></div><Link to="/calendar" className="stat-link" aria-label={ui("查看今日計劃")}><Icon name="arrow" size={17}/></Link></div></div>
- <div className="dashboard-lower"><div className="dashboard-primary"><SectionTitle title={ui("我的學科")} to="/subjects" link={ui("探索所有學科")}/><div className="subject-cards">{selectedSubjects.map(subject => { const ts = catalog.topics.filter(t => t.subjectId === subject.id); const scored = ts.map(t => mastery(t.id, db.evidence)).filter(m => m.count > 0); const average = scored.length ? Math.round(scored.reduce((a, b) => a + (b.score ?? 0), 0) / scored.length) : 0; return <Link className="subject-card" key={subject.id} to={`/subjects/${subject.id}`}><div className="subject-card-top"><SubjectIcon id={subject.id}/><Icon name="arrowUp" size={16}/></div><h3>{subject.name}</h3><p>{subject.en}</p><div className="subject-progress-label"><span>{ui("已評估練習表現")}</span><strong>{scored.length ? average + '%' : ui("未評估")}</strong></div><Progress value={average} color={subject.color}/><small>{ui("{0} / {1} 個知識點有作答證據", [scored.length, ts.length])}</small></Link>; })}</div>
- <SectionTitle title={ui("今天的學習清單")} to="/calendar" link={ui("打開日曆")}/><section className="task-list-card">{!tasks.length ? <div className="compact-empty"><Icon name="calendar"/><p>{ui("還沒有今日任務，先建立你的備試計劃。")}</p><Link className="btn primary small-btn" to="/goals">{ui("建立計劃")}</Link></div> : tasks.map(task => <div className={`today-task ${task.status === 'done' ? 'done' : ''}`} key={task.id}><button className="task-check" aria-label={task.status === 'done' ? ui("取消完成 {0}", [task.title]) : ui("完成 {0}", [task.title])} onClick={() => void mutate(`/tasks/${task.id}`, 'PATCH', { status: task.status === 'done' ? 'pending' : 'done' }).then(() => toast(task.status === 'done' ? '已恢復任務' : '又完成了一小步！')).catch(() => { })}>{task.status === 'done' && <Icon name="check" size={13}/>}</button><SubjectIcon id={task.subjectId} size="sm"/><div className="task-copy"><Link to={task.kind === 'review' ? '/review' : task.kind === 'practice' ? `/quizzes?subjectId=${task.subjectId}&topicId=${task.topicId ?? ''}` : `/subjects/${task.subjectId}?topic=${task.topicId ?? ''}`}>{task.title}</Link><small>{ui("{0} · {1} 分鐘", [task.start, task.minutes])}</small></div><Badge tone={task.kind === 'review' ? 'green' : task.kind === 'practice' ? 'blue' : 'amber'}>{task.kind === 'review' ? ui("溫習") : task.kind === 'practice' ? ui("練習") : ui("學習")}</Badge><Link className="icon-btn" aria-label={ui("開始 {0}", [task.title])} to={task.kind === 'review' ? '/review' : `/subjects/${task.subjectId}?topic=${task.topicId ?? ''}`}><Icon name="right" size={16}/></Link></div>)}</section></div>
- <aside className="dashboard-secondary"><section className="weekly-card card"><div className="section-title"><h2>{ui("本週的學習節奏")}</h2><Badge>{ui("最近 7 天")}</Badge></div><div className="weekly-total"><strong>{Math.round(weekTotal)}</strong><span>{ui("分鐘的專注")}</span><Icon name="leaf" size={23}/></div><TinyChart values={minutes}/><div className="chart-labels">{weekDates.map(d => <span key={d}>{new Date(d + 'T12:00:00Z').getUTCDate()}</span>)}</div><div className="weekly-note"><Icon name="sun" size={16}/><span>{ui("學得穩，比學得快更重要。")}</span></div></section><section className="insight-card"><span className="insight-title"><Icon name="bulb" size={18}/>{ui("給你的一點建議")}</span><h3>{weakest ? ui("先花一點時間在「{0}」", [weakest.name]) : ui("從一份短小測開始認識自己")}</h3><p>{weakest ? ui("最近練習表現為 {0}%。重看概念，再做幾題獨立練習，讓下一步更清楚。", [weakest.score]) : ui("不用一次測完所有科目。先選一科，看看有哪些已經懂得、哪些值得再練。")}</p><Link to={weakest ? `/subjects/${weakest.subjectId}?topic=${weakest.id}` : '/quizzes?kind=diagnostic'} className="text-link">{weakest ? ui("前往這個知識點") : ui("開始快速摸底")}<Icon name="arrow" size={15}/></Link></section><Link className="continue-card" to={recent ? `/learn/${recent.id}` : '/learn'}><span className="continue-icon"><Icon name="chat" size={21}/></span><div><small>{ui("接著上次的思考")}</small><strong>{recent?.title ?? ui("開啟你的第一個學習對話")}</strong></div><Icon name="arrowUp" size={17}/></Link></aside></div>
+    const kindLabel = (task: Task) => task.kind === 'review' ? ui("溫習") : task.kind === 'practice' ? ui("練習") : ui("學習");
+    const toggle = async (task: Task, isUndo = false) => {
+        if (busyId === task.id) return;
+        const nextStatus = task.status === 'done' ? 'pending' : 'done';
+        setBusyId(task.id);
+        applyTask({ ...task, status: nextStatus });
+        try {
+            const saved = await api<Task>(`/tasks/${task.id}`, 'PATCH', { status: nextStatus });
+            applyTask(saved);
+            void refresh().catch(() => { });
+            if (isUndo) {
+                toast('已恢復任務');
+            } else if (nextStatus === 'done') {
+                toast('又完成了一小步！', 'success', { duration: 4000, action: { label: '撤銷', run: () => void toggle(saved, true) } });
+            } else {
+                toast('已恢復任務');
+            }
+        } catch (err) {
+            applyTask(task);
+            toast((err as Error).message, 'error');
+        } finally {
+            setBusyId(current => current === task.id ? null : current);
+        }
+    };
+    const begin = (task: Task) => { if (!focus.session) focus.start(task.minutes, task.title, task.id); navigate(taskHref(task)); };
+    const row = (task: Task) => {
+        const title = ui(task.title);
+        return <li className={`desk-task ${task.status === 'done' ? 'done' : ''}`} key={task.id}>
+            <button type="button" className="desk-check" disabled={busyId === task.id} aria-pressed={task.status === 'done'} aria-label={task.status === 'done' ? ui("取消完成 {0}", [title]) : ui("完成 {0}", [title])} onClick={() => void toggle(task)}><span>{task.status === 'done' && <Icon name="check" size={13}/>}</span></button>
+            <SubjectIcon id={task.subjectId} size="sm"/>
+            <Link className="desk-task-copy" to={taskHref(task)}><strong>{title}</strong><small>{ui("{0} · {1} 分鐘", [task.start, task.minutes])}</small></Link>
+            <Badge tone={taskTone(task)}>{kindLabel(task)}</Badge>
+        </li>;
+    };
+    return <div className="dashboard desk-page page-enter">
+ <header className="desk-head"><div><h1>{greeting(db.profile.name)}</h1><p>{readableDate(today, { weekday: 'long', month: 'long', day: 'numeric' })}<span aria-hidden="true"> · </span>{ui('{0} / {1} 項今日任務已完成', [finished, tasks.length])}</p></div><div className="heading-actions"><StudyReportButton /><button className="btn secondary" onClick={() => setReport(true)}><Icon name="chart" size={17}/>{ui("我的學習報告")}</button></div></header>
+ <div className="desk">
+  <section className="desk-sheet" aria-labelledby="desk-today">
+   <div className="desk-sheet-head"><h2 id="desk-today">{ui("今天的學習清單")}</h2><Link className="text-link" to="/calendar">{ui("打開日曆")}<Icon name="arrow" size={15}/></Link></div>
+   {next && <article className="desk-next">
+    <SubjectIcon id={next.subjectId}/>
+    <div className="desk-next-copy"><div className="desk-next-meta"><Badge tone={taskTone(next)}>{kindLabel(next)}</Badge><span>{ui("{0} · {1} 分鐘", [next.start, next.minutes])}</span></div><h3><Link to={taskHref(next)}>{nextTitle}</Link></h3></div>
+    <div className="desk-next-actions">{focus.session ? <Link className="btn primary" to={taskHref(next)}>{ui("前往學習")}<Icon name="arrow" size={16}/></Link> : <button type="button" className="btn primary" onClick={() => begin(next)}><Icon name="play" size={16}/>{ui("開始專注")}<span className="desk-next-minutes">{ui("{0} 分鐘", [next.minutes])}</span></button>}<button type="button" className="desk-check desk-check-label" disabled={busyId === next.id} aria-label={ui("完成 {0}", [nextTitle])} onClick={() => void toggle(next)}><span/></button></div>
+   </article>}
+   {tasks.length > 0 && !next && <article className="desk-next desk-next-done">
+    <span className="subject-icon" style={{ '--subject': '#2f6a52' } as CSSProperties}><Icon name="checkCircle" size={22}/></span>
+    <div className="desk-next-copy"><h3>{ui("今日排程任務已全部完成")}</h3><p className="desk-next-sub">{ui("想再溫習一會，可隨時開啟一段自由專注。")}</p></div>
+    <div className="desk-next-actions">{focus.session ? <Link className="btn secondary" to="/review">{ui("前往每日溫習")}<Icon name="arrow" size={16}/></Link> : <button type="button" className="btn secondary" onClick={() => focus.start(25, '自由專注溫習')}><Icon name="play" size={16}/>{ui("自由專注 25 分鐘")}</button>}</div>
+   </article>}
+   {!tasks.length ? <div className="compact-empty"><Icon name="calendar"/><p>{ui("還沒有今日任務，先建立你的備試計劃。")}</p><div className="compact-empty-actions">{!focus.session && <button type="button" className="btn secondary small-btn" onClick={() => focus.start(25, '自由專注溫習')}><Icon name="play" size={15}/>{ui("自由專注 25 分鐘")}</button>}<Link className="btn primary small-btn" to="/goals">{ui("建立計劃")}</Link></div></div> : rest.length > 0 && <ol className="desk-list">{rest.map(row)}</ol>}
+   <footer className="desk-review"><Icon name="review" size={18}/><span>{ui('建議 {0} 分鐘 · {1} 個待回顧知識點', [Math.min(20, Math.floor(dailyCapacity(db.profile, today) * db.profile.reviewPercent / 100)), due.length])}</span><Link className="text-link" to={db.events.length ? "/review" : "/start"}>{db.events.length ? ui("開始今日溫習") : ui("設定我的備試計劃")}<Icon name="arrow" size={15}/></Link></footer>
+  </section>
+  <aside className="desk-side">
+   <nav className="desk-help" aria-labelledby="desk-help-title">
+    <h2 id="desk-help-title">{ui("提問與討論")}</h2>
+    <Link className="desk-help-row" to={recent ? `/learn/${recent.id}` : '/learn'}><span className="desk-help-icon ai"><Icon name="chat" size={19}/></span><span><strong>{recent ? ui("接著上次的思考") : ui("AI 學習室")}</strong><small>{recent?.title ?? ui("開啟你的第一個學習對話")}</small></span><Icon name="right" size={16}/></Link>
+    <Link className="desk-help-row" to="/forum"><span className="desk-help-icon"><Icon name="forum" size={19}/></span><span><strong>{ui("同學討論區")}</strong><small>{ui("去討論區提問")}</small></span><Icon name="right" size={16}/></Link>
+    {realMode && <Link className="desk-help-row" to="/studio"><span className="desk-help-icon"><Icon name="leaf" size={19}/></span><span><strong>{ui("我的學習流程")}</strong><small>{ui("三科自主學習")}</small></span><Icon name="right" size={16}/></Link>}
+   </nav>
+   <section className="desk-insight"><h2><Icon name="bulb" size={17}/>{ui("給你的一點建議")}</h2><h3>{weakest ? ui("先花一點時間在「{0}」", [weakest.name]) : ui("從一份短小測開始認識自己")}</h3><p>{weakest ? ui("最近練習表現為 {0}%。重看概念，再做幾題獨立練習，讓下一步更清楚。", [weakest.score]) : ui("不用一次測完所有科目。先選一科，看看有哪些已經懂得、哪些值得再練。")}</p><Link to={weakest ? `/subjects/${weakest.subjectId}?topic=${weakest.id}` : '/quizzes?kind=diagnostic'} className="text-link">{weakest ? ui("前往這個知識點") : ui("開始快速摸底")}<Icon name="arrow" size={15}/></Link></section>
+  </aside>
+ </div>
+ <div className="desk-lower">
+  <section className="card desk-week" aria-labelledby="desk-week-title"><div className="desk-card-head"><h2 id="desk-week-title">{ui("本週的學習節奏")}</h2><Badge>{ui("最近 7 天")}</Badge></div><p className="desk-week-total"><strong>{Math.round(weekTotal)}</strong><span>{ui("已記錄學習分鐘")}</span></p><TinyChartBars dates={weekDates} minutes={minutes} today={today}/><dl className="desk-facts"><div><dt>{ui("較穩固的知識點")}</dt><dd><strong>{stable.length}</strong> {ui("/ {0} 已評估", [scoredTopics.length])}<small>{ui("依獨立作答證據")}</small></dd></div></dl></section>
+  <section className="card desk-goal" aria-labelledby="desk-goal-title"><div className="desk-card-head"><h2 id="desk-goal-title">{ui("我的升學方向")}</h2><Link to="/goals" className="icon-btn" aria-label={ui("編輯升學目標")}><Icon name="pencil" size={16}/></Link></div><p className="desk-goal-name"><strong>{goal?.institution ?? 'DSE'}</strong>{goal?.name ?? ui("先為自己定一個目標")}</p><p className="small muted">{goal?.institutionName ?? ui("成績目標與升學方向")}</p><div className="desk-goal-score"><div><small>{ui("目前參考分數")}</small><strong>{score?.score?.toFixed(1) ?? '—'}</strong></div><Icon name="arrow" size={18}/><div><small>{ui("我的目標")}</small><strong>{target?.score?.toFixed(1) ?? '—'}</strong></div></div><Progress value={score?.score && target?.score ? score.score / target.score * 100 : 0}/><p className="score-source">{ui("{0} 規則參考 · 目標由本人設定", [goal?.formulaYear ?? 2027])}</p></section>
+ </div>
+ <SectionTitle title={ui("我的學科")} to="/subjects" link={ui("探索所有學科")}/>
+ <div className="subject-cards">{selectedSubjects.map(subject => { const ts = catalog.topics.filter(t => t.subjectId === subject.id); const scored = ts.map(t => mastery(t.id, db.evidence)).filter(m => m.count > 0); const average = scored.length ? Math.round(scored.reduce((a, b) => a + (b.score ?? 0), 0) / scored.length) : 0; return <Link className="subject-card" key={subject.id} to={`/subjects/${subject.id}`}><div className="subject-card-top"><SubjectIcon id={subject.id}/><Icon name="right" size={16}/></div><h3>{subject.name}</h3>{subject.name !== subject.en && <p>{subject.en}</p>}<div className="subject-progress-label"><span>{ui("已評估練習表現")}</span><strong>{scored.length ? average + '%' : ui("未評估")}</strong></div><Progress value={average} color={subject.color}/><small>{ui("{0} / {1} 個知識點有作答證據", [scored.length, ts.length])}</small></Link>; })}</div>
  {report && <Modal title={ui("我的學習報告")} subtitle={ui("每一項數據，都有學習紀錄可追溯。")} onClose={() => setReport(false)} wide><div className="report-numbers"><div><strong>{db.events.length}</strong><span>{ui("學習紀錄")}</span></div><div><strong>{db.evidence.filter(e => e.independent).length}</strong><span>{ui("獨立作答證據")}</span></div><div><strong>{db.reviewSessions.reduce((s, r) => s + r.completedIds.length, 0)}</strong><span>{ui("完成複習項目")}</span></div></div>{scoredTopics.map(t => <div className="report-topic" key={t.id}><div><strong>{t.name}</strong><small>{ui("{0} 道不同題目 · {1}", [t.count, ui(t.label)])}</small></div><Progress value={t.score ?? 0}/><strong>{t.score}%</strong></div>)}{!scoredTopics.length && <p className="muted">{ui("完成快速摸底後，這裡會呈現你的知識點證據。")}</p>}<div className="info-callout"><Icon name="bulb"/><p>{ui("練習表現取最近最多五道不同題目的獨立作答。未作答不當作零分，看過提示的練習不計入獨立證據。")}</p></div></Modal>}</div>;
 }

@@ -14,6 +14,7 @@ export const getBootstrap=()=>api<Database>('/bootstrap');
 export const getCatalog=()=>api<Catalog>('/catalog');
 export const getDailyReview=()=>api<DailyReview>('/daily-review');
 export const getQuiz=(id:string)=>api<{quiz:Quiz;questions:PublicQuestion[]}>(`/quizzes/${id}`);
+export async function uploadForumImage(blob:Blob):Promise<{id:string;mimeType:string;byteSize?:number;size?:number}>{const result=await fetch(base+'/forum/images',{method:'POST',credentials:'same-origin',headers:{'Content-Type':blob.type||'image/webp','X-Hokse-Client':'1'},body:blob});const data=await result.json();if(!result.ok){if(result.status===401&&realMode)window.dispatchEvent(new Event('hokse:unauthorized'));throw new ApiError(ui(data.error?.message??'圖片上傳失敗，請重試'),data.error?.code??'UPLOAD_FAILED',result.status)}return data;}
 const pendingMessages=new Map<string,{signature:string;requestId:string}>();
 export function clearPendingChat(id:string){pendingMessages.delete(id);sessionStorage.removeItem('hokse.chat.pending.'+id)}
 export async function streamChat(id:string,content:string,attachmentIds:string[],signal:AbortSignal,onDelta:(text:string)=>void,onMessage?:(message:ChatMessage,user?:ChatMessage)=>void,retryMessageId?:string,lesson?:{questionId?:string;lessonAction?:'next'|'revise';sourceDocumentId?:string;documentId?:string}){

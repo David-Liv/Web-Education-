@@ -1,10 +1,12 @@
 # HOKSE User Guide
 
-v1.7 · 11 November 2026 · Find your direction and make progress at your own pace.
+v1.9 · 13 November 2026 · Find your direction and make progress at your own pace.
 
-Website: [Open HOKSE](https://web-education.onrender.com). Sign in with your username or verified email, or create an account with a 6-digit email verification code (and class passcode when required) when self-registration is enabled. No software installation is needed.
+Website: [Open HOKSE](https://web-education.onrender.com). Sign in with your username or verified email, or create an account with a 6-digit email verification code (and class passcode when required) when self-registration is enabled. Visitors can also browse public posts in the [Student Forum](/forum) before signing in; sign in to post, reply and vote. No software installation is needed.
 
-On desktop, use the button at the top of the sidebar to collapse navigation to icons. Hover over an icon or focus it with the keyboard to see its name. Your choice is remembered in this browser. On mobile, open navigation with the menu button.
+The sidebar is grouped by task: Study Overview, Daily Review and Study Calendar come first (the invited version also shows My Learning Flow), followed by My learning, Ask & discuss (AI Study Room and Student Forum) and Explore more (Learning Resources and University Goals). User Guide (and Plan & Billing in the invited version) sits at the bottom of the sidebar. After signing in you start on Study Overview.
+
+On desktop, use the button at the top of the sidebar to collapse navigation to icons. Hover over an icon or focus it with the keyboard to see its name; the Daily Review count stays on the icon corner. Your choice is remembered in this browser. On mobile, a bottom shortcut bar gives one-tap access to Overview, Daily Review, AI Study, Forum and More, or you can open the full menu from the top bar.
 
 ## 1. Getting started
 
@@ -73,6 +75,8 @@ Choose “Answer this question” under a chat exercise, or the answer button fo
 
 Daily Review brings recent learning and due reviews together. Recall key points, try a short quiz, add notes or revisit a conversation summary.
 
+The Focused Study tool and “Start focus session” (or “25-min open focus” once today's tasks are done) on Study Overview share one focus timer. Once started, it stays in the top bar while you move to lessons, the AI Study Room or quizzes. Immersive desk mode tucks away the sidebar, mobile bottom bar, notifications and search by default; use the desk-lamp toggle beside the timer to show or hide navigation, pause, or end the session (with a **5-second** Undo option if ended early). When a countdown started from a scheduled task finishes, a top-bar prompt lets you choose “Mark task done” in one tap. The timer continues after a page refresh. It is saved in this browser only, does not automatically add to recorded study mins, and does not count as practice evidence.
+
 After targeted practice, the skill appears under “For your next practice”. Activities for the same skill and learning date are merged. Start a retest with one or two new questions, or practise early. Moving to the next calendar date alone does not establish stable understanding: at least 24 hours, different question families and independent performance are considered together. Calendar changes still require a preview; items that do not fit remain unscheduled.
 
 The Mistake Notebook keeps answers and possible error causes. “Practice answers to revisit” also shows these practice answers, feedback and sources, with a link to try new questions. Find the step that went wrong, then use a different question to check understanding. Reading a solution, using hints or repeating the same question helps practice but does not by itself establish secure mastery.
@@ -110,7 +114,7 @@ Study plans focus on the main goal. After changing it, preview a new plan before
 
 ## 7. Overview and reports
 
-The overview helps you revisit activities, tasks and topic progress. The Two-week Review brings together your recent records so you can adjust your next steps.
+Study Overview opens with Today's learning checklist. Your next unfinished task comes first: “Start focus session” starts the timer and takes you to that task. Tick off the other tasks in the list (with Undo if ticked by mistake), or start a “25-min open focus” once today's tasks are done. Ask & discuss beside it continues your last AI conversation or opens the Student Forum. The greeting follows Hong Kong time. This week's recorded study mins (counted from completed lessons and practice activities, separate from the browser focus timer), more secure topics, your university direction and subject performance sit below the checklist. The Two-week Review brings together your recent records so you can adjust your next steps.
 
 With limited records, start by looking at the days you have. Time recorded and tasks completed are not the same as learning outcomes. Notice whether you can explain ideas independently and handle new questions.
 
@@ -120,7 +124,20 @@ Search, filter and bookmark learning websites in Resources. Maths By Topic helps
 
 Source difficulty labels and target levels help you find material; they are not official per-question DSE grades. External content, fees and terms are set by the source website.
 
-## 9. Personal settings and AI credits
+## 9. Student Forum
+
+Open [Student Forum](/forum) under Ask & discuss in the sidebar, from Study Overview or from the sign-in page to share study tips, ask questions or relax with fellow DSE students. Official boards include All Feeds, Lounge / Treehole, Admissions / JUPAS, 23 Category A DSE subject boards (with your selected subjects pinned first) and Applied Learning / Other Languages; user-created sub-boards are not supported. Sort by Hot, New or Top and filter by flairs.
+
+Your first interaction assigns a separate forum nickname (defaulting to “Student XXXX”, editable to 2–20 characters) that stays completely isolated from your login username, email, real name, grades and mastery records. You can also post or reply anonymously on a per-post or per-comment basis: an anonymous OP replying anonymously in the same thread appears as “Anonymous OP”, while other anonymous students are numbered “Anonymous Student #1, #2” within that post only and reset across posts.
+
+- **Visibility and sharing**: “Public (WhatsApp link preview)” lets signed-out visitors browse read-only and share links; “Signed-in students only” (default in Lounge / Treehole) restricts titles, content and images to signed-in accounts, showing only a sign-in prompt to visitors.
+- **Formatting, compressed images and polls**: Posts and comments support Markdown and LaTeX maths formulas. Posts can attach up to **3 images** (automatically compressed in your browser to **200 KB** or less each; no video or large-file uploads) and include single-choice polls with 2 to 6 options where signed-in students can view vote shares and switch choices. Comments use collapsible nested threads (visually indented up to 3 levels, with deeper replies labelling the parent author).
+- **Positive reactions and human-only boundary**: Posts and comments offer positive upvotes and empathy reactions (“Me too / Keep going / Useful”) with no downvotes or negative scores. The forum is **100% human-only**: AI never auto-replies, and browsing, posting, replying or voting uses **zero AI credits**. Choose “Ask AI Tutor privately in Study Room” on any post to pre-fill a private chat draft (charged at your conversation model rate only if you send it).
+- **Asking from mistakes and practice**: From the Mistake Notebook, submitted quiz results and Maths By Topic, select “Ask / Discuss in Forum” to pre-fill a clean question reference card without exposing personal scores or unreleased answer keys; unsubmitted quizzes cannot be shared. Forum activity never counts toward personal practice evidence or mastery.
+
+Opening the top-bar bell does not clear unread items automatically; unread indicators clear only when you open “View forum reply” or choose “Mark all as read”. You can edit or delete your own posts and delete your own comments. Inappropriate content can be reported; **3 distinct** student reports automatically hide the item pending moderation review. Posts containing severe distress signals display Hong Kong 24-hour youth crisis helpline details. Demo mode stores forum posts locally in your browser; real mode persists them in the server database and seeds only 3 official HOKSE starter posts without fabricating student accounts.
+
+## 10. Personal settings and AI credits
 
 Adjust subjects, grades, language and available time in Personal Settings, where you can also link or update your verified email. Once linked, you can sign in with your email address and reset a forgotten password on the sign-in page using a 6-digit verification code (valid for 10 minutes). Plan & Billing shows available credits and lets you choose separate default models for quizzes, conversations and assessment. Each model displays its credit price per operation.
 
@@ -128,7 +145,7 @@ AI operations reserve credits first and charge when a usable result is available
 
 The current checkout is a demonstration. Choosing a payment channel does not charge real money. The page shows your current allowance and plan arrangements.
 
-## 10. Common questions
+## 11. Common questions
 
 - AI cannot reply: try again later, or start with lessons, notes and fixed exercises.
 - The plan does not fit: shorten an activity, reschedule it or keep it in the checklist.
@@ -137,7 +154,21 @@ The current checkout is a demonstration. Choosing a payment channel does not cha
 
 Use your own account and sign out before leaving a shared computer. For troubleshooting, administrators can view AI usage records and export response text. Avoid unnecessary personal secrets in your questions.
 
-## 11. What's new
+## 12. What's new
+
+**v1.9 · A calmer Study Overview · 13 November 2026**
+
+- Study Overview now centres on Today's learning checklist: start a focus session on your next task directly (or a 25-min open focus once today's tasks are complete), reach your last AI conversation or the Student Forum, and view weekly recorded study mins separately from the browser timer.
+- Added a focus timer that keeps running across pages, with a desk-lamp toggle for immersive desk mode, 5-second Undo when ended early, and a one-tap Mark task done prompt when a task countdown finishes.
+- Regrouped the sidebar by task, added a mobile bottom shortcut bar (Overview, Daily Review, AI Study, Forum, More) with 44 px touch targets, and set Study Overview as the landing page after sign-in.
+- Raised small text size and contrast across the site; search matches both Chinese and English terms with arrow-key and Enter support; notifications clear only when you open a reply or choose Mark all as read.
+
+**v1.8 · Student Forum · 13 November 2026**
+
+- Added a Reddit-style Student Forum across Lounge / Treehole, Admissions / JUPAS and official DSE subject boards, supporting collapsible nested threads, Markdown and maths formulas, single-choice polls and browser-compressed images (up to 3 images, 200 KB max each).
+- Introduced an independent forum nickname and per-post / per-comment anonymity (numbered within each thread and reset across posts), alongside Public WhatsApp sharing and Signed-in students only visibility.
+- Preserved a 100% human-only, zero-credit forum boundary with positive reactions and no downvotes, one-click sanitized question references from mistakes, submitted quizzes and Maths By Topic, and private handoff to AI Study Room.
+- Added top-bar reply notifications, 3-report auto-hide protection, moderation tools and Hong Kong 24-hour youth crisis helpline support.
 
 **v1.7 · Cleaner AI code structure and module boundaries · 11 November 2026**
 

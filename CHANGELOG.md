@@ -1,5 +1,23 @@
 # HOKSE 更新日誌 / Release notes
 
+## v1.9.0 · 2026-11-13
+
+- 學習總覽改為以「今天的學習清單」為中心的書桌式版面：下一項任務可直接開始專注，完成當日排程後亦可開啟 25 分鐘自由專注，旁邊提供接續 AI 對話及同學討論區入口；本週統計標明「已記錄學習分鐘」，問候語按香港時間轉換。
+- 新增跨頁持續、只保存在瀏覽器的專注計時（`src/focus.tsx`）：提供檯燈「沉浸書桌模式」切換導覽顯示、提前結束 5 秒撤銷及倒數完成後一鍵標記任務完成，不自動寫入學習紀錄或練習證據。
+- 側邊欄按用途分組（每組不多於四項），手機版新增底部快捷導覽列及 44px 觸控目標，登入後統一進入 `/overview`；全站文字不小於 12px 並提高對比；中英雙語搜尋互通並支援鍵盤選取；通知改為按回覆或「全部標為已讀」才清除。
+- Study Overview is now a study desk centred on Today's learning checklist, with focus sessions for the next task (plus 25-min open focus once today's tasks are complete), entry points to the last AI conversation and the Student Forum, weekly recorded study mins, and Hong Kong time greetings.
+- Added a browser-only focus timer that persists across pages (`src/focus.tsx`) with a desk-lamp immersive toggle, 5-second Undo when ended early, and one-tap task completion handoff; it writes no study records or evidence.
+- Regrouped the sidebar by task (at most four items per group), added a mobile bottom shortcut bar with 44 px touch targets, and made `/overview` the landing page in every mode; raised all text to at least 12px with higher contrast; added cross-language Chinese/English search with keyboard selection; notifications now clear only when a reply is opened or Mark all as read is chosen.
+
+## v1.8.0 · 2026-11-13
+
+- 新增 Reddit 式「同學討論區」（`/forum`），涵蓋吹水／樹洞、升學／JUPAS 及全科 DSE 官方版塊，支援摺疊蓋樓留言、Markdown 與數學公式、單選投票及前端自動壓縮附圖（最多 3 張、每張 200 KB 內）。
+- 提供獨立論壇暱稱與逐篇／逐則匿名機制（同貼編號、跨貼重置），並支援公開 WhatsApp OpenGraph 分享與「僅登入同學可見」雙重私隱設定。
+- 維持 100% 純真人、零 AI credit 交流邊界，只設正向共鳴不設倒讚；支援從錯題簿、已交卷測驗與數學 By Topic 一鍵帶題發問，以及從貼文一鍵帶去 AI 學習室私下問導師。
+- Added a Reddit-style Student Forum (`/forum`) across Lounge / Treehole, Admissions / JUPAS and official DSE subject boards, with collapsible nested threads, Markdown/KaTeX formulas, single-choice polls and browser-compressed images (up to 3 images, 200 KB max each).
+- Introduced an independent forum nickname, per-post / per-comment anonymity (numbered within each thread and reset across posts), public WhatsApp OpenGraph previews and Signed-in students only visibility.
+- Preserved a 100% human-only, zero-credit boundary with positive empathy reactions, sanitized one-click question references from mistakes, submitted quizzes and Maths By Topic, moderation tools and 24-hour youth crisis helpline support.
+
 ## v1.7.0 · 2026-11-11
 
 - 整理並簡化 AI 生成的重複與雜亂代碼（清理「屎山代碼」），收斂模組邊界與接口數量。

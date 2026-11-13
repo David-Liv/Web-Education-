@@ -93,7 +93,8 @@ export function LearnPage() {
         const c = await mutate<Chat>('/chats', 'POST', { topicId: newTopic, mode, tutorId:tutorSupported(tutorId,newTopic)?tutorId:'david',sourceChatId });
         setNewOpen(false);
         setHistory(false);
-        navigate(`/learn/${c.id}`);
+        const pendingPrompt = typeof location.state?.initialPrompt === 'string' ? location.state.initialPrompt : '';
+        navigate(`/learn/${c.id}`, pendingPrompt ? { state: { initialPrompt: pendingPrompt } } : undefined);
     }
     catch { }
     finally {

@@ -3,14 +3,17 @@ import {localizeCatalog} from './i18n-catalog';
 import { ui, useInterfaceLanguage } from "./i18n";
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
+import { Route, Routes, useLocation } from 'react-router-dom';
 import type { Catalog, Database, Chat, ChatMessage, Task } from './types';
 import { api, getBootstrap, getCatalog, realMode } from './api/client';
 import { Login } from './Login';
+import { ForumPage } from './pages/Forum';
 import type { BillingView } from './billing-types';
 interface AppState {
     billing?: BillingView;
     db: Database;
     catalog: Catalog;
+    rawCatalog: Catalog;
     refresh: () => Promise<void>;
     applyChatMessage:(chatId:string,message:ChatMessage,user?:ChatMessage)=>void;
     applyChatSnapshot:(chat:Chat)=>void;
@@ -25,6 +28,8 @@ export function AppProvider({ children }: {
     children: ReactNode;
 }) {
     const interfaceLanguage=useInterfaceLanguage();
+    const location = useLocation();
+    const [loginRequested, setLoginRequested] = useState(false);
     const [db, setDb] = useState<Database>();
     const [catalog, setCatalog] = useState<Catalog>();
     const [billing, setBilling] = useState<BillingView>();
@@ -66,7 +71,7 @@ export function AppProvider({ children }: {
         setError((e as Error).message);
     } }, []);
     useEffect(() => { void load(); }, [load]);
-    useEffect(() => { const loggedOut = () => { setDb(undefined); setCatalog(undefined); setAuth({ setup: false }); }; window.addEventListener('hokse:unauthorized', loggedOut); return () => window.removeEventListener('hokse:unauthorized', loggedOut); }, []);
+    useEffect(() => { const loggedOut = () => { setDb(undefined); setCatalog(undefined); void load(); }; window.addEventListener('hokse:unauthorized', loggedOut); return () => window.removeEventListener('hokse:unauthorized', loggedOut); }, [load]);
     const setNetwork = (mode: string) => { localStorage.setItem('hokse.network', mode); setNetworkState(mode); toast(mode === 'normal' ? '已恢復正常連線' : mode === 'slow' ? '已開啟慢速網絡示範' : '已開啟連線失敗示範'); };
     const mutate = useCallback(async <T,>(path: string, method = 'POST', body?: unknown) => { try {
         const result = await api<T>(path, method, body);
@@ -77,13 +82,17 @@ export function AppProvider({ children }: {
         toast((e as Error).message, 'error');
         throw e;
     } }, [refresh, toast]);
-    if (auth)
-        return <Login setup={auth.setup} registrationMode={auth.registrationMode} passwordResetEnabled={auth.passwordResetEnabled} onDone={() => void load()}/>;
+    if (auth) {
+        if (!auth.setup && location.pathname.startsWith('/forum') && !loginRequested) {
+            return <div className="forum-guest-shell"><header className="forum-guest-topbar"><div className="forum-guest-brand"><img src="/favicon.svg" width="28" alt={ui("學序")}/><strong>{ui("學序 · 同學討論區")}</strong></div><div style={{ display: 'flex', alignItems: 'center', gap: 10 }}><LanguageSwitch/><button type="button" className="btn primary" onClick={() => setLoginRequested(true)}>{ui("登入／註冊參與討論")}</button></div></header><main className="forum-guest-main"><Routes><Route path="/forum" element={<ForumPage guest onRequireLogin={() => setLoginRequested(true)}/>}/><Route path="/forum/post/:postId" element={<ForumPage guest onRequireLogin={() => setLoginRequested(true)}/>}/><Route path="*" element={<ForumPage guest onRequireLogin={() => setLoginRequested(true)}/>}/></Routes></main></div>;
+        }
+        return <Login setup={auth.setup} registrationMode={auth.registrationMode} passwordResetEnabled={auth.passwordResetEnabled} onDone={() => { setLoginRequested(false); void load(); }} onBackToForum={!auth.setup && location.pathname.startsWith('/forum') ? () => setLoginRequested(false) : undefined}/>;
+    }
     if (error)
         return <main className="boot-state"><LanguageSwitch/><img src="/favicon.svg" width="52"/><h1>{ui("暫時未能載入學習工作室")}</h1><p>{ui(error)}</p><button className="btn primary" onClick={() => { localStorage.setItem('hokse.network', 'normal'); setNetworkState('normal'); void load(); }}>{ui("恢復正常連線並重試")}</button></main>;
     if (!db || !catalog)
         return <main className="boot-state"><LanguageSwitch/><img src="/favicon.svg" width="56"/><h1>{ui("把今天的學習，慢慢排好。")}</h1><span className="loading-dots"><i /><i /><i /></span></main>;
-    return <Context.Provider value={{ db, billing, catalog:localizeCatalog(catalog,interfaceLanguage), refresh, applyChatMessage,applyChatSnapshot,applyTask,mutate, toast, network, setNetwork }}>{children}<div className="toast-stack" aria-live="polite">{toasts.map(t => <div key={t.id} className={`toast ${t.type}`}>{t.type === 'error' ? '!' : '✓'} <span>{ui(t.message)}</span>{t.action&&<><span aria-hidden="true">·</span><button type="button" onClick={()=>{setToasts(old=>old.filter(x=>x.id!==t.id));t.action!.run()}}>{ui(t.action.label)}</button></>}</div>)}</div></Context.Provider>;
+    return <Context.Provider value={{ db, billing, catalog:localizeCatalog(catalog,interfaceLanguage), rawCatalog: catalog, refresh, applyChatMessage,applyChatSnapshot,applyTask,mutate, toast, network, setNetwork }}>{children}<div className="toast-stack" aria-live="polite">{toasts.map(t => <div key={t.id} className={`toast ${t.type}`}>{t.type === 'error' ? '!' : '✓'} <span>{ui(t.message)}</span>{t.action&&<><span aria-hidden="true">·</span><button type="button" onClick={()=>{setToasts(old=>old.filter(x=>x.id!==t.id));t.action!.run()}}>{ui(t.action.label)}</button></>}</div>)}</div></Context.Provider>;
 }
 export function useApp() { const value = useContext(Context); if (!value)
     throw new Error('AppProvider missing'); return value; }
