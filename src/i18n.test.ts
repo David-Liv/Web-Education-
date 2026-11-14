@@ -17,7 +17,7 @@ describe('English interface contract',()=>{
     }
   });
   it('covers every literal interface key used by components',()=>{
-    const files=['src/Sidebar.tsx','src/App.tsx','src/focus.tsx','src/Login.tsx','src/state.tsx','src/main.tsx','src/components.tsx','src/LearningPractice.tsx',...readdirSync('src/pages').filter(f=>f.endsWith('.tsx')).map(f=>'src/pages/'+f)];
+    const files=['src/Sidebar.tsx','src/App.tsx','src/focus.tsx','src/Login.tsx','src/state.tsx','src/main.tsx','src/components.tsx','src/LearningPractice.tsx','src/TopicGuidedCourse.tsx',...readdirSync('src/pages').filter(f=>f.endsWith('.tsx')).map(f=>'src/pages/'+f)];
     const missing=new Set<string>();
     for(const file of files){
       const source=ts.createSourceFile(file,readFileSync(file,'utf8'),ts.ScriptTarget.Latest,true,ts.ScriptKind.TSX);

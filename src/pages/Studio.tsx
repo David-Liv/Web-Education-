@@ -11,13 +11,13 @@ import { Badge, Modal, PageHeading, Progress } from '../components';
 import { AiCostNotice } from './Billing';
 import { StudyReportButton } from './StudyWidgets';
 import type { StudyAttempt, StudyQuizView, StudioSubject } from '../studio-types';
-import type { Grade, PlanPreview } from '../types';
+import type { PlanPreview } from '../types';
 export function StudioPage() {
     const [tutorId,setTutorId]=useState<TutorId>('david');
     useInterfaceLanguage();
     const { db, mutate, refresh, toast } = useApp(), navigate = useNavigate();
     const [params] = useSearchParams();
-    const [subject, setSubject] = useState<StudioSubject>('maths'), [count, setCount] = useState(3), [target, setTarget] = useState<Grade>('3'), [minutes, setMinutes] = useState(30), [quiz, setQuiz] = useState<StudyQuizView | null>(null), [answers, setAnswers] = useState<Record<string, {
+    const [subject, setSubject] = useState<StudioSubject>('maths'), [count, setCount] = useState(3), [quiz, setQuiz] = useState<StudyQuizView | null>(null), [answers, setAnswers] = useState<Record<string, {
         value: string;
         steps: string;
     }>>({}), [busy, setBusy] = useState(false), [notice, setNotice] = useState(''), [hint, setHint] = useState<Record<string, string>>({}), [material, setMaterial] = useState(''), [preview, setPreview] = useState<PlanPreview | null>(null), [dispute, setDispute] = useState<StudyAttempt | null>(null), [reason, setReason] = useState('');
@@ -29,9 +29,9 @@ export function StudioPage() {
         setQuiz(q);
         setSubject(q.subjectId);
     }
-    else if (['chi', 'eng', 'maths'].includes(s ?? ''))
-        setSubject(s as StudioSubject); }, [params.get('quiz'), params.get('subject'), !!studio]);
-    useEffect(() => { setTarget(db.profile.targetGrades[subject] ?? '3'); }, [subject]);
+    else if (['chi', 'eng', 'maths'].includes(s ?? '')) setSubject(s as StudioSubject); }, [params.get('quiz'), params.get('subject'), !!studio]);
+
+
     useEffect(() => { if (!quiz)
         return; let draft = {}; try {
         draft = JSON.parse(localStorage.getItem(key) ?? '{}');
@@ -111,7 +111,7 @@ export function StudioPage() {
     } }
     const skills = studio.skills.filter(s => s.subjectId === subject), paused = skills.some(s => s.paused);
     return <div className="page-enter studio-page"><PageHeading eyebrow="YOUR NEXT SMALL STEP" title={ui("今天，先弄懂一件事。")} description={ui("數學、中文與英文的自主學習輔助。大學目標可以之後再填。")} action={<StudyReportButton />}/>
- <div className="studio-grid"><section className="card pilot-card"><h2>{ui("選一個學習起點")}</h2><div className="form-grid"><label className="field"><span>{ui("學科")}</span><select value={subject} disabled={busy} onChange={e => { setSubject(e.target.value as StudioSubject); requestId.current = null; }}><option value="maths">{ui("數學")}</option><option value="chi">{ui("中文")}</option><option value="eng">{ui("英文")}</option></select></label><label className="field"><span>{ui("自己的目標等級")}</span><select value={target} onChange={e => setTarget(e.target.value as Grade)}>{['2', '3', '4', '5', '5*', '5**'].map(g => <option key={g} value={g}>{g}</option>)}</select></label><label className="field"><span>{ui("每天可用時間（分鐘）")}</span><input type="number" min={0} max={480} value={minutes} onChange={e => setMinutes(Number(e.target.value))}/></label><label className="field"><span>{ui("起步題數")}</span><select value={count} disabled={busy} onChange={e => { setCount(Number(e.target.value)); requestId.current = null; }}>{[3, 4, 5].map(n => <option key={n} value={n}>{n}</option>)}</select></label></div><button className="btn secondary" disabled={busy} onClick={() => void mutate('/profile', 'PATCH', { targetGrades: { ...db.profile.targetGrades, [subject]: target }, dailyMinutes: Array(7).fill(minutes) }).then(() => toast('已保存目標與每日時間；仍可在目標頁逐天調整')).catch(() => { })}>{ui("保存目標與時間")}</button><p className="small muted">{ui("整科成績可留空；小題只反映涉及技能，不換算整科等級。此設定會覆蓋七天預算，逐日設定可到")}<Link to="/goals?tab=profile">{ui("目標頁")}</Link>{ui("調整。")}</p>
+ <div className="studio-grid"><section className="card pilot-card"><h2>{ui("選一個學習起點")}</h2><div className="form-grid"><label className="field"><span>{ui("學科")}</span><select value={subject} disabled={busy} onChange={e => { setSubject(e.target.value as StudioSubject); requestId.current = null; }}><option value="maths">{ui("數學")}</option><option value="chi">{ui("中文")}</option><option value="eng">{ui("英文")}</option></select></label><label className="field"><span>{ui("起步題數")}</span><select value={count} disabled={busy} onChange={e => { setCount(Number(e.target.value)); requestId.current = null; }}>{[3, 4, 5].map(n => <option key={n} value={n}>{n}</option>)}</select></label></div><p className="small muted">{ui("目標等級與每日溫習時間已歸入排程設定，可到")}<Link to="/goals?tab=profile">{ui("目標頁")}</Link>{ui("或")}<Link to="/calendar">{ui("溫習日曆")}</Link>{ui("調整。")}</p>{subject === 'maths' && <Link className="studio-direct-topic-link" to="/subjects/maths?topic=maths-factorisation"><div><strong>{ui("因式分解 · 7 部分直入式導學與引導練習")}</strong><small>{ui("一覽各部分進度 %，向下捲動即學即練，隨時喚起分段 AI 講解")}</small></div><span>{ui("直接開始")} →</span></Link>}
  <h3>{ui(unit.title)}</h3><p className="studio-lesson">{ui(unit.lesson)}</p><Badge>{ui("原創學習參考 · 不是官方定級")}</Badge>
  {paused && <div className="info-callout amber"><p>{ui("同一技能連續遇到困難。先看上方例子、換個方法或休息，不自動追加題目。")}</p><button className="btn secondary" onClick={() => void mutate('/studio/resume', 'POST', { subjectId: subject }).then(() => toast('已記錄主動繼續；舊弱項仍保留')).catch(() => { })}>{ui("看過示例，主動繼續")}</button></div>}
  <details className="studio-extra"><summary>{ui("其他練習方式")}</summary><div className="studio-actions"><button className="btn secondary" disabled={busy || paused} onClick={() => void create('quick', 'fixed')}>{ui("固定隨堂練習")}</button><button className="btn secondary" disabled={busy || paused} onClick={() => void create('assessment', 'fixed')}>{ui("固定獨立小測")}</button><button className="btn secondary" disabled={busy || paused} onClick={() => void create('quick', 'ai')}>{ui("AI隨堂練習 · 快速")}</button><button className="btn primary" disabled={busy || paused} onClick={() => void create('assessment', 'ai')}>{ui("生成獨立小測")}</button></div><p className="small muted">{ui("只有AI獨立小測生成會檢查及有限返工。隨堂練習一次生成；固定練習無需AI。未配置模型時，主觀題只顯示參考要點。數學小測按所選技能驗算結果；建模也需要檢查建立的方程。")}</p>{busy && <div role="status">{ui("正在處理…")}{abort.current && <button className="btn ghost" onClick={() => abort.current?.abort()}>{ui("停止生成")}</button>}</div>}

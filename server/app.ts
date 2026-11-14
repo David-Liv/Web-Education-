@@ -33,6 +33,7 @@ import {binding,teachingState,tutorResources} from './tutors.ts';
 import {TUTORS} from '../src/tutors.ts';
 import {readDocument} from './tutor-documents.ts';
 import {renderLessonPdf} from './lesson-pdf.ts';
+import {factorisationCoachingPack} from '../src/data/factorisation-guide.ts';
 
 interface Options { databaseUrl?:string; encryptionKey?:string; database?:string; staticDir?:string; allowSetup?:boolean; secureCookie?:boolean; origin?:string }
 const MIME:Record<string,string>={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json','.csv':'text/csv; charset=utf-8','.svg':'image/svg+xml','.wav':'audio/wav','.png':'image/png','.woff2':'font/woff2'};
@@ -114,7 +115,7 @@ export function createPilot(options:Options={}){
       const role=(allowed:string[])=>{if(!allowed.includes(identity.role))reject('此功能僅供獲授權的開發者／內容復核者',403,'FORBIDDEN')};
       const change=async <T>(fn:(data:StudentState)=>T|Promise<T>)=>(await store.transaction(async ()=>{const data=(await store.state(identity.id));const result=await fn(data);(await store.save(identity.id,data));return result}));
       const packs=(await store.latestPacks());
-      const coaching=units.map(u=>({...u,lessons:[{title:u.title,text:u.lesson,skillIds:u.skills.map(s=>s.id)}]}));
+      const coaching=[...units.map(u=>({...u,lessons:[{title:u.title,text:u.lesson,skillIds:u.skills.map(s=>s.id)}]})),factorisationCoachingPack];
       const allTopics=[...catalog.topics,...units.filter(u=>!catalog.topics.some(t=>t.id===u.topicId)).map(u=>({id:u.topicId,subjectId:u.subjectId,name:u.title,en:u.title,unit:u.title,module:'自主輔導',papers:['技能練習'],ready:true,summary:[u.lesson],source:'本平台原創學習參考；不是官方定級'}))];
       if(path==='/learning'||path.startsWith('/learning/')||/^\/studio\/quizzes\/[^/]+\/pdf$/.test(path)){const controller=new AbortController();res.once('close',()=>{if(!res.writableEnded)controller.abort()});await practiceRoutes(store,identity,path,method,input,send,res,AbortSignal.any([controller.signal,AbortSignal.timeout(90000)]),options.origin);return;}
       if(path.startsWith('/studio')){const controller=new AbortController();const signal=AbortSignal.any([controller.signal,AbortSignal.timeout(90000)]);res.once('close',()=>{if(!res.writableEnded)controller.abort()});await handleStudio(store,identity,path,method,input,send,signal);return;}
@@ -172,7 +173,7 @@ export function createPilot(options:Options={}){
         if(path.endsWith('/models')){const models=await listModels(config);if(!draft){config.models=models;(await store.putModel(config))}send({models,scope:draft?'draft':'saved'});return}
         if(path.endsWith('/test')){const text=await generate({...config,enabled:true},[{role:'user',content:'請用一句簡短繁體中文確認你可回覆文字。'}]);const tested={at:new Date().toISOString(),model:config.model,ok:true};if(!draft){config.tested=tested;(await store.putModel(config))}send({ok:true,text,tested,scope:draft?'draft':'saved',capabilities:{text:true,images:'未測試',nativeStreaming:'未測試',structuredOutput:'未測試'}});return}
       }
-      if(path==='/catalog'&&method==='GET'){const topicIds=new Set(packs.map(p=>p.topicId));send({...catalog,topics:allTopics.map(t=>{const p=packs.find(p=>p.topicId===t.id),u=units.find(u=>u.topicId===t.id);return {...t,ready:topicIds.has(t.id)||!!u,summary:p?.lessons.map(l=>l.text)??(u?[u.lesson]:[]),example:undefined,formula:undefined,misconception:undefined,source:p?.source??(u?'本平台原創自主輔導參考；不是已審校題庫':t.source)}}),sources:[...catalog.sources,{label:'首期真實內容',url:'/pilot',note:'只對已完成內容復核的二次方程、酸鹼與滴定開放正式診斷'}]});return}
+      if(path==='/catalog'&&method==='GET'){const topicIds=new Set(packs.map(p=>p.topicId));send({...catalog,topics:allTopics.map(t=>{const p=packs.find(p=>p.topicId===t.id),c=coaching.find(u=>u.topicId===t.id);return {...t,ready:topicIds.has(t.id)||!!c,summary:p?.lessons.map(l=>l.text)??(c?c.lessons.map(l=>l.text):[]),example:undefined,formula:undefined,misconception:undefined,source:p?.source??(c?'本平台原創自主輔導參考；不是已審校題庫':t.source)}}),sources:[...catalog.sources,{label:'首期真實內容',url:'/pilot',note:'只對已完成內容復核的二次方程、酸鹼與滴定開放正式診斷'}]});return}
       if(path.startsWith('/content/')&&method==='GET'){const p=(packs.find(p=>p.topicId===path.split('/')[2])??coaching.find(p=>p.topicId===path.split('/')[2]))??reject('此內容尚未發布',404);send({topicId:p.topicId,title:p.title,version:'version' in p?p.version:1,lessons:p.lessons,skills:p.skills});return}
       if(path==='/bootstrap'&&method==='GET'){send(studentView((await store.state(identity.id)),identity,packs));return}
       if(path==='/profile'&&method==='GET'){send((await store.state(identity.id)).profile);return}
@@ -212,7 +213,7 @@ export function createPilot(options:Options={}){
       if(path==='/daily-review'&&method==='GET'){send(reviewView((await store.state(identity.id)),allTopics));return}
       const reviewMatch=path.match(/^\/review-items\/([^/]+)(?:\/(complete))?$/);
       if(reviewMatch){const [,id,action]=reviewMatch;if(action==='complete'&&method==='POST'){send((await change(data=>{completeReview(data,id);return reviewView(data,allTopics)})));return}if(method==='PATCH'){send((await change(data=>{const r=data.reviews.find(r=>r.id===id)??reject('復習不存在',404);if(input.confidence){if(!['不懂','模糊','熟悉'].includes(input.confidence))reject('自評無效');r.confidence=input.confidence}if(input.postpone){r.dueDate=addDays(data.profile.date,1);r.postponedUntil=r.dueDate}return r})));return}}
-      if(path==='/events'&&method==='POST'){send((await change(data=>{if(!packs.some(p=>p.topicId===input.topicId)&&!units.some(u=>u.topicId===input.topicId))reject('此單元未開放',422);if(!['lesson','quiz','chat','review',undefined].includes(input.type))reject('活動類型無效');if(!data.events.some(e=>e.topicId===input.topicId&&e.type===(input.type??'lesson')&&e.date===data.profile.date))recordLearning(data,input.topicId,'完成單元學習',input.type??'lesson',Math.max(1,Math.min(60,Number(input.minutes)||10)),`/subjects/${input.topicId}`);return {ok:true}})));return}
+      if(path==='/events'&&method==='POST'){send((await change(data=>{if(!packs.some(p=>p.topicId===input.topicId)&&!coaching.some(u=>u.topicId===input.topicId))reject('此單元未開放',422);if(!['lesson','quiz','chat','review',undefined].includes(input.type))reject('活動類型無效');if(!data.events.some(e=>e.topicId===input.topicId&&e.type===(input.type??'lesson')&&e.date===data.profile.date))recordLearning(data,input.topicId,'完成單元學習',input.type??'lesson',Math.max(1,Math.min(60,Number(input.minutes)||10)),`/subjects/${input.topicId}`);return {ok:true}})));return}
       const wrongMatch=path.match(/^\/wrong\/([^/]+)$/);
       const analyseMatch=path.match(/^\/wrong\/([^/]+)\/analyse$/);
       if(analyseMatch&&method==='POST'){

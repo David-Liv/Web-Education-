@@ -7,12 +7,24 @@ import {parseChatContent} from '../src/chat-content.ts';
 import {quadraticSkill} from '../src/quadratic-skills.ts';
 import {checkMath} from './quadratic-practice.ts';
 import {addDays} from '../src/domain.ts';
+import {applyGuidedAction} from '../src/factorisation-check.ts';
+import type {GuidedItemState} from '../src/factorisation-check.ts';
+import {computeFactorisationProgress,FACTORISATION_TOPIC_ID,findFactorisationSlot} from '../src/data/factorisation-guide.ts';
 
 export interface LearningItem extends StudyItem {source:LearningSource;hash:string;createdAt:string}
-export interface PracticeState {items:LearningItem[];aids:{itemId:string;hash:string;kind:string;at:string}[];reviews:LearningReview[]}
+export interface PracticeState {items:LearningItem[];aids:{itemId:string;hash:string;kind:string;at:string}[];reviews:LearningReview[];guided?:Record<string,GuidedItemState>}
 export const practiceState=(data:StudentState):PracticeState=>{for(const a of data.studio?.attempts??[]){if(a.appeal?.status==='pending'&&Date.parse(a.appeal.at)<Date.now()-180000){a.appeal.status='uncertain';a.pending=false;a.disputed=true;a.feedback={source:'unavailable',score:null,verdict:'uncertain',text:'復核未完成，作答與質疑已保留。',reason:'這次不採用分數；不自動重試。'};a.appeal.feedback=a.feedback;}}return data.practice??={items:[],aids:[],reviews:[]};};
 const hash=(value:string)=>createHash('sha256').update(value.toLowerCase().replace(/\s|\$/g,'')).digest('hex');
-export function learningView(data:StudentState):LearningView{const s=practiceState(data);return {items:s.items.slice(-400).map(q=>({id:q.id,skillId:q.skillId,question:q.prompt,source:q.source,hintAvailable:!!q.hint,answerAvailable:true})),reviews:s.reviews};}
+export function learningView(data:StudentState):LearningView{const s=practiceState(data);return {items:s.items.slice(-400).map(q=>({id:q.id,skillId:q.skillId,question:q.prompt,source:q.source,hintAvailable:!!q.hint,answerAvailable:true})),reviews:s.reviews,guided:s.guided??{}};}
+export function recordGuidedInteraction(data:StudentState,input:any,reject:(msg:string,status?:number)=>never){
+ if(input?.topicId!==FACTORISATION_TOPIC_ID||typeof input?.itemId!=='string'||!['assist','submit','next-variant'].includes(input?.action))reject('引導練習參數無效',422);
+ const found=findFactorisationSlot(input.itemId)??reject('找不到這個引導練習題目',404);
+ if(input.action==='submit'&&(typeof input.answer!=='string'||!input.answer.trim()||input.answer.length>300))reject('請先輸入有效答案',400);
+ const s=practiceState(data);s.guided??={};
+ const idx=(s.guided[input.itemId]?.variantIndex??0)%found.slot.variants.length,variant=found.slot.variants[idx];
+ const {state,check}=applyGuidedAction(s.guided,{itemId:input.itemId,topicId:FACTORISATION_TOPIC_ID,partId:found.part.id,mode:found.slot.mode,action:input.action,answer:input.answer,variantCount:found.slot.variants.length,variant});
+ return {itemId:input.itemId,mode:found.slot.mode,state,check,guided:s.guided,progress:computeFactorisationProgress(s.guided)};
+}
 export function registerQuestion(data:StudentState,item:StudyItem,source:LearningSource){
  const s=practiceState(data),key=JSON.stringify(source),old=s.items.find(q=>JSON.stringify(q.source)===key);if(old)return old;
  const q:LearningItem={...item,source,hash:hash(item.prompt+'\n'+item.answer),createdAt:new Date().toISOString()};s.items.push(q);return q;

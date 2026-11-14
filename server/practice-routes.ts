@@ -2,12 +2,12 @@ import type {ServerResponse} from 'node:http';
 import type {Store,StudentState} from './store.ts';
 import type {Identity} from '../src/pilot-types.ts';
 import type {StudyFeedback} from '../src/studio-types.ts';
-import {practiceState,learningView,registerChatQuestions,assistQuestion,beginAttemptAppeal,completeAttemptAppeal} from './practice-state.ts';
+import {practiceState,learningView,registerChatQuestions,assistQuestion,beginAttemptAppeal,completeAttemptAppeal,recordGuidedInteraction} from './practice-state.ts';
 import {readDocument} from './tutor-documents.ts';
 import {renderLessonPdf} from './lesson-pdf.ts';
 import {generate} from './models.ts';
 import {parseObject,parseAiFeedback} from './quiz-contract.ts';
-import {reject} from './learning.ts';
+import {recordLearning,reject} from './learning.ts';
 import {checkMath} from './quadratic-practice.ts';
 
 export async function practiceRoutes(store:Store,identity:Identity,path:string,method:string,input:any,send:(v:any,status?:number)=>void,res:ServerResponse,signal:AbortSignal,origin?:string){
@@ -21,6 +21,9 @@ export async function practiceRoutes(store:Store,identity:Identity,path:string,m
  }
  if(!path.startsWith('/learning'))return false;
  if(path==='/learning'&&method==='GET'){send(learningView(await store.state(identity.id)));return true;}
+ if(path==='/learning/guided'&&method==='POST'){
+  send(await change(d=>{const out=recordGuidedInteraction(d,input,reject);if(input.action==='submit'&&out.mode==='check'&&out.check?.verdict==='correct'&&!d.events.some(e=>e.topicId==='maths-factorisation'&&e.type==='quiz'&&e.date===d.profile.date))recordLearning(d,'maths-factorisation','因式分解引導檢核','quiz',10,'/subjects/maths?topic=maths-factorisation');return out;}));return true;
+ }
  const chatMatch=path.match(/^\/learning\/chats\/([^/]+)\/questions$/);
  if(chatMatch&&method==='GET'){
   send(await change(async d=>{const chat=d.chats.find(c=>c.id===chatMatch[1])??reject('對話不存在',404);for(const m of chat.messages.filter(m=>m.role==='assistant'&&m.status==='complete')){if(m.documentId){const doc=await readDocument(store,identity.id,chat,m.documentId);registerChatQuestions(d,chat,m.id,doc.content,m.documentId)}else registerChatQuestions(d,chat,m.id,m.content)}return learningView(d).items.filter(q=>q.source.chatId===chat.id)}));return true;

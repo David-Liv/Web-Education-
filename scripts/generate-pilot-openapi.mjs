@@ -47,6 +47,7 @@ route('/studio/attempts/{id}/dispute','post','Exclude a disputed reference feedb
 route('/studio/rest','post','One-day exception, preserving weekly budget; pending unlocked tasks become floating',obj({date:str,rest:{type:'boolean'}},['date','rest']));
 route('/studio/resume','post','Student explicitly continues after a prerequisite example',obj({subjectId:{enum:['maths','chi','eng']},skillId:str},['subjectId']));
 route('/learning','get','Owned public question identities and merged skill reviews; no private keys',null);
+route('/learning/guided','post','Deterministic polynomial check, step hint progression and fresh unseen variant switching for guided topic practice; no AI credits',obj({topicId:str,itemId:str,action:{enum:['assist','submit','next-variant']},answer:str,language:{enum:['zh-HK','en']}},['topicId','itemId','action']));
 route('/learning/chats/{id}/questions','get','Hydrate owned chat/PDF question snapshots with exact versions',null);
 route('/learning/items/{id}/assist','post','Record question-specific assistance before returning owned hint/answer',obj({kind:{enum:['hint','answer','discussion']}},['kind']));
 route('/learning/attempts/{id}/appeal','post','One automatic review per attempt, at platform expense; preserves history',obj({reason:str,requestId:str},['reason','requestId']));

@@ -1,5 +1,14 @@
 # HOKSE 更新日誌 / Release notes
 
+## v1.10.0 · 2026-11-14
+
+- 零門檻直入式課題學習（`src/TopicGuidedCourse.tsx`、`src/pages/Subjects.tsx`、`src/pages/Studio.tsx`）：點選課題直接開啟全頁直入式教學與練習頁，移除練習前的「目標等級」與「每天可用時間」表單阻隔，將相關設定統一歸入升學目標與溫習日曆排程。
+- 新增香港 DSE 數學必修「因式分解」7 部分直入式導學與引導練習（`src/data/factorisation-guide.ts`、`src/factorisation-check.ts`）：頂部顯示整體與 Part 1–7 各部分獨立掌握 `%` 進度，向下捲動逐步學習精簡步驟、例題與常犯陷阱，配搭 49 道原創同型變體題、零 AI credit 安全多項式解析與分解完整性即時診斷，以及「換同型新題獨立再試」無輔助驗證機制。
+- 長篇因式分解原理解析拆分為 8 個分段 AI 講解知識切片（`server/tutors.ts`、`src/api/mock.ts`），支援每部分與每道題一鍵帶入 AI 學習室進行短段落互動拆解。
+- Zero-barrier direct topic learning (`src/TopicGuidedCourse.tsx`, `src/pages/Subjects.tsx`, `src/pages/Studio.tsx`): clicking a topic opens a full-page Direct Topic View immediately, decoupling target-grade and daily-time inputs into schedule building (`/goals` and `/calendar`).
+- Added a 7-part HKDSE Factorisation guided course (`src/data/factorisation-guide.ts`, `src/factorisation-check.ts`) with top-level and per-part `%` progress, scroll-down 3-step methods, worked examples, trap callouts, 49 original isomorphic variants, instant zero-credit polynomial equivalence & complete-factorisation diagnostics, and unassisted fresh-variant retesting.
+- Chunked detailed Factorisation explanations into 8 topic slices (`server/tutors.ts`, `src/api/mock.ts`) with one-click “Ask AI to explain this part / question” handoffs.
+
 ## v1.9.0 · 2026-11-14
 
 - 學習總覽改為以「今天的學習清單」為中心的書桌式版面：下一項任務可直接開始任務專注，頂部亦常駐「自由專注」入口；合併「我的學習報告」視窗（真實版整合雙周學習回顧），待辦進行時摺疊次要建議，簡化「我的升學方向」卡片，並按香港星期與「已記錄學習分鐘」呈現每週統計。

@@ -1,6 +1,10 @@
 import type { Question, QuestionKind } from '../types';
 export const questions:Question[]=[];
 function q(topicId:string,subjectId:string,paper:string,kind:QuestionKind,prompt:string,answer:string,explanation:string,options?:string[],extra:Partial<Question>={}) { const id=`${topicId}-q${questions.filter(x=>x.topicId===topicId).length+1}`; questions.push({id,subjectId,topicId,paper,kind,prompt,answer,explanation,options,marks:kind==='choice'?1:2,difficulty:'基礎',hint:'先找出題目中的關鍵條件，再連結這個知識點的核心概念。',original:true,...extra}); }
+q('maths-factorisation','maths','卷一','choice','因式分解 12ab² − 18a²b + 6ab 的結果是甚麼？','C','先抽最大公因式 6ab；最後一項 6ab ÷ 6ab 必須保留 +1，得 6ab(2b − 3a + 1)。',['6ab(2b − 3a)','6ab(2b − 3a − 1)','6ab(2b − 3a + 1)','3ab(4b − 6a + 2)'],{hint:'先找 12、18、6 的最大公因數及共同字母最低次方，注意整除項保留 +1。'});
+q('maths-factorisation','maths','卷二','choice','因式分解 36 − (4x − 5y)²。','B','寫成 [6 + (4x − 5y)][6 − (4x − 5y)]，拆負號時 −(−5y) 變 +5y，得 (6 + 4x − 5y)(6 − 4x + 5y)。',['(6 + 4x − 5y)(6 − 4x − 5y)','(6 + 4x − 5y)(6 − 4x + 5y)','(6 − 4x + 5y)²','(36 + 4x − 5y)(36 − 4x + 5y)'],{difficulty:'進階',hint:'先用中括號寫出 [A + B][A − B]，再把減號乘入小括號每一項。'});
+q('maths-factorisation','maths','卷一','choice','已知 8p² − 12pq = 4p(2p − 3q)。由此因式分解 8p² − 12pq − 6pr + 9qr。','A','前半代入 4p(2p − 3q)，後半抽出 −3r 得 −3r(2p − 3q)，再抽公因括號 (2p − 3q)。',['(2p − 3q)(4p − 3r)','(2p − 3q)(4p + 3r)','(2p + 3q)(4p − 3r)','4p(2p − 3q − 3r)'],{difficulty:'進階',hint:'後兩項 −6pr + 9qr 抽出 −3r 後，括號內正負號會反轉。'});
+q('maths-factorisation','maths','卷二','choice','因式分解 3a⁴ − 12a³ − 36a²。','D','先抽公因式 3a² 得 3a²(a² − 4a − 12)，再分解二次三項式為 3a²(a − 6)(a + 2)。',['(3a² − 6)(a² + 6)','3a²(a + 6)(a − 2)','a²(3a − 6)(a + 6)','3a²(a − 6)(a + 2)'],{hint:'動筆第一步先抽出三項共有的 3a²。'});
 q('maths-quadratic','maths','卷二','choice','方程 x² − 5x + 6 = 0 的兩個根是甚麼？','B','(x − 2)(x − 3) = 0，因此 x = 2 或 x = 3。',['1 和 6','2 和 3','−2 和 −3','−1 和 −6'],{hint:'找出兩個數，其乘積為 6，而和為 −5。'});
 q('maths-quadratic','maths','卷二','choice','若一元二次方程的判別式 Δ < 0，以下哪項正確？','C','判別式小於零時，沒有實根；不表示沒有複數根。',['有兩個不同實根','有兩個相等實根','沒有實根','必有一個根為零']);
 q('maths-quadratic','maths','卷一','numeric','方程 x² − 6x + 9 = 0 的重根是多少？','3','x² − 6x + 9 = (x − 3)²，因此重根為 3。');

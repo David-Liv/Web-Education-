@@ -1,6 +1,6 @@
 # HOKSE User Guide
 
-v1.9 · 14 November 2026 · Find your direction and make progress at your own pace.
+v1.10 · 14 November 2026 · Find your direction and make progress at your own pace.
 
 Website: [Open HOKSE](https://web-education.onrender.com). Sign in with your username or verified email, or create an account with a 6-digit email verification code (and class passcode when required) when self-registration is enabled. Visitors can also browse public posts in the [Student Forum](/forum) before signing in; sign in to post, reply and vote. No software installation is needed.
 
@@ -17,9 +17,14 @@ On desktop, use the button at the top of the sidebar to collapse navigation to i
 
 Use school estimates or mock exams as a starting point for whole-subject grades. Short exercises identify topic weaknesses; they do not automatically become a whole-subject DSE grade.
 
-## 2. My Learning Flow
+## 2. Subject topics and My Learning Flow
 
-Mathematics, Chinese and English offer unit explanations, exercises and feedback. Choose a subject and a starting question count, then pick what you need:
+Clicking any topic in Subject Learning opens a full-page Direct Topic View immediately — with no pre-topic target-grade or available-time forms in the way (target grades and daily study time belong solely to schedule building in University Goals and Study Calendar).
+
+- **Compulsory Mathematics — Factorisation (7-part direct guide & interactive practice)**: The top overview shows your overall independent `%` progress alongside clickable **Part 1 to Part 7** cards (common monomials, common brackets, two-part `(a)`-into-`(b)` grouping, single-variable quadratics, two-variable homogeneous quadratics, difference of two squares & sign traps, and cubic identities & Paper 2 prime-substitution checking). Scroll down to read concise 3-step methods, worked examples and exam traps, then complete each part's Guided Warm-up and 2 Independent Checks (49 original isomorphic variants in total). Algebraic equivalence and complete factorisation are checked instantly by code with **zero AI credits**; assisted or retried solves never inflate independent mastery, and “Try a fresh variant unassisted” lets you prove genuine unassisted mastery on a new variant anytime. Long explanations are split into per-part chunks for the AI Explainer: click “Ask AI to explain this part / question” to pre-fill a focused step-by-step chat draft (no credits are used until you send).
+- **Other ready topics**: View your progress, core essentials, formulas and worked examples on one page, then start practice or ask the AI tutor in one click.
+
+In My Learning Flow, Mathematics, Chinese and English also offer unit explanations, exercises and feedback. Choose a subject and a starting question count (without repeating grade or daily-time forms), then pick what you need:
 
 - Fixed quick practice: try a method and revisit it at your pace.
 - AI quick exercises: generate short supporting questions.
@@ -160,6 +165,12 @@ The current checkout is a demonstration. Choosing a payment channel does not cha
 Use your own account and sign out before leaving a shared computer. For troubleshooting, administrators can view AI usage records and export response text. Avoid unnecessary personal secrets in your questions.
 
 ## 12. What's new
+
+**v1.10 · Zero-barrier direct topic learning & 7-part Factorisation guided practice · 14 November 2026**
+
+- Clicking a topic now opens a full-page Direct Topic View immediately, removing pre-practice target-grade and daily-time barriers from topic learning and My Learning Flow (keeping those settings in schedule building under University Goals and Study Calendar).
+- Added a complete 7-part HKDSE Factorisation guided course (`maths-factorisation` — common monomials, common brackets, `(a)`-into-`(b)` grouping, single- and two-variable quadratics, difference of two squares sign traps, cubic identities and Paper 2 prime substitution checking): see `%` progress across all 7 parts at the top, scroll down to learn and practise across 49 original isomorphic variants with instant zero-credit polynomial checking, and use “Try a fresh variant unassisted” whenever hints or retries were used.
+- Split detailed Factorisation explanations into per-part knowledge chunks powering one-click “Ask AI to explain this part / question” conversational support.
 
 **v1.9 · A calmer Study Overview and full-screen Open Focus · 14 November 2026**
 

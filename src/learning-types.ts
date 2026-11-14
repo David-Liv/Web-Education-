@@ -4,4 +4,4 @@ export interface LearningSource {kind:'chat'|'lesson'|'pack';chatId?:string;mess
 export interface LearningQuestion {id:string;skillId:string;question:string;source:LearningSource;hintAvailable:boolean;answerAvailable:boolean}
 export interface LearningReview {id:string;skillId:string;dueDate:string;lastLearned:string;completedAt?:string;sourceIds:string[];minutes:number}
 export interface Appeal {status:'pending'|'corrected'|'upheld'|'uncertain';at:string;reason:string;previous:StudyFeedback;feedback?:StudyFeedback}
-export interface LearningView {items:LearningQuestion[];reviews:LearningReview[]}
+export interface LearningView {items:LearningQuestion[];reviews:LearningReview[];guided?:Record<string,import('./factorisation-check.ts').GuidedItemState>}

@@ -1,4 +1,5 @@
 export const englishSummaries:Record<string,string[]>={
+ 'maths-factorisation':['Always extract common numerical and variable factors first before applying any identity.','Match the number of terms: 2 terms for difference of squares or cubes, 3 terms for quadratics, and 4 terms for grouping.','Check every bracket for remaining common factors, and distribute minus signs across every term inside brackets.'],
  'maths-quadratic':['Write the equation in the form ax² + bx + c = 0, with a ≠ 0.','Choose factorisation, completing the square or the quadratic formula.','The discriminant Δ = b² − 4ac determines the number of real roots.'],
  'maths-trig':['Identify the opposite side, adjacent side and hypotenuse in a right-angled triangle.','Use the sine rule or cosine rule for suitable non-right-angled triangles.','Draw a labelled diagram and check units and the reasonableness of your result.'],
  'maths-probability':['List the possible outcomes and check whether they are equally likely.','For independent events, multiply their probabilities to find the joint probability.','Sampling without replacement changes the probabilities on later draws.'],
@@ -12,6 +13,7 @@ export const englishSummaries:Record<string,string[]>={
 };
 
 export const englishExamples:Record<string,{example:string;misconception:string}>={
+ 'maths-factorisation':{example:'For 3x³ − 27xy², extract 3x first to get 3x(x² − 9y²), then factorise to 3x(x + 3y)(x − 3y).',misconception:'In 25 − (3x − 2y)², subtracting (3x − 2y) flips −2y to +2y: (5 + 3x − 2y)(5 − 3x + 2y).'},
  'maths-quadratic':{example:'For x² − 5x + 6 = 0, factorise to get (x − 2)(x − 3) = 0, so x = 2 or 3.',misconception:'Δ = 0 means two equal real roots; it does not mean there are no real roots.'},
  'maths-trig':{example:'If the opposite side is 3 and the hypotenuse is 5, sin θ = 3/5.',misconception:'Label sides relative to the angle you are using. The opposite and adjacent sides change when you change the angle.'},
  'maths-probability':{example:'Two independent tosses of a fair coin both show heads with probability 1/2 × 1/2 = 1/4.',misconception:'Do not assume independence when sampling without replacement.'},
