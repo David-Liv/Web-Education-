@@ -141,8 +141,8 @@ export class ChatService {
      if(!parts.required){if(r.lesson){r.finalText=parts.draft;await this.put(r)}else{validateTutorOutput(chat,r.body);r.state='complete';await this.write(r,r.body,'complete');return {chatId:chat.id,messageId:r.messageId}}}
      else{r.state='reviewing';await this.write(r,r.body,'streaming',{pending:true})}
     }
-    if(!r.finalText){r.reviewModel=(await this.billing.policy()).reviewModel;
-    const result=reviewedText(await generate(config,[{role:'system',content:REVIEW_INSTRUCTIONS},{role:'user',content:reviewInput(r.prompt,r.body,r.draft)}],signal,true,r.lesson?6000:undefined),r.draft);
+    if(!r.finalText){const configuredReview=(await this.billing.policy()).reviewModel;r.reviewModel=configuredReview;const reviewMessages=[{role:'system',content:REVIEW_INSTRUCTIONS},{role:'user',content:reviewInput(r.prompt,r.body,r.draft)}];let reviewRaw:string;try{reviewRaw=await generate(config,reviewMessages,signal,true,r.lesson?6000:undefined)}catch(reviewErr){if((reviewErr as {code?:string}|null)?.code==='PROVIDER_AUTH_ERROR'&&r.model&&r.model!==configuredReview){r.reviewModel=r.model;reviewRaw=await generate(config,reviewMessages,signal,true,r.lesson?6000:undefined,r.model)}else throw reviewErr}
+    const result=reviewedText(reviewRaw,r.draft);
     if(signal.aborted)throw new Error('CANCELLED');
     r.history.push({at:new Date().toISOString(),verdict:result.verdict,reason:result.reason,before:r.draft,after:result.text});r.history=r.history.slice(-2);r.finalText=[r.body,result.text].filter(Boolean).join('\n\n');await this.put(r)}
     validateTutorOutput(chat,r.finalText);

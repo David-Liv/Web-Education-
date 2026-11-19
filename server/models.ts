@@ -52,9 +52,9 @@ async function waitBackoff(ms:number,signal?:AbortSignal){
     signal?.addEventListener('abort',onAbort,{once:true});
   });
 }
-export async function generate(config:ModelConfig,messages:{role:string;content:string}[],signal?:AbortSignal, review=false,tokenBudget?:number){
+export async function generate(config:ModelConfig,messages:{role:string;content:string}[],signal?:AbortSignal, review=false,tokenBudget?:number,reviewModelOverride?:string){
   if(!config.enabled||!config.model)reject('開發者尚未啟用模型或選擇模型 ID',503,'MODEL_NOT_CONFIGURED');
-  const scoped=await beginProvider(config,review);config=scoped.config;
+  const scoped=await beginProvider(config,review,reviewModelOverride);config=scoped.config;
   if(!isAllowedModel(config.model))reject('只可使用抗截斷模型；此模型不可用',403,'MODEL_NOT_ALLOWED');
   signal=signal&&scoped.signal?AbortSignal.any([signal,scoped.signal]):signal??scoped.signal;
   const maxTokens=tokenBudget===undefined?(review?4800:2400):Math.min(6000,Math.max(1000,Math.floor(tokenBudget)));
@@ -75,7 +75,7 @@ export async function generate(config:ModelConfig,messages:{role:string;content:
       const reader=response.body?.getReader();let size=0;const chunks:Uint8Array[]=[];
       if(reader)try{while(true){const chunk=await reader.read();if(chunk.done)break;size+=chunk.value.length;if(size>4*1024*1024){await reader.cancel();reject('模型服務回應過大',502,'RESPONSE_TOO_LARGE')}chunks.push(chunk.value)}}finally{reader.releaseLock()}
       raw=Buffer.concat(chunks).toString('utf8');
-      if(!response.ok)reject(response.status===401||response.status===403?'API 認證失敗；請檢查密鑰與模型權限':response.status===429?'提供方限額或速率限制，稍後可再試':`模型服務回傳 HTTP ${response.status}`,502,'PROVIDER_ERROR');
+      if(!response.ok)reject(response.status===401||response.status===403?`API 認證失敗（HTTP ${response.status}，模型：${config.model}）；請檢查密鑰與模型權限`:response.status===429?'提供方限額或速率限制，稍後可再試':`模型服務回傳 HTTP ${response.status}`,502,response.status===401||response.status===403?'PROVIDER_AUTH_ERROR':'PROVIDER_ERROR');
       let result:any;try{result=JSON.parse(raw)}catch{reject('模型服務未返回有效 JSON',502,'PROTOCOL_ERROR')}
       usage=result.usage;
       content=extractContent(config.protocol,result);

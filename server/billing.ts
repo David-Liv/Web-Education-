@@ -78,12 +78,12 @@ export async function usageModel(config: ModelConfig): Promise<ModelConfig> {
   const model = view.account.models[ctx.modelPurpose];
   return { ...config, model };
 }
-export async function beginProvider(config: ModelConfig, review=false) {
+export async function beginProvider(config: ModelConfig, review=false, reviewModelOverride?: string) {
   const ctx = context.getStore(); if (!ctx) return { config, signal: undefined };
   config = await usageModel(config);
   if (!isAllowedModel(config.model)) reject('只可使用抗截斷模型；此模型不可用', 403, 'MODEL_NOT_ALLOWED');
   if (!ctx.op) ctx.op = await ctx.billing.reserve(ctx, config.model);
-  if(review){const policy=await ctx.billing.policy(),model=policy.reviewModel!;if(!isAllowedModel(model)||!policy.models[model]?.enabled)reject('請管理員設定可用的練習復核模型',503,'REVIEW_MODEL_NOT_CONFIGURED');config={...config,model}}
+  if(review){const policy=await ctx.billing.policy(),model=reviewModelOverride??policy.reviewModel!;if(!isAllowedModel(model)||!policy.models[model]?.enabled)reject('請管理員設定可用的練習復核模型',503,'REVIEW_MODEL_NOT_CONFIGURED');config={...config,model}}
   return { config: { ...config, model: review ? config.model : ctx.op.model }, signal: ctx.signal };
 }
 export async function recordProvider(log: Omit<UsageLog, 'id' | 'userId' | 'username' | 'name' | 'operationId' | 'plan' | 'purpose'>, content: string, secret: string) {

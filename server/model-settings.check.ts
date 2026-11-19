@@ -91,3 +91,27 @@ test('configurable maxRetries automatically retries transient provider failures 
   assert.equal((await billing.view(student.id)).spent,20);
  }finally{await app.close();await new Promise<void>((r,j)=>provider.close(e=>e?j(e):r()))}
 });
+
+test('chat review falls back to the working generation model when the configured reviewModel returns HTTP 401/403',async()=>{
+ const seen:string[]=[];
+ const provider=createServer(async(req,res)=>{let raw='';for await(const c of req)raw+=c;const body=JSON.parse(raw);seen.push(body.model);res.setHeader('Content-Type','application/json');if(body.model==='pggo-抗截断-gemini-3.8-flash'){res.writeHead(403);res.end(JSON.stringify({error:'model not permitted for key'}));return}const isReview=body.messages[0].content.includes('獨立的香港中學生練習復核者');res.end(JSON.stringify({choices:[{message:{content:isReview?JSON.stringify({verdict:'pass',reason:'ok'}):'Here is a worked explanation without review fence.'}}]}))});
+ await new Promise<void>(r=>provider.listen(0,'127.0.0.1',r));
+ const upstream=`http://127.0.0.1:${(provider.address() as {port:number}).port}`;
+ const app=createPilot({database:':memory:',allowSetup:false});const base=`http://127.0.0.1:${await app.listen(0)}`;
+ try{
+  const owner=await app.store.createUser('owner','fixture-password-123','owner','developer');
+  const student=await app.store.createUser('student','fixture-password-123','student','student');
+  const studentCookie=`hokse_session=${await app.store.session(student)}`;
+  const call=async(path:string,method='GET',body?:unknown)=>{const r=await fetch(base+'/api/v1'+path,{method,headers:{'X-Hokse-Client':'1','X-Hokse-Request-ID':crypto.randomUUID(),Cookie:studentCookie,...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify(body):undefined});return {status:r.status,data:r.headers.get('content-type')?.includes('text/event-stream')?await r.text():await r.json()}};
+  await app.store.putModel({id:'default',name:'Fallback test',baseUrl:upstream,secret:'k',model:'gemini-4-hydrogen',protocol:'openai-chat',enabled:true,maxRetries:1});
+  const billing=new Billing(app.store),p=await billing.policy();
+  p.models['gemini-4-hydrogen']={credits:20,enabled:true};p.reviewModel='pggo-抗截断-gemini-3.8-flash';
+  p.plans.Free.models.push('gemini-4-hydrogen');p.plans.Free.defaultModel='gemini-4-hydrogen';p.plans.Free.defaultModels={quiz:'gemini-4-hydrogen',chat:'gemini-4-hydrogen',evaluation:'gemini-4-hydrogen'};
+  await billing.updatePolicy(owner.id,p);
+  const chat=(await call('/chats','POST',{topicId:units[0].topicId,mode:'explain'})).data;
+  const res=await call(`/chats/${chat.id}/messages`,'POST',{content:'Explain quadratic formula',requestId:crypto.randomUUID()});
+  assert.equal(res.status,200);assert.match(res.data,/worked explanation/);
+  assert.deepEqual(seen,['gemini-4-hydrogen','pggo-抗截断-gemini-3.8-flash','gemini-4-hydrogen']);
+  assert.equal((await billing.view(student.id)).spent,20);
+ }finally{await app.close();await new Promise<void>((r,j)=>provider.close(e=>e?j(e):r()))}
+});
