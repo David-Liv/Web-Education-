@@ -13,7 +13,7 @@ function docker(args,allowedFailure=false){const r=spawnSync('docker',args,{enco
 let started=false;
 try{
  docker(['run','--detach','--name',name,'--label','com.hokse.fixture=postgres','--env-file',envFile,'--publish','127.0.0.1::5432','--tmpfs','/var/lib/postgresql/data','postgres:17-alpine']);started=true;
- let ready=false;for(let i=0;i<45;i++){if(docker(['exec',name,'pg_isready','-U','postgres','-d','hokse_check_suite'],true).includes('accepting connections')){ready=true;break}await new Promise(r=>setTimeout(r,500))}if(!ready)throw new Error('Temporary PostgreSQL did not become ready.');
+ let ready=false;for(let i=0;i<45;i++){if(docker(['exec',name,'pg_isready','-h','127.0.0.1','-U','postgres','-d','hokse_check_suite'],true).includes('accepting connections')){ready=true;break}await new Promise(r=>setTimeout(r,500))}if(!ready)throw new Error('Temporary PostgreSQL did not become ready.');
  const port=docker(['port',name,'5432/tcp']).split(':').at(-1),encryptionKey=randomBytes(32).toString('base64');
  docker(['exec',name,'createdb','-U','postgres','hokse_check_race']);
  docker(['exec',name,'createdb','-U','postgres','hokse_check_restore']);
