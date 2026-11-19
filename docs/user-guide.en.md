@@ -56,7 +56,7 @@ Matt provides a downloadable PDF for a new lesson. Ordinary follow-up questions 
 
 New exercises and worked answers in chat are checked before appearing. General explanations may appear first, with practice added to the same reply afterward. For requests that only ask for questions or solutions, wait for the complete reply. These checks help reduce errors; replies remain AI learning references.
 
-Started work continues when you switch conversations or leave the page. Return to see saved results; use Stop to cancel explicitly. If a reply could not be completed, Retry continues the same saved request once without an additional charge or rewriting an explanation already delivered. After another failure, send a new request. There are no automatic retry loops.
+Started work continues when you switch conversations or leave the page. Return to see saved results; use Stop to cancel explicitly. In invited mode, you can switch between your plan-allowed conversation models directly from the AI Study Room composer bar. On transient upstream errors, the backend automatically retries up to the administrator-configured count (default 3) before returning a failure with the reason; if a reply still could not be completed, Retry continues the same saved request once without an additional charge or rewriting an explanation already delivered. After another failure, send a new request.
 
 Each conversation keeps a learning topic together. Rename it, continue asking questions, stop a reply or save a learning summary.
 
@@ -149,7 +149,7 @@ Opening the top-bar bell does not clear unread items automatically; unread indic
 
 ## 10. Personal settings and AI credits
 
-Adjust subjects, grades, language and available time in Personal Settings, where you can also link or update your verified email. Once linked, you can sign in with your email address and reset a forgotten password on the sign-in page using a 6-digit verification code (valid for 10 minutes). Plan & Billing shows available credits and lets you choose separate default models for quizzes, conversations and assessment. Each model displays its credit price per operation.
+Adjust subjects, grades, language and available time in Personal Settings, where you can also link or update your verified email. Once linked, you can sign in with your email address and reset a forgotten password on the sign-in page using a 6-digit verification code (valid for 10 minutes). Plan & Billing shows available credits and lets you choose separate default models for quizzes, conversations and assessment; channel prefixes are hidden automatically so each model displays its clean base name and credit price per operation.
 
 AI operations reserve credits first and charge when a usable result is available. Failure or cancellation releases the reservation if nothing usable was delivered. An explanation already delivered retains its original charge. Fixed-question generation and rule-only marking use no AI credits. If credits run out, you can still keep notes, do fixed practice and arrange your calendar.
 
@@ -171,6 +171,8 @@ Use your own account and sign out before leaving a shared computer. For troubles
 - Clicking a topic now opens a full-page Direct Topic View immediately, removing pre-practice target-grade and daily-time barriers from topic learning and My Learning Flow (keeping those settings in schedule building under University Goals and Study Calendar).
 - Added a complete 7-part HKDSE Factorisation guided course (`maths-factorisation` — common monomials, common brackets, `(a)`-into-`(b)` grouping, single- and two-variable quadratics, difference of two squares sign traps, cubic identities and Paper 2 prime substitution checking): see `%` progress across all 7 parts at the top, scroll down to learn and practise across 49 original isomorphic variants with instant zero-credit polynomial checking, and use “Try a fresh variant unassisted” whenever hints or retries were used.
 - Split detailed Factorisation explanations into per-part knowledge chunks powering one-click “Ask AI to explain this part / question” conversational support.
+- Opened model discovery and configuration to any valid model ID prefix while automatically hiding routing prefixes (`pg`, `pgo`, `pggo`, `抗截断`, etc.) in display names, with one-click batch addition of fetched models to plan model lists (18 November 2026).
+- Added an inline conversation model switcher and clear failure reasons in AI Study Room, plus configurable backend automatic retries on transient upstream errors (0–5, default 3; returns failure and releases credits only if all retries fail) (19 November 2026).
 
 **v1.9 · A calmer Study Overview and full-screen Open Focus · 14 November 2026**
 

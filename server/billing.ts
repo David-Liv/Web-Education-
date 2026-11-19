@@ -41,13 +41,15 @@ export function migrateModelPolicy(input: BillingPolicy): BillingPolicy {
   p.models = Object.fromEntries(Object.entries(p.models).filter(([id]) => isAllowedModel(id)));
   for (const id of plans) {
     const rule = p.plans[id];
-    rule.models = [...new Set(rule.models.map(m => isAllowedModel(m) ? m : counterpart(m)))].filter(m => p.models[m]?.enabled);
+    const resolve = (model: string) => p.models[model]?.enabled ? model : counterpart(model);
+    rule.models = [...new Set(rule.models.map(resolve))].filter(m => isAllowedModel(m) && p.models[m]?.enabled);
     const pick = (model: string) => {
-      const m = isAllowedModel(model) ? model : counterpart(model);
+      const m = resolve(model);
       return rule.models.includes(m) ? m : rule.models[0] ?? '';
     };
     rule.defaultModels = Object.fromEntries(modelPurposes.map(k => [k, pick(rule.defaultModels?.[k] ?? rule.defaultModel)])) as Record<ModelPurpose, string>;
     rule.defaultModel = rule.defaultModels.chat;
+    if (!isAllowedModel(p.reviewModel) || !p.models[p.reviewModel]?.enabled) { const fb = counterpart(p.reviewModel ?? ''); p.reviewModel = p.models[fb]?.enabled ? fb : Object.entries(p.models).find(([, m]) => m.enabled)?.[0] ?? defaults[1]; }
   }
   return p;
 }
@@ -136,7 +138,7 @@ export class Billing {
       // Migrate the previous shared selection to all three purposes once.
       const selected = account.models ?? purposeModels(account.model);
       account.models = Object.fromEntries(modelPurposes.map(k => {
-        const m = selected[k] ?? '', mapped = isAllowedModel(m) ? m : counterpart(m);
+        const m = selected[k] ?? '', mapped = permitted(policy, account.plan, m) ? m : counterpart(m);
         return [k, permitted(policy, account.plan, mapped) ? mapped : planDefault(policy, account.plan, k)];
       })) as Record<ModelPurpose, string>;
       account.model = account.models.chat; // Legacy read-only alias for older clients.

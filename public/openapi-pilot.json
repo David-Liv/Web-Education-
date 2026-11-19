@@ -9802,6 +9802,17 @@
                   },
                   "enabled": {
                     "type": "boolean"
+                  },
+                  "maxRetries": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 5
+                  },
+                  "models": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
                   }
                 },
                 "required": [
@@ -10178,6 +10189,17 @@
                       },
                       "enabled": {
                         "type": "boolean"
+                      },
+                      "maxRetries": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 5
+                      },
+                      "models": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
                       }
                     },
                     "required": [
@@ -10334,6 +10356,17 @@
                       },
                       "enabled": {
                         "type": "boolean"
+                      },
+                      "maxRetries": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 5
+                      },
+                      "models": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
                       }
                     },
                     "required": [
@@ -11165,7 +11198,8 @@
                 "properties": {
                   "model": {
                     "type": "string",
-                    "pattern": "^pggo-抗截断-",
+                    "minLength": 1,
+                    "maxLength": 200,
                     "description": "Exact provider ID; display labels are not accepted"
                   },
                   "purpose": {

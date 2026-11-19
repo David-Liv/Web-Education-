@@ -4,8 +4,8 @@ import type {ServerResponse} from 'node:http';
 import type {Store,ModelConfig} from './store.ts';
 import type {Identity,ContentPack} from '../src/pilot-types.ts';
 import type {Chat,ChatMessage} from '../src/types.ts';
-import {Billing,beginProvider,usageModel,discardUsage,deferUsageCheckpoint} from './billing.ts';
-import {generate} from './models.ts';
+import {Billing,beginProvider,usageModel,discardUsage,deferUsageCheckpoint,redact} from './billing.ts';
+import {DEFAULT_MAX_RETRIES,generate} from './models.ts';
 import {reject} from './learning.ts';
 import {chatHistoryText,parseChatContent} from '../src/chat-content.ts';
 import {splitReview,reviewedText,reviewInput,REVIEW_INSTRUCTIONS,usable} from './chat-review.ts';
@@ -34,7 +34,7 @@ export class ChatService {
  constructor(store:Store,billing:Billing,origin?:string){this.store=store;this.billing=billing;this.origin=origin}
  private async record(userId:string,messageId:string):Promise<Record|null>{const row=await this.store.db.prepare('SELECT body FROM settings WHERE id=?').get(key(userId,messageId));return row?JSON.parse(this.store.decrypt(row.body)):null}
  private async put(record:Record){await this.store.db.prepare('INSERT INTO settings VALUES(?,?) ON CONFLICT(id) DO UPDATE SET body=excluded.body').run(key(record.userId,record.messageId),this.store.encrypt(JSON.stringify(record)));await this.store.db.prepare('INSERT INTO settings VALUES(?,?) ON CONFLICT(id) DO UPDATE SET body=excluded.body').run(operationReviewKey(record.operationId),record.messageId)}
- private async write(record:Record,content:string,status:ChatMessage['status'],practice?:ChatMessage['practice'],document?:PreparedDocument){
+ private async write(record:Record,content:string,status:ChatMessage['status'],practice?:ChatMessage['practice'],document?:PreparedDocument,errorMessage?:string){
   let message:ChatMessage|undefined;
   await this.store.transaction(async()=>{
    const saved=await this.record(record.userId,record.messageId);if(!saved||saved.runId!==record.runId||saved.state==='stopped')return;
@@ -43,7 +43,7 @@ export class ChatService {
    if(document){await saveDocument(this.store,record.userId,document);chat!.documents??=[];if(!chat!.documents.some(d=>d.id===document.meta.id))chat!.documents.push(document.meta);m.documentId=document.meta.id}
    if(status==='complete'&&!practice?.failed&&chat!.tutor)applyTeachingRecord(data,chat!,m.id,record.prompt,record.update);
    if(status==='complete'&&!practice?.failed){registerChatQuestions(data,chat!,m.id,document?.content??content,document?.meta.id,record.update?.exerciseSkills);const ref=record.update?.attempt;if(record.attemptId)updateAttempt(data,record.attemptId,ref&&ref.questionId===record.questionId?{...ref,source:'ai'}:undefined)}else if(status==='interrupted'||practice?.failed){failPendingAttempt(data,record.attemptId)}
-   m.content=content;m.status=status;m.practice=practice;m.model=record.model;m.revision=(m.revision??0)+1;record.revision=m.revision;chat!.updatedAt=new Date().toISOString();
+   m.content=content;m.status=status;m.practice=practice;m.model=record.model;if(errorMessage)m.error=errorMessage;else delete m.error;m.revision=(m.revision??0)+1;record.revision=m.revision;chat!.updatedAt=new Date().toISOString();
    await this.put(record);
    deferUsageCheckpoint(!usable(content));try{await this.store.save(record.userId,data)}finally{deferUsageCheckpoint()}
    message=structuredClone(m);const running=this.running.get(record.userId+record.chatId);if(running)running.user=structuredClone(chat!.messages.find(m=>m.role==='user'&&m.requestId===record.requestId));
@@ -108,14 +108,16 @@ export class ChatService {
   return this.watch(job,res);
  }
  private async execute(identity:Identity,chat:Chat,r:Record,config:ModelConfig,pack:Pick<ContentPack,'topicId'|'lessons'>,input:any,job:Running,retry:boolean){
-  const signal=AbortSignal.any([job.controller.signal,AbortSignal.timeout(110000)]);
+  const retryCount=typeof config.maxRetries==='number'?Math.max(0,Math.min(5,Math.floor(config.maxRetries))):DEFAULT_MAX_RETRIES;
+  const timeoutMs=110000+retryCount*35000;
+  const signal=AbortSignal.any([job.controller.signal,AbortSignal.timeout(timeoutMs)]);
   const work=async()=>{
    deferUsageCheckpoint();
    if(signal.aborted)reject('已停止生成',409,'CANCELLED');
-   if(retry){r.retries++;r.retryRequestId=input.requestId;r.runId=crypto.randomUUID();r.state=r.draft?'reviewing':'generating';r.leaseUntil=Date.now()+120000;
+   if(retry){r.retries++;r.retryRequestId=input.requestId;r.runId=crypto.randomUUID();r.state=r.draft?'reviewing':'generating';r.leaseUntil=Date.now()+timeoutMs+10000;
     await this.store.transaction(async()=>{const current=await this.record(identity.id,r.messageId);if(!current||current.state!=='failed'||current.retries>=1)reject('這次回覆已使用免費重試',409,'RETRY_EXHAUSTED');const d=await this.store.state(identity.id),c=d.chats.find(c=>c.id===chat.id),m=c?.messages.find(m=>m.id===r.messageId);if(!m)reject('對話不存在',404);r.revision=(m.revision??0)+1;m.revision=r.revision;m.status='streaming';m.practice={pending:true};await this.put(r);await this.store.save(identity.id,d)});
    }else{
-    config=(await beginProvider(await usageModel(config))).config;r.model=config.model;
+    config=(await beginProvider(await usageModel(config))).config;r.model=config.model;r.leaseUntil=Date.now()+timeoutMs+10000;
     if(signal.aborted)reject('已停止生成',409,'CANCELLED');
     await this.store.transaction(async()=>{const d=await this.store.state(identity.id),c=d.chats.find(c=>c.id===chat.id)??reject('對話不存在',404);
      if(c.messages.some(m=>m.status==='streaming'))reject('此對話仍在生成',409,'AI_IN_PROGRESS');
@@ -148,7 +150,7 @@ export class ChatService {
     else{r.state='complete';await this.write(r,r.finalText,'complete')}
    }catch(e){
     r.state=job.controller.signal.aborted?'stopped':'failed';r.history.push({at:new Date().toISOString(),verdict:'failed',reason:(e as any).code??(e as Error).message,before:r.draft,after:''});r.history=r.history.slice(-2);
-    await this.write(r,r.body,r.state==='stopped'?'interrupted':'complete',r.state==='failed'?{failed:true,retryAvailable:r.retries<1}:undefined);
+    const rawMsg=(e as Error)?.message??'';const safeError=!job.controller.signal.aborted&&(e as {status?:number}|null)?.status?redact(rawMsg,config.secret).slice(0,200):undefined;await this.write(r,r.body,r.state==='stopped'?'interrupted':'complete',r.state==='failed'?{failed:true,retryAvailable:r.retries<1}:undefined,undefined,safeError);
     if(!usable(r.body))discardUsage();
    }
    return {chatId:chat.id,messageId:r.messageId};

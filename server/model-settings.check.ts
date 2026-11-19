@@ -20,7 +20,7 @@ async function fixture(){
 
 test('model discovery and selected-model tests use drafts without activating them or exposing keys',async()=>{
  const f=await fixture();try{
-  const list=await f.call('/admin/model/models',undefined,'POST',{config:f.draft});assert.equal(list.status,200);assert.deepEqual(list.data.models,['pggo-抗截断-old-model','pggo-抗截断-new-model']);assert.equal(list.data.scope,'draft');assert.equal(f.calls.length,1);assert.equal(f.calls[0].authorization,'Bearer fixture-provider-key');
+  const list=await f.call('/admin/model/models',undefined,'POST',{config:f.draft});assert.equal(list.status,200);assert.deepEqual(list.data.models,['pggo-抗截断-old-model','pggo-抗截断-new-model','bdgo-抗截断-new-model','pggo-new-model']);assert.equal(list.data.scope,'draft');assert.equal(f.calls.length,1);assert.equal(f.calls[0].authorization,'Bearer fixture-provider-key');
   const trial=await f.call('/admin/model/test',undefined,'POST',{config:f.draft});assert.equal(trial.status,200);assert.equal(trial.data.scope,'draft');assert.match(trial.data.text,/new-model/);
   const saved=(await f.call('/admin/model')).data;assert.equal(saved.model,'pggo-抗截断-old-model');assert.equal(saved.tested.at,'2026-01-01T00:00:00Z');assert.equal(saved.hasKey,true);assert.equal(saved.secret,undefined);assert.equal(saved.apiKey,undefined);
   for(const actor of f.accounts.slice(1))for(const [path,method,body] of [['/admin/model','GET',undefined],['/admin/model','PUT',f.draft],['/admin/model/models','POST',{config:f.draft}],['/admin/model/test','POST',{config:f.draft}]] as const)assert.equal((await f.call(path,actor.cookie,method,body)).status,403);
@@ -57,4 +57,37 @@ test('switching provider does not reuse the old key and Responses draft tests re
   await f.call('/admin/model',undefined,'PUT',{...f.draft,model:'pggo-抗截断-old-model',enabled:false});assert.ok((await f.call('/admin/model')).data.tested);
   await f.call('/admin/model',undefined,'PUT',{...f.draft,model:'pggo-抗截断-old-model',apiKey:'replacement-fixture-key'});const changed=(await f.call('/admin/model')).data;assert.equal(changed.tested,undefined);assert.equal(changed.models,undefined);assert.equal(changed.hasKey,true);
  }finally{await f.close()}
+});
+
+test('configurable maxRetries automatically retries transient provider failures up to the configured count and releases credits if still failing',async()=>{
+ let failLeft=2,attempts=0;
+ const provider=createServer(async(req,res)=>{let raw='';for await(const c of req)raw+=c;const body=raw?JSON.parse(raw):{};attempts++;res.setHeader('Content-Type','application/json');if(failLeft>0){failLeft--;res.writeHead(503);res.end(JSON.stringify({error:'transient upstream 503'}));return}res.end(JSON.stringify({choices:[{message:{content:'```review\n{"scope":"none"}\n```\nRecovered reply from '+body.model}}]}))});
+ await new Promise<void>(r=>provider.listen(0,'127.0.0.1',r));
+ const upstream=`http://127.0.0.1:${(provider.address() as {port:number}).port}`;
+ const app=createPilot({database:':memory:',allowSetup:false});const base=`http://127.0.0.1:${await app.listen(0)}`;
+ try{
+  const owner=await app.store.createUser('owner','fixture-password-123','owner','developer');
+  const student=await app.store.createUser('student','fixture-password-123','student','student');
+  const ownerCookie=`hokse_session=${await app.store.session(owner)}`,studentCookie=`hokse_session=${await app.store.session(student)}`;
+  const call=async(path:string,cookie=ownerCookie,method='GET',body?:unknown)=>{const r=await fetch(base+'/api/v1'+path,{method,headers:{'X-Hokse-Client':'1','X-Hokse-Request-ID':crypto.randomUUID(),Cookie:cookie,...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify(body):undefined});return {status:r.status,data:r.headers.get('content-type')?.includes('text/event-stream')?await r.text():await r.json()}};
+  assert.equal((await call('/admin/model',ownerCookie,'PUT',{name:'Retry test',baseUrl:upstream,apiKey:'k',model:'gemini-4-hydrogen',protocol:'openai-chat',enabled:true,maxRetries:9})).status,400);
+  const put=await call('/admin/model',ownerCookie,'PUT',{name:'Retry test',baseUrl:upstream,apiKey:'k',model:'gemini-4-hydrogen',protocol:'openai-chat',enabled:true,maxRetries:3});
+  assert.equal(put.status,200);assert.equal(put.data.maxRetries,3);
+  const billing=new Billing(app.store),p=await billing.policy();
+  p.models['gemini-4-hydrogen']={credits:20,enabled:true};p.reviewModel='gemini-4-hydrogen';
+  for(const plan of Object.values(p.plans)){plan.models=['gemini-4-hydrogen'];plan.defaultModel='gemini-4-hydrogen';plan.defaultModels={quiz:'gemini-4-hydrogen',chat:'gemini-4-hydrogen',evaluation:'gemini-4-hydrogen'}}
+  await billing.updatePolicy(owner.id,p);
+  const chat=(await call('/chats',studentCookie,'POST',{topicId:units[0].topicId,mode:'explain'})).data;
+  const ok=await call(`/chats/${chat.id}/messages`,studentCookie,'POST',{content:'Explain factoring',requestId:crypto.randomUUID()});
+  assert.equal(ok.status,200);assert.match(ok.data,/Recovered reply from gemini-4-hydrogen/);assert.equal(attempts,3);
+  assert.equal((await billing.view(student.id)).spent,20);
+  // Configure maxRetries=2 and fail all 3 attempts -> returns failure with safe error message and releases credits.
+  await call('/admin/model',ownerCookie,'PUT',{name:'Retry test',baseUrl:upstream,apiKey:'',model:'gemini-4-hydrogen',protocol:'openai-chat',enabled:true,maxRetries:2});
+  attempts=0;failLeft=10;
+  const fail=await call(`/chats/${chat.id}/messages`,studentCookie,'POST',{content:'Another question',requestId:crypto.randomUUID()});
+  assert.equal(fail.status,200);assert.equal(attempts,3);
+  const msgs=(await app.store.state(student.id)).chats[0].messages;
+  const last=msgs[msgs.length-1];assert.equal(last.practice?.failed,true);assert.match(last.error??'',/HTTP 503/);
+  assert.equal((await billing.view(student.id)).spent,20);
+ }finally{await app.close();await new Promise<void>((r,j)=>provider.close(e=>e?j(e):r()))}
 });

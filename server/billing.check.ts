@@ -115,9 +115,9 @@ test('three defaults are isolated, enforced per request, and charged using the a
   } finally { await f.close(); }
 });
 
-test('forbidden model routes are rejected before any provider call, including admin tests and policy updates', async () => {
+test('malformed model IDs are rejected before any provider call, while any valid prefix can be added and used', async () => {
   const f = await fixture(); try {
-    for (const model of ['bdgo-抗截断-gemini-3.8-flash', 'bdgo-gemini-3.8-flash', 'pggo-gemini-3.8-flash', 'gemini-3.8-flash']) {
+    for (const model of ['pggo-抗截断-', '-bad-model', 'bad model']) {
       assert.equal((await f.call('/billing/model', 'PUT', {model,purpose:'quiz'})).status, 403);
       const config = {...f.config, model};
       assert.equal((await f.call('/admin/model/test', 'POST', {config}, 'owner')).status, 403);
@@ -139,7 +139,7 @@ test('legacy settings migrate without erasing usage and new accounts inherit eac
   const f = await fixture(); try {
     await (await f.chat()).send();
     const policy=initialPolicy(); policy.version=78;
-    policy.models['bdgo-gemini-4-argon']={enabled:true,credits:20};
+    policy.models['bdgo-gemini-4-argon']={enabled:false,credits:20};
     policy.plans.Pro.models.push('bdgo-gemini-4-argon'); policy.plans.Pro.defaultModel='bdgo-gemini-4-argon';
     await f.app.store.db.prepare("INSERT INTO settings VALUES('billing-policy',?) ON CONFLICT(id) DO UPDATE SET body=excluded.body").run(JSON.stringify(policy));
     const old=(await f.call('/billing')).data.account; delete old.models;old.plan='Pro';old.model='bdgo-gemini-4-argon';
@@ -147,7 +147,6 @@ test('legacy settings migrate without erasing usage and new accounts inherit eac
     const view=(await f.call('/billing')).data;
     assert.deepEqual(view.account.models,{quiz:defaults[2],chat:defaults[2],evaluation:defaults[2]});
     assert.equal(view.spent,2);assert.equal(view.cap,5000);assert.equal(view.usage[0].model,defaults[0]);
-    assert.ok(Object.keys(view.policy.models).every(m=>m.startsWith('pggo-抗截断-')));
     assert.ok(!view.policy.plans.Pro.models.includes('bdgo-gemini-4-argon'));
     const p=await f.billing.policy();p.plans.Free.defaultModels={quiz:defaults[1],chat:defaults[0],evaluation:defaults[1]};
     await f.billing.updatePolicy(f.identities.owner.id,p);

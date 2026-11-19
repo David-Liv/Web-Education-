@@ -19,7 +19,7 @@ export interface StudentState extends Omit<Database,'quizzes'|'evidence'|'studio
   errors:ErrorCase[]; cycles:Cycle[]; appliedPreviews:string[];
   reorders?:{taskId:string;before:string;after:string;at:string}[];
 }
-export interface ModelConfig { id:string; name:string; baseUrl:string; secret:string; model:string; protocol:'openai-chat'|'openai-responses'; enabled:boolean; tested?:{at:string;model:string;ok:boolean}; models?:string[] }
+export interface ModelConfig { id:string; name:string; baseUrl:string; secret:string; model:string; protocol:'openai-chat'|'openai-responses'; enabled:boolean; maxRetries?:number; tested?:{at:string;model:string;ok:boolean}; models?:string[] }
 const digest=(value:string)=>createHash('sha256').update(value).digest('hex');
 export function passwordHash(password:string){const salt=randomBytes(16).toString('hex');return `${salt}:${scryptSync(password,salt,64).toString('hex')}`}
 export function passwordMatches(password:string,hash:string){const [salt,value]=hash.split(':');const a=scryptSync(password,salt,64),b=Buffer.from(value,'hex');return a.length===b.length&&timingSafeEqual(a,b)}

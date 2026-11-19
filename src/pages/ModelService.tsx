@@ -3,13 +3,15 @@ import { useEffect, useState } from 'react';
 import { api } from '../api/client';
 import { Badge } from '../components';
 import { useApp } from '../state';
-import { isAllowedModel, modelDisplayName } from '../model-catalog';
+import { isAllowedModel, mergeDiscoveredModels, modelDisplayName, setGlobalDefaultModel } from '../model-catalog';
+import type { BillingPolicy } from '../billing-types';
 interface SavedModel {
     name: string;
     baseUrl: string;
     model: string;
     protocol: 'openai-chat' | 'openai-responses';
     enabled: boolean;
+    maxRetries?: number;
     hasKey: boolean;
     models?: string[];
     tested?: {
@@ -25,16 +27,17 @@ interface ModelDraft {
     model: string;
     protocol: SavedModel['protocol'];
     enabled: boolean;
+    maxRetries: number;
     clearKey: boolean;
 }
-const empty: ModelDraft = { name: '我的模型服務', baseUrl: '', apiKey: '', model: '', protocol: 'openai-chat', enabled: false, clearKey: false };
+const empty: ModelDraft = { name: '我的模型服務', baseUrl: '', apiKey: '', model: '', protocol: 'openai-chat', enabled: false, maxRetries: 3, clearKey: false };
 const normalUrl = (value: string) => value.trim().replace(/\/+$/, '');
 export function ModelServiceSettings() {
     useInterfaceLanguage();
-    const { toast } = useApp();
+    const { toast, refresh } = useApp();
     const [saved, setSaved] = useState<SavedModel | null>(null), [draft, setDraft] = useState<ModelDraft>(empty), [models, setModels] = useState<string[]>([]);
     const [loading, setLoading] = useState(true), [busy, setBusy] = useState(''), [error, setError] = useState(''), [notice, setNotice] = useState(''), [test, setTest] = useState('');
-    function acceptSaved(value: SavedModel | null) { setSaved(value); setDraft(value ? { name: value.name, baseUrl: value.baseUrl, apiKey: '', model: value.model, protocol: value.protocol, enabled: value.enabled, clearKey: false } : empty); setModels(value?.models ?? []); }
+    function acceptSaved(value: SavedModel | null) { setSaved(value); setDraft(value ? { name: value.name, baseUrl: value.baseUrl, apiKey: '', model: value.model, protocol: value.protocol, enabled: value.enabled, maxRetries: value.maxRetries ?? 3, clearKey: false } : empty); setModels(value?.models ?? []); }
     useEffect(() => { let current = true; void api<SavedModel | null>('/admin/model').then(value => { if (current)
         acceptSaved(value); }).catch(e => { if (current)
         setError((e as Error).message); }).finally(() => { if (current)
@@ -61,17 +64,18 @@ export function ModelServiceSettings() {
    <label className="field"><span>API Base URL</span><input type="url" value={draft.baseUrl} onChange={e => edit({ baseUrl: e.target.value })} placeholder={ui("https://你的提供方/v1")} autoComplete="off"/></label>
    <label className="field"><span>API Key {keySaved ? ui("（已保存；留空保留）") : ''}</span><input type="password" value={draft.apiKey} onChange={e => edit({ apiKey: e.target.value })} autoComplete="off" placeholder={keySaved ? ui("不需要重新輸入密鑰") : ui("輸入此服務的 API Key")}/></label>
    <label className="field"><span>{ui("接口協議")}</span><select value={draft.protocol} onChange={e => edit({ protocol: e.target.value as SavedModel['protocol'] })}><option value="openai-chat">{ui("OpenAI 相容 Chat Completions")}</option><option value="openai-responses">{ui("OpenAI 相容 Responses")}</option></select></label>
+   <label className="field"><span>{ui("失敗自動重試次數（0–5）")}</span><input type="number" min={0} max={5} step={1} value={draft.maxRetries} onChange={e => edit({ maxRetries: Math.max(0, Math.min(5, Math.floor(Number(e.target.value) || 0))) })}/></label>
   </div>
   <div className="pilot-actions"><button className="btn secondary" disabled={!!busy || !validService} onClick={() => void run('models', async () => { const result = await api<{
         models: string[];
-    }>('/admin/model/models', 'POST', { config: draft }); setModels(result.models); setNotice(`已取得 ${result.models.length} 個模型。請選擇一個；沒有自動測試或啟用任何模型。`); })}>{busy === 'models' ? ui("正在獲取…") : ui("獲取模型列表")}</button><span className="small muted">{ui("只取得清單，不逐一呼叫模型生成內容。")}</span></div>
-  <label className="field"><span>{ui("選擇管理測試模型")}</span><select value={draft.model} onChange={e => edit({ model: e.target.value, enabled: !!e.target.value })}><option value="">{ui("請選擇模型")}</option>{draft.model && !models.includes(draft.model) && <option value={draft.model}>{ui("目前／手填：{0}", [modelDisplayName(draft.model)])}</option>}{models.filter(isAllowedModel).map(id => <option key={id} value={id}>{modelDisplayName(id)}</option>)}</select></label>
+    }>('/admin/model/models', 'POST', { config: draft }); setModels(result.models); setNotice(`已取得 ${result.models.length} 個模型。請選擇一個；沒有自動測試或啟用任何模型。`); })}>{busy === 'models' ? ui("正在獲取…") : ui("獲取模型列表")}</button>{(models.length > 0 || validSelection) && <button className="btn secondary" disabled={!!busy} onClick={() => void run('batch', async () => { const selected = validSelection ? draft.model.trim() : undefined; const ids = [...new Set([...models, ...(selected ? [selected] : [])])]; const current = await api<{ policy: BillingPolicy }>('/admin/billing/policy'); const { policy: next } = mergeDiscoveredModels(current.policy, ids, true, selected); await api('/admin/billing/policy', 'PUT', next); if (selected) await api('/billing/model', 'PUT', { purpose: 'chat', model: selected }).catch(() => {}); await refresh(); setNotice(ui("已將 {0} 個模型一鍵加入並開放至套餐模型列表。", [ids.length])); toast(ui("已同步加入套餐模型列表")); })}>{busy === 'batch' ? ui("正在加入…") : ui("一鍵加入套餐模型列表")}</button>}{validSelection && <button className="btn secondary" disabled={!!busy} onClick={() => void run('default', async () => { const selected = draft.model.trim(); const current = await api<{ policy: BillingPolicy }>('/admin/billing/policy'); const next = setGlobalDefaultModel(current.policy, selected); await api('/admin/billing/policy', 'PUT', next); await api('/billing/model', 'PUT', { purpose: 'chat', model: selected }).catch(() => {}); await refresh(); setNotice(ui("已將 {0} 設為全站預設及復核模型。", [modelDisplayName(selected)])); toast(ui("已同步加入套餐模型列表")); })}>{busy === 'default' ? ui("正在加入…") : ui("設為全站預設與復核模型")}</button>}<span className="small muted">{ui("只取得清單，不逐一呼叫模型生成內容。")}</span></div>
+  <label className="field"><span>{ui("選擇管理測試模型")}</span><select value={draft.model} onChange={e => edit({ model: e.target.value, enabled: !!e.target.value })}><option value="">{ui("請選擇模型")}</option>{draft.model && !models.includes(draft.model) && <option value={draft.model}>{ui("目前／手填：{0}", [modelDisplayName(draft.model)])}</option>}{models.filter(isAllowedModel).map(id => <option key={id} value={id}>{modelDisplayName(id) === id ? id : `${modelDisplayName(id)} (${id})`}</option>)}</select></label>
   <details className="model-manual"><summary>{ui("清單沒有需要的模型？手動填入 Model ID")}</summary><label className="field"><span>{ui("手動 Model ID")}</span><input value={draft.model} maxLength={200} onChange={e => edit({ model: e.target.value, enabled: !!e.target.value.trim() })}/></label></details>
   <label className="checkbox-label"><input type="checkbox" checked={draft.enabled} onChange={e => edit({ enabled: e.target.checked })}/>{ui("啟用共用 AI 服務")}</label>
   {sameService && saved.hasKey && <label className="checkbox-label"><input type="checkbox" checked={draft.clearKey} onChange={e => edit({ clearKey: e.target.checked })}/>{ui("套用時清除已保存的 API Key")}</label>}
   <div className="pilot-actions"><button className="btn secondary" disabled={!!busy || !validSelection} onClick={() => void run('test', async () => { const result = await api<{
         text: string;
-    }>('/admin/model/test', 'POST', { config: { ...draft, enabled: true } }); setTest(result.text); setNotice('所選模型文字測試成功；草稿尚未套用至全站。'); })}>{busy === 'test' ? ui("正在測試…") : ui("測試此模型")}</button><button className="btn primary" disabled={!!busy || !validService || draft.enabled && !validSelection} onClick={() => void run('save', async () => { const value = await api<SavedModel>('/admin/model', 'PUT', draft); const fetched = models; acceptSaved(value); if (fetched.length)
+    }>('/admin/model/test', 'POST', { config: { ...draft, enabled: true } }); setTest(result.text); setNotice('所選模型文字測試成功；草稿尚未套用至全站。'); })}>{busy === 'test' ? ui("正在測試…") : ui("測試此模型")}</button><button className="btn primary" disabled={!!busy || !validService || draft.enabled && !validSelection} onClick={() => void run('save', async () => { const value = await api<SavedModel>('/admin/model', 'PUT', models.length ? { ...draft, models } : draft); const fetched = models; acceptSaved(value); if (fetched.length)
         setModels(fetched); setTest(''); setNotice(value.enabled ? '共用服務已更新；學生模型由套餐設定管理。' : '服務設定已保存，全站 AI 目前停用。'); toast(value.enabled ? '全站模型已更新' : '全站 AI 已停用'); })}>{busy === 'save' ? ui("正在套用…") : ui("儲存並套用至全部使用者")}</button></div>
   </fieldset>{error && <p role="alert" className="form-error">{ui(error)}</p>}{notice && <p role="status" className="model-explanation">{ui(notice)}</p>}{test && <div className="model-test"><strong>{ui("草稿文字測試回覆")}</strong><p>{ui(test)}</p><small>{ui("文字測試只確認此模型能回覆；圖片、原生串流、結構化輸出和教學品質需另行驗證。")}</small></div>}
   <p className="small muted">{ui("API Key 加密保存在服務端。學生可選擇套餐允許的模型。內部 credit 並非提供方的真實費用上限；管理測試會實際呼叫 API，但不扣學生 credit。")}</p>

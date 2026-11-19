@@ -61,9 +61,9 @@ pnpm dev:pilot
 
 ## 接自己的模型服務
 
-在 `/developer?tab=model` 設共用 URL／協議／Key，獲取清單，再用管理測試模型驗證連線。模型測試實際消耗提供方 API，但屬 Platform 日誌，不扣學生 credit。啟用／保存共用連線後，實際學生型號由 `/developer?tab=billing` 的套餐權限與學生 `/billing` 選擇決定；全站停用仍會阻擋所有生成。新模型不自動定價或開放。密鑰同 URL 留空保留，換 URL 必須另填。
+在 `/developer?tab=model` 設共用 URL／協議／Key 與失敗自動重試次數（`maxRetries`，0–5，預設 3），獲取清單，再用管理測試模型驗證連線；可一鍵批量加入套餐清單或將所選模型設為全站預設與復核模型。模型測試實際消耗提供方 API，但屬 Platform 日誌，不扣學生 credit。上游暫時異常（408/429/5xx/網路或空回覆）由後端按 `maxRetries` 自動重試，共用同一 `operationId` 與單次預留額度，全部重試仍失敗才回傳失敗並釋放額度。啟用／保存共用連線後，實際學生型號由 `/developer?tab=billing` 的套餐權限與學生在 `/billing` 或 AI 學習室的選擇決定；全站停用仍會阻擋所有生成。密鑰同 URL 留空保留，換 URL 必須另填。
 
-模型只允許 `pggo-抗截断-*`，發現清單、套餐管理、學生選擇及最終生成（包括管理測試）均限制；界面標籤去掉渠道前後綴，技術摘要與匯出保留原 ID。`PUT /billing/model` 接受 `{purpose: "quiz" | "chat" | "evaluation", model: "實際ID"}`；缺省 purpose 僅更改 chat 以兼容舊客戶端。套餐 `defaultModels` 和帳戶 `models` 按三個用途保存；`defaultModel`／`model` 保留作 chat 兼容欄位。舊 JSON 按允許路線兼容讀取，首次讀取帳戶時保存三項選擇，無需 DDL 變更。新帳戶沿用對應套餐的三項預設；既有有效選擇不因套餐預設改變而被覆蓋。獨立出題（assessment）及返工用 quiz；快速題、聊天、導讀及排程說明用 chat；submit 批改及 analyse 錯因分析用 evaluation。一次操作啟動後固定模型及價格，操作間才採用新選擇。
+模型支援任意合法前綴與型號 ID（如 `gemini-4-hydrogen` 或各渠道前綴），獲取模型列表後可一鍵批量加入並開放至套餐規則；界面標籤去掉渠道前後綴（如 `pg`、`pgo`、`pggo`、`bdgo`、`抗截断`），技術摘要與匯出保留原 ID。`PUT /billing/model` 接受 `{purpose: "quiz" | "chat" | "evaluation", model: "實際ID"}`；缺省 purpose 僅更改 chat 以兼容舊客戶端。套餐 `defaultModels` 和帳戶 `models` 按三個用途保存；`defaultModel`／`model` 保留作 chat 兼容欄位。舊 JSON 按允許路線兼容讀取，首次讀取帳戶時保存三項選擇，無需 DDL 變更。新帳戶沿用對應套餐的三項預設；既有有效選擇不因套餐預設改變而被覆蓋。獨立出題（assessment）及返工用 quiz；快速題、聊天、導讀及排程說明用 chat；submit 批改及 analyse 錯因分析用 evaluation。一次操作啟動後固定模型及價格，操作間才採用新選擇。
 
 Free/Plus/Pro 初始 500/2000/5000 credit，香港月初惰性重置。學生舊帳戶不補扣歷史。只有模型生成操作才預留；一次操作含最多三次題目返工只收一次，失敗／無效／取消釋放。學習結果與扣點在同一短交易保存，提供方等待期間不持有交易；無結果孤立預留五分鐘後回收。模型／價格快照和請求 ID 持久化在 `credit_operations`，不能靠刪日誌修復餘額。
 

@@ -16,11 +16,11 @@ Attachments are stored for viewing and authorised manual review. Text models do 
 
 ## 3. Model service
 
-Enter the shared Base URL, protocol and API key under Model Service, fetch the list, choose an admin test model, then enable the service. Discovery reads model IDs only. Admin generation tests incur real provider costs but use no student credits.
+Enter the shared Base URL, protocol, API key and automatic retry count on failure (0–5, default 3) under Model Service, fetch the list, choose an admin test model, then enable the service; you can also batch-add models to plans or set the selected model as the site-wide default and review model in one click. Discovery reads model IDs only. Admin generation tests incur real provider costs but use no student credits. Transient upstream errors are retried automatically up to the configured count under the same single operation charge, returning failure only if all retries fail.
 
 Students choose separate quiz, conversation and assessment models. Independent quiz generation and repairs use the quiz model. Conversations, guided reading, quick exercises and plan explanations use the conversation model. Marking and error analysis use assessment. Only independent quiz generation has the full format-check and bounded repair workflow.
 
-The server permits only the approved PGGO anti-truncation route. Display names hide routing labels; technical requests and exports retain exact IDs. Keys are encrypted. A blank key keeps it for the same URL; a changed URL needs a new key. A successful text test does not validate teaching quality, images, native streaming or all structured output.
+The server accepts any valid model ID prefix and supports one-click batch addition of fetched models to plan lists. Display names hide routing labels (`pg`, `pgo`, `pggo`, `bdgo`, `抗截断`, etc.); technical requests and exports retain exact IDs. Keys are encrypted. A blank key keeps it for the same URL; a changed URL needs a new key. A successful text test does not validate teaching quality, images, native streaming or all structured output.
 
 ## 4. Plans and credits
 
