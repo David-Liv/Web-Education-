@@ -467,6 +467,37 @@ html:has(.focus-desk-lock),body:has(.focus-desk-lock){overflow:hidden}
 .focus-parking-row input{flex:1;border:1px solid #dcd5c4;background:#fffefb;font-size:13px;padding:9px 12px;color:#22362c}
 .focus-handoff-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-top:4px}
 .focus-desk-foot{text-align:center;font-size:12px;color:#526157;line-height:1.6}
+.focus-guard-bar{position:sticky;top:0;z-index:45;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:9px 22px 11px;background:linear-gradient(90deg,#fbf3e0 0%,#f6ead0 100%);border-bottom:1px solid #e4d2a7;color:#3d2f14}
+.focus-guard-bar.paused{background:#f5f1e6;border-bottom-color:#dfd6be;color:#574a2c}
+.focus-guard-track{position:absolute;left:0;right:0;bottom:0;height:3px;background:#ece0c2}
+.focus-guard-track>span{display:block;height:100%;background:#b88a2f;transform-origin:left;transition:transform 1s linear}
+.focus-guard-main{display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-width:0}
+.focus-guard-badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:650;background:#efe0ba;color:#4f3b14}
+.focus-guard-badge.locked{background:#245f4b;color:#fff}
+.focus-guard-label{font-size:13.5px;color:#27372e;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.focus-guard-time{font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;color:#1e352a;letter-spacing:.4px}
+.focus-guard-stat{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;font-size:12px;font-variant-numeric:tabular-nums}
+.focus-guard-stat.clean{background:#e7f2ea;color:#21543f}
+.focus-guard-stat.warn{background:#fde9d8;color:#8a3d12;font-weight:600}
+.focus-guard-actions{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.focus-guard-btn{min-height:34px;padding:5px 11px;font-size:12.5px}
+.focus-guard-btn.has-note{position:relative}
+.focus-guard-btn.has-note::after{content:"";width:6px;height:6px;border-radius:50%;background:#245f4b;display:inline-block}
+.focus-guard-cancel{min-height:34px;padding:5px 10px;font-size:12.5px;color:#6b4e1e}
+.focus-guard-cancel:hover{background:rgba(70,50,15,.08);color:#3a290c}
+.focus-report-card{width:min(500px,100%);display:flex;align-items:flex-start;gap:11px;text-align:left;padding:13px 16px;border-radius:14px;border:1px solid #d4e2d5;background:rgba(255,255,255,.88)}
+.focus-report-card.clean{border-color:#bfe0ca;background:#eef8f1;color:#1c4d39}
+.focus-report-card.clean>svg{color:#245f4b;flex-shrink:0;margin-top:2px}
+.focus-report-card.noted{border-color:#e5cca0;background:#fff8eb;color:#5a3b11}
+.focus-report-card.noted>svg{color:#a86416;flex-shrink:0;margin-top:2px}
+.focus-report-card>div{display:flex;flex-direction:column;gap:3px}
+.focus-report-card strong{font-size:14px;line-height:1.45}
+.focus-report-card small{font-size:12.5px;line-height:1.55;opacity:.88}
+@media(max-width:720px){
+.focus-guard-bar{padding:10px 14px 12px;gap:8px}
+.focus-guard-label{max-width:160px}
+.focus-guard-btn,.focus-guard-cancel{min-height:40px}
+}
 @media(max-width:600px){
 .open-focus-presets{grid-template-columns:1fr 1fr;gap:8px}
 .focus-desk-inner{padding:16px 16px 22px;gap:18px}

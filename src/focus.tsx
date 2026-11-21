@@ -10,12 +10,16 @@ import type {Task} from './types';
 // Two distinct client-side focus modes:
 // - 'task' (Guided Task Focus): compact topbar FocusPill so the student can navigate
 //   lessons, quizzes and AI study while a scheduled task timer runs.
-// - 'open' (Open Focus): native browser fullscreen + 100% viewport locked study desk
-//   for physical Past Papers / textbook revision; requires explicit cancel confirmation
-//   to leave early. Neither mode ever writes db.events or mastery evidence.
+// - 'open' (Open Focus — Web Plan A guard): browser fullscreen + optional Keyboard Lock
+//   + external-link guard + tab/window/fullscreen departure tracking while letting the
+//   student freely explore every in-app page; requires explicit cancel confirmation to
+//   leave early. Neither mode ever writes db.events or mastery evidence.
 export type FocusMode = 'task' | 'open';
+export type FocusLeaveReason = 'tab' | 'window' | 'fullscreen';
 
-interface FocusSession {
+export const FOCUS_LOCK_KEYS = ['Escape', 'F11', 'KeyT', 'KeyW', 'KeyN'] as const;
+
+export interface FocusSession {
   mode?: FocusMode;
   label: string;
   totalSeconds: number;
@@ -23,13 +27,18 @@ interface FocusSession {
   remaining: number;
   immersive: boolean;
   taskId?: string;
+  leaveCount?: number;
+  awaySeconds?: number;
+  lastLeaveReason?: FocusLeaveReason | null;
 }
 
-interface CompletedFocus {
+export interface CompletedFocus {
   mode?: FocusMode;
   label: string;
   minutes?: number;
   taskId?: string;
+  leaveCount?: number;
+  awaySeconds?: number;
 }
 
 interface FocusValue {
@@ -37,12 +46,18 @@ interface FocusValue {
   completed: CompletedFocus | null;
   remaining: number;
   running: boolean;
+  isOpenActive: boolean;
+  isFullscreenShieldOpen: boolean;
   isLocked: boolean;
   isFullscreen: boolean;
   fullscreenSupported: boolean;
+  fullscreenFallback: boolean;
+  keyboardLocked: boolean;
+  keyboardLockSupported: boolean;
   todayOpenMinutes: number;
   scratch: string;
   launcherOpen: boolean;
+  cancelConfirmOpen: boolean;
   start: (minutes: number, label: string, taskId?: string) => void;
   startOpen: (minutes: number, label?: string) => void;
   pause: () => void;
@@ -53,6 +68,8 @@ interface FocusValue {
   setScratch: (value: string) => void;
   openLauncher: () => void;
   closeLauncher: () => void;
+  openCancelConfirm: () => void;
+  closeCancelConfirm: () => void;
   enterFullscreen: () => void;
   dismissCompleted: () => void;
 }
@@ -74,6 +91,13 @@ type FullscreenEl = HTMLElement & {
   webkitRequestFullscreen?: () => Promise<void> | void;
 };
 
+type KeyboardLockNav = Navigator & {
+  keyboard?: {
+    lock?: (keyCodes?: string[]) => Promise<void>;
+    unlock?: () => void;
+  };
+};
+
 function getFullscreenElement(): Element | null {
   if (typeof document === 'undefined') return null;
   const doc = document as FullscreenDoc;
@@ -91,19 +115,60 @@ function isFullscreenApiSupported(): boolean {
   );
 }
 
-export function requestFocusFullscreen() {
-  if (typeof document === 'undefined' || getFullscreenElement()) return;
-  const el = document.documentElement as FullscreenEl;
-  if (typeof el.requestFullscreen === 'function') {
-    void el.requestFullscreen().catch(() => {});
-  } else if (typeof el.webkitRequestFullscreen === 'function') {
+export function isKeyboardLockSupported(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  const nav = navigator as KeyboardLockNav;
+  return typeof nav.keyboard?.lock === 'function';
+}
+
+async function lockFocusKeyboard(): Promise<boolean> {
+  if (typeof navigator === 'undefined') return false;
+  const nav = navigator as KeyboardLockNav;
+  if (typeof nav.keyboard?.lock !== 'function') return false;
+  try {
+    await nav.keyboard.lock([...FOCUS_LOCK_KEYS]);
+    return true;
+  } catch {
     try {
-      void el.webkitRequestFullscreen();
-    } catch {}
+      await nav.keyboard.lock(['Escape']);
+      return true;
+    } catch {
+      return false;
+    }
   }
 }
 
+function unlockFocusKeyboard() {
+  if (typeof navigator === 'undefined') return;
+  const nav = navigator as KeyboardLockNav;
+  try {
+    nav.keyboard?.unlock?.();
+  } catch {}
+}
+
+export function requestFocusFullscreen(): Promise<boolean> {
+  if (typeof document === 'undefined') return Promise.resolve(false);
+  if (getFullscreenElement()) return Promise.resolve(true);
+  const el = document.documentElement as FullscreenEl;
+  if (typeof el.requestFullscreen === 'function') {
+    return el.requestFullscreen().then(() => true, () => false);
+  }
+  if (typeof el.webkitRequestFullscreen === 'function') {
+    try {
+      const maybePromise = el.webkitRequestFullscreen();
+      if (maybePromise && typeof (maybePromise as Promise<void>).then === 'function') {
+        return (maybePromise as Promise<void>).then(() => true, () => false);
+      }
+      return Promise.resolve(true);
+    } catch {
+      return Promise.resolve(false);
+    }
+  }
+  return Promise.resolve(false);
+}
+
 function exitFocusFullscreen() {
+  unlockFocusKeyboard();
   if (typeof document === 'undefined' || !getFullscreenElement()) return;
   const doc = document as FullscreenDoc;
   if (doc.fullscreenElement && typeof doc.exitFullscreen === 'function') {
@@ -113,6 +178,57 @@ function exitFocusFullscreen() {
       void doc.webkitExitFullscreen();
     } catch {}
   }
+}
+
+export function isExternalNavigationLink(href: string | null | undefined, currentOrigin: string): boolean {
+  if (!href) return false;
+  const trimmed = href.trim();
+  if (!trimmed || trimmed.startsWith('#')) return false;
+  try {
+    const url = new URL(trimmed, currentOrigin);
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return false;
+    return url.origin !== currentOrigin;
+  } catch {
+    return false;
+  }
+}
+
+export function isBlockedFocusShortcut(e: {
+  key: string;
+  ctrlKey: boolean;
+  metaKey: boolean;
+  altKey: boolean;
+}): boolean {
+  const key = e.key.toLowerCase();
+  if (key === 'f11') return true;
+  if ((e.ctrlKey || e.metaKey) && !e.altKey && (key === 't' || key === 'w' || key === 'n')) {
+    return true;
+  }
+  return false;
+}
+
+export function recordFocusDeparture(session: FocusSession, reason: FocusLeaveReason): FocusSession {
+  return {
+    ...session,
+    leaveCount: (session.leaveCount ?? 0) + 1,
+    lastLeaveReason: reason,
+  };
+}
+
+export function applyFocusReturn(session: FocusSession, elapsedSeconds: number): FocusSession {
+  const delta = Math.max(1, Math.round(elapsedSeconds));
+  return {
+    ...session,
+    awaySeconds: (session.awaySeconds ?? 0) + delta,
+  };
+}
+
+export function formatAwayDuration(seconds: number): string {
+  const safe = Math.max(0, Math.round(seconds));
+  if (safe < 60) return ui('{0} 秒', [safe]);
+  const mins = Math.floor(safe / 60);
+  const rem = safe % 60;
+  return rem > 0 ? ui('{0} 分 {1} 秒', [mins, rem]) : ui('{0} 分鐘', [mins]);
 }
 
 function loadSession(): FocusSession | null {
@@ -174,14 +290,40 @@ export function FocusProvider({children}: {children: ReactNode}) {
   const [dailyMap, setDailyMap] = useState<Record<string, number>>(loadDailyMap);
   const [scratch, setScratchState] = useState<string>(loadScratch);
   const [launcherOpen, setLauncherOpen] = useState(false);
+  const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(() => Boolean(getFullscreenElement()));
+  const [enteringFullscreen, setEnteringFullscreen] = useState(false);
+  const [fullscreenFallback, setFullscreenFallback] = useState(false);
+  const [keyboardLocked, setKeyboardLocked] = useState(false);
   const fullscreenSupported = useMemo(() => isFullscreenApiSupported(), []);
+  const keyboardLockSupported = useMemo(() => isKeyboardLockSupported(), []);
   const [now, setNow] = useState(() => Date.now());
   const completedTokenRef = useRef<string | null>(null);
+  const sessionRef = useRef<FocusSession | null>(session);
+  const awayStartRef = useRef<number | null>(null);
+  const wasFullscreenRef = useRef<boolean>(Boolean(getFullscreenElement()));
+  const suppressBlurUntilRef = useRef<number>(0);
+  const lastShortcutToastRef = useRef<number>(0);
+  const fullscreenFallbackRef = useRef<boolean>(fullscreenFallback);
+
+  sessionRef.current = session;
+  fullscreenFallbackRef.current = fullscreenFallback;
 
   const today = db.profile.date;
   const todayOpenMinutes = dailyMap[today] ?? 0;
-  const isLocked = session?.mode === 'open' || completed?.mode === 'open';
+  const running = !!session?.endsAt;
+  const isOpenActive = session?.mode === 'open';
+  const isFullscreenShieldOpen = Boolean(
+    isOpenActive &&
+    running &&
+    fullscreenSupported &&
+    !fullscreenFallback &&
+    !enteringFullscreen &&
+    !isFullscreen
+  );
+  // Only block background site interaction when a full-viewport overlay (re-entry shield
+  // or completion summary) is covering the screen. Normal Open Focus allows free in-site exploration.
+  const isLocked = Boolean(isFullscreenShieldOpen || completed?.mode === 'open');
 
   useEffect(() => {
     try {
@@ -215,30 +357,159 @@ export function FocusProvider({children}: {children: ReactNode}) {
     return () => clearInterval(id);
   }, [session?.endsAt]);
 
+  const markAway = useCallback((reason: FocusLeaveReason) => {
+    const current = sessionRef.current;
+    if (!current || current.mode !== 'open' || !current.endsAt) return;
+    if (reason === 'window' && Date.now() < suppressBlurUntilRef.current) return;
+    if (awayStartRef.current === null) {
+      awayStartRef.current = Date.now();
+      setSession(prev => (prev && prev.mode === 'open' && prev.endsAt ? recordFocusDeparture(prev, reason) : prev));
+    } else if (reason === 'fullscreen') {
+      setSession(prev => (prev && prev.mode === 'open' ? {...prev, lastLeaveReason: 'fullscreen'} : prev));
+    }
+  }, []);
+
+  const flushAway = useCallback((notifyReturn: boolean) => {
+    if (awayStartRef.current === null) return;
+    const elapsed = Math.max(1, Math.round((Date.now() - awayStartRef.current) / 1000));
+    awayStartRef.current = null;
+    const current = sessionRef.current;
+    if (!current || current.mode !== 'open') return;
+    const nextLeaveCount = current.leaveCount ?? 1;
+    const nextAwaySeconds = (current.awaySeconds ?? 0) + elapsed;
+    setSession(prev => (prev && prev.mode === 'open' ? applyFocusReturn(prev, elapsed) : prev));
+    if (notifyReturn) {
+      toast(
+        ui('偵測到離開專注畫面（第 {0} 次，累計 {1}），已回到站內繼續學習。', [
+          nextLeaveCount,
+          formatAwayDuration(nextAwaySeconds),
+        ]),
+        'error',
+        {duration: 5000}
+      );
+    }
+  }, [toast]);
+
+  // Sync fullscreen state and detect active fullscreen exits during running Open Focus.
   useEffect(() => {
-    const syncFs = () => setIsFullscreen(Boolean(getFullscreenElement()));
+    const syncFs = () => {
+      const nowFs = Boolean(getFullscreenElement());
+      setIsFullscreen(nowFs);
+      const current = sessionRef.current;
+      if (current?.mode === 'open' && current.endsAt) {
+        if (wasFullscreenRef.current && !nowFs) {
+          markAway('fullscreen');
+        } else if (nowFs && !wasFullscreenRef.current && document.visibilityState === 'visible') {
+          flushAway(true);
+        }
+      }
+      wasFullscreenRef.current = nowFs;
+    };
     document.addEventListener('fullscreenchange', syncFs);
     document.addEventListener('webkitfullscreenchange', syncFs);
     return () => {
       document.removeEventListener('fullscreenchange', syncFs);
       document.removeEventListener('webkitfullscreenchange', syncFs);
     };
-  }, []);
+  }, [flushAway, markAway]);
 
-  // Warn before accidental reload / tab close while Open Focus lock is active.
+  // Detect tab switches and window focus losses during running Open Focus.
   useEffect(() => {
-    if (session?.mode !== 'open') return;
+    if (!isOpenActive || !running) return;
+    const canResumeWithoutFs = () =>
+      !fullscreenSupported || fullscreenFallbackRef.current || Boolean(getFullscreenElement());
+
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        markAway('tab');
+      } else if (document.hasFocus() && canResumeWithoutFs()) {
+        flushAway(true);
+      }
+    };
+    const onBlur = () => {
+      markAway('window');
+    };
+    const onFocus = () => {
+      if (document.visibilityState === 'visible' && canResumeWithoutFs()) {
+        flushAway(true);
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('blur', onBlur);
+    window.addEventListener('focus', onFocus);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('blur', onBlur);
+      window.removeEventListener('focus', onFocus);
+    };
+  }, [flushAway, fullscreenSupported, isOpenActive, markAway, running]);
+
+  // Progressive enhancement: Keyboard Lock API in Chromium fullscreen so single-tap Esc
+  // and browser tab-escape shortcuts require deliberate effort.
+  useEffect(() => {
+    if (!isOpenActive || !running || !isFullscreen) {
+      unlockFocusKeyboard();
+      setKeyboardLocked(false);
+      return;
+    }
+    let active = true;
+    void lockFocusKeyboard().then(locked => {
+      if (active) setKeyboardLocked(locked);
+    });
+    return () => {
+      active = false;
+      unlockFocusKeyboard();
+      setKeyboardLocked(false);
+    };
+  }, [isFullscreen, isOpenActive, running]);
+
+  // Intercept external links & browser-escape shortcuts while running Open Focus.
+  useEffect(() => {
+    if (!isOpenActive || !running) return;
+
+    const onDocumentClick = (e: MouseEvent) => {
+      const target = e.target as Element | null;
+      const anchor = target?.closest?.('a[href]') as HTMLAnchorElement | null;
+      if (!anchor) return;
+      if (isExternalNavigationLink(anchor.getAttribute('href'), window.location.origin)) {
+        e.preventDefault();
+        e.stopPropagation();
+        toast('自由專注中只限站內學習，已暫時攔截站外連結。', 'error', {duration: 3800});
+      }
+    };
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (!isBlockedFocusShortcut(e)) return;
+      e.preventDefault();
+      const t = Date.now();
+      if (t - lastShortcutToastRef.current > 3000) {
+        lastShortcutToastRef.current = t;
+        toast('自由專注鎖屏中，已暫時攔截開關分頁與全屏快捷鍵。', 'error', {duration: 3200});
+      }
+    };
+
+    document.addEventListener('click', onDocumentClick, true);
+    window.addEventListener('keydown', onKeyDown, true);
+    return () => {
+      document.removeEventListener('click', onDocumentClick, true);
+      window.removeEventListener('keydown', onKeyDown, true);
+    };
+  }, [isOpenActive, running, toast]);
+
+  // Warn before accidental reload / tab close while Open Focus is active.
+  useEffect(() => {
+    if (!isOpenActive) return;
     const onBeforeUnload = (e: BeforeUnloadEvent) => {
       e.preventDefault();
       e.returnValue = '';
     };
     window.addEventListener('beforeunload', onBeforeUnload);
     return () => window.removeEventListener('beforeunload', onBeforeUnload);
-  }, [session?.mode]);
+  }, [isOpenActive]);
 
   // Keep screen awake during running Open Focus on supported devices.
   useEffect(() => {
-    if (session?.mode !== 'open' || !session.endsAt) return;
+    if (!isOpenActive || !running) return;
     const nav = navigator as Navigator & {
       wakeLock?: {request: (type: 'screen') => Promise<{release: () => Promise<void>}>};
     };
@@ -262,7 +533,7 @@ export function FocusProvider({children}: {children: ReactNode}) {
       document.removeEventListener('visibilitychange', onVisibility);
       if (sentinel) void sentinel.release().catch(() => {});
     };
-  }, [session?.endsAt, session?.mode]);
+  }, [isOpenActive, running]);
 
   const finishTask = useCallback(async (taskId: string) => {
     const task = db.tasks.find(t => t.id === taskId);
@@ -319,13 +590,21 @@ export function FocusProvider({children}: {children: ReactNode}) {
       completedTokenRef.current = token;
       const mode: FocusMode = session.mode ?? 'task';
       const minutesDone = Math.max(1, Math.round(session.totalSeconds / 60));
+      let totalAway = session.awaySeconds ?? 0;
+      if (awayStartRef.current !== null) {
+        totalAway += Math.max(1, Math.round((Date.now() - awayStartRef.current) / 1000));
+        awayStartRef.current = null;
+      }
       const doneInfo: CompletedFocus = {
         mode,
         label: session.label,
         minutes: minutesDone,
         taskId: session.taskId,
+        leaveCount: mode === 'open' ? (session.leaveCount ?? 0) : undefined,
+        awaySeconds: mode === 'open' ? totalAway : undefined,
       };
       const hasPendingTask = !!session.taskId && db.tasks.some(t => t.id === session.taskId && t.status !== 'done');
+      setCancelConfirmOpen(false);
       setSession(null);
       setCompleted(doneInfo);
       if (mode === 'open') {
@@ -340,9 +619,31 @@ export function FocusProvider({children}: {children: ReactNode}) {
     }
   }, [db.tasks, finishTask, remaining, session, today, toast]);
 
+  const enterFullscreen = useCallback(() => {
+    if (!fullscreenSupported) return;
+    suppressBlurUntilRef.current = Date.now() + 650;
+    setEnteringFullscreen(true);
+    void requestFocusFullscreen().then(ok => {
+      setEnteringFullscreen(false);
+      if (ok) {
+        setFullscreenFallback(false);
+        setIsFullscreen(true);
+        wasFullscreenRef.current = true;
+        if (awayStartRef.current !== null && document.visibilityState === 'visible') {
+          flushAway(true);
+        }
+      } else {
+        setFullscreenFallback(true);
+        toast('目前瀏覽器未能開啟全屏，已改用頁內專注監測模式。', 'error', {duration: 4500});
+      }
+    });
+  }, [flushAway, fullscreenSupported, toast]);
+
   const start = useCallback((minutes: number, label: string, taskId?: string) => {
     const totalSeconds = Math.max(1, Math.round(minutes)) * 60;
     const startedAt = Date.now();
+    awayStartRef.current = null;
+    setCancelConfirmOpen(false);
     setNow(startedAt);
     setCompleted(null);
     setLauncherOpen(false);
@@ -360,7 +661,9 @@ export function FocusProvider({children}: {children: ReactNode}) {
   const startOpen = useCallback((minutes: number, label = '自由專注溫習') => {
     const totalSeconds = Math.max(1, Math.round(minutes)) * 60;
     const startedAt = Date.now();
-    requestFocusFullscreen();
+    awayStartRef.current = null;
+    setCancelConfirmOpen(false);
+    setFullscreenFallback(false);
     setNow(startedAt);
     setCompleted(null);
     setLauncherOpen(false);
@@ -370,19 +673,41 @@ export function FocusProvider({children}: {children: ReactNode}) {
       totalSeconds,
       endsAt: startedAt + totalSeconds * 1000,
       remaining: totalSeconds,
-      immersive: true,
+      immersive: false,
+      leaveCount: 0,
+      awaySeconds: 0,
+      lastLeaveReason: null,
     });
-  }, []);
+    if (fullscreenSupported) {
+      suppressBlurUntilRef.current = Date.now() + 650;
+      setEnteringFullscreen(true);
+      void requestFocusFullscreen().then(ok => {
+        setEnteringFullscreen(false);
+        if (ok) {
+          setIsFullscreen(true);
+          wasFullscreenRef.current = true;
+        } else {
+          setFullscreenFallback(true);
+          toast('目前瀏覽器未能開啟全屏，已改用頁內專注監測模式。', 'error', {duration: 4500});
+        }
+      });
+    }
+  }, [fullscreenSupported, toast]);
 
   const pause = useCallback(() => {
+    flushAway(false);
     setSession(s => (s && s.endsAt ? {...s, remaining: left(s, Date.now()), endsAt: null} : s));
-  }, []);
+  }, [flushAway]);
 
   const resume = useCallback(() => {
     const resumedAt = Date.now();
     setNow(resumedAt);
+    const current = sessionRef.current;
     setSession(s => (s && !s.endsAt ? {...s, endsAt: resumedAt + s.remaining * 1000} : s));
-  }, []);
+    if (current?.mode === 'open' && fullscreenSupported && !fullscreenFallbackRef.current && !getFullscreenElement()) {
+      enterFullscreen();
+    }
+  }, [enterFullscreen, fullscreenSupported]);
 
   const stop = useCallback(() => {
     setSession(current => {
@@ -390,6 +715,7 @@ export function FocusProvider({children}: {children: ReactNode}) {
       const rem = left(current, Date.now());
       const wasRunning = !!current.endsAt;
       if (current.mode === 'open') {
+        awayStartRef.current = null;
         exitFocusFullscreen();
       }
       if (rem > 0 && current.mode !== 'open') {
@@ -410,6 +736,9 @@ export function FocusProvider({children}: {children: ReactNode}) {
   }, [toast]);
 
   const cancelOpen = useCallback(() => {
+    awayStartRef.current = null;
+    setCancelConfirmOpen(false);
+    setFullscreenFallback(false);
     exitFocusFullscreen();
     setSession(null);
     toast('已取消這段自由專注');
@@ -418,7 +747,8 @@ export function FocusProvider({children}: {children: ReactNode}) {
   const setImmersive = useCallback((immersive: boolean) => setSession(s => s && {...s, immersive}), []);
   const openLauncher = useCallback(() => setLauncherOpen(true), []);
   const closeLauncher = useCallback(() => setLauncherOpen(false), []);
-  const enterFullscreen = useCallback(() => requestFocusFullscreen(), []);
+  const openCancelConfirm = useCallback(() => setCancelConfirmOpen(true), []);
+  const closeCancelConfirm = useCallback(() => setCancelConfirmOpen(false), []);
   const dismissCompleted = useCallback(() => {
     exitFocusFullscreen();
     setCompleted(null);
@@ -428,13 +758,19 @@ export function FocusProvider({children}: {children: ReactNode}) {
     session,
     completed,
     remaining,
-    running: !!session?.endsAt,
+    running,
+    isOpenActive,
+    isFullscreenShieldOpen,
     isLocked,
     isFullscreen,
     fullscreenSupported,
+    fullscreenFallback,
+    keyboardLocked,
+    keyboardLockSupported,
     todayOpenMinutes,
     scratch,
     launcherOpen,
+    cancelConfirmOpen,
     start,
     startOpen,
     pause,
@@ -445,18 +781,27 @@ export function FocusProvider({children}: {children: ReactNode}) {
     setScratch,
     openLauncher,
     closeLauncher,
+    openCancelConfirm,
+    closeCancelConfirm,
     enterFullscreen,
     dismissCompleted,
   }), [
     session,
     completed,
     remaining,
+    running,
+    isOpenActive,
+    isFullscreenShieldOpen,
     isLocked,
     isFullscreen,
     fullscreenSupported,
+    fullscreenFallback,
+    keyboardLocked,
+    keyboardLockSupported,
     todayOpenMinutes,
     scratch,
     launcherOpen,
+    cancelConfirmOpen,
     start,
     startOpen,
     pause,
@@ -467,6 +812,8 @@ export function FocusProvider({children}: {children: ReactNode}) {
     setScratch,
     openLauncher,
     closeLauncher,
+    openCancelConfirm,
+    closeCancelConfirm,
     enterFullscreen,
     dismissCompleted,
   ]);
@@ -483,8 +830,8 @@ export function useFocus() {
 export function FocusPill() {
   useInterfaceLanguage();
   const {db, applyTask, refresh, toast} = useApp();
-  const {session, completed, remaining, running, isLocked, pause, resume, stop, setImmersive, dismissCompleted} = useFocus();
-  if (isLocked || (!session && !completed)) return null;
+  const {session, completed, remaining, running, isOpenActive, pause, resume, stop, setImmersive, dismissCompleted} = useFocus();
+  if (isOpenActive || completed?.mode === 'open' || (!session && !completed)) return null;
   if (!session && completed) {
     const pendingTask = completed.taskId ? db.tasks.find(t => t.id === completed.taskId && t.status !== 'done') : undefined;
     const markDone = async () => {
@@ -544,6 +891,143 @@ export function FocusPill() {
   );
 }
 
+export function FocusGuardBar() {
+  useInterfaceLanguage();
+  const {
+    session,
+    remaining,
+    running,
+    isOpenActive,
+    isFullscreen,
+    fullscreenSupported,
+    keyboardLocked,
+    scratch,
+    cancelConfirmOpen,
+    pause,
+    resume,
+    cancelOpen,
+    setScratch,
+    openCancelConfirm,
+    closeCancelConfirm,
+    enterFullscreen,
+  } = useFocus();
+  const [scratchOpen, setScratchOpen] = useState(false);
+
+  useEffect(() => {
+    if (!isOpenActive) setScratchOpen(false);
+  }, [isOpenActive]);
+
+  if (!isOpenActive || !session) return null;
+
+  const leaveCount = session.leaveCount ?? 0;
+  const awaySeconds = session.awaySeconds ?? 0;
+  const done = Math.max(0, Math.min(1, 1 - remaining / session.totalSeconds));
+  const statusLabel = !running
+    ? ui('已暫停')
+    : isFullscreen
+      ? (keyboardLocked ? ui('全屏防誤觸鎖定中') : ui('全屏專注中'))
+      : ui('頁內專注監測中');
+
+  return (
+    <>
+      <div className={`focus-guard-bar ${running ? '' : 'paused'}`} role="region" aria-label={ui('自由專注鎖屏狀態列')}>
+        <span className="focus-guard-track" aria-hidden="true"><span style={{transform: `scaleX(${done})`}}/></span>
+        <div className="focus-guard-main">
+          <span className={`focus-guard-badge ${isFullscreen && running ? 'locked' : ''}`}>
+            <Icon name={running ? 'lock' : 'pause'} size={13}/>
+            <span>{statusLabel}</span>
+          </span>
+          <strong className="focus-guard-label">{ui(session.label)}</strong>
+          <time className="focus-guard-time" aria-live="off">{clock(remaining)}</time>
+          <span className={`focus-guard-stat ${leaveCount > 0 ? 'warn' : 'clean'}`}>
+            <Icon name={leaveCount > 0 ? 'alert' : 'checkCircle'} size={13}/>
+            <span>
+              {leaveCount === 0
+                ? ui('0 次離開')
+                : ui('離開 {0} 次 · {1}', [leaveCount, formatAwayDuration(awaySeconds)])}
+            </span>
+          </span>
+        </div>
+        <div className="focus-guard-actions">
+          <button
+            type="button"
+            className={`btn ghost small-btn focus-guard-btn ${scratch.trim() ? 'has-note' : ''}`}
+            onClick={() => setScratchOpen(true)}
+          >
+            <Icon name="pencil" size={14}/>
+            <span>{ui('卡點便條')}</span>
+          </button>
+          {fullscreenSupported && !isFullscreen && (
+            <button type="button" className="btn secondary small-btn focus-guard-btn" onClick={enterFullscreen}>
+              <Icon name="maximize" size={14}/>
+              <span>{ui('進入全屏')}</span>
+            </button>
+          )}
+          <button type="button" className="btn secondary small-btn focus-guard-btn" onClick={running ? pause : resume}>
+            <Icon name={running ? 'pause' : 'play'} size={14}/>
+            <span>{running ? ui('暫停') : ui('繼續專注')}</span>
+          </button>
+          <button type="button" className="btn ghost small-btn focus-guard-cancel" onClick={openCancelConfirm}>
+            {ui('取消專注')}
+          </button>
+        </div>
+      </div>
+
+      {scratchOpen && (
+        <Modal
+          title={ui('卡點暫存便條')}
+          subtitle={ui('先記下剛才卡住的題號或概念，不用急著打斷專注，完成後可一鍵帶去提問。')}
+          onClose={() => setScratchOpen(false)}
+        >
+          <textarea
+            className="question-answer-input"
+            rows={4}
+            maxLength={240}
+            value={scratch}
+            onChange={e => setScratch(e.target.value)}
+            placeholder={ui('記下剛才卡住的題號或概念，完成後可一鍵帶去提問…')}
+          />
+          <div className="modal-actions">
+            {scratch && (
+              <button type="button" className="btn ghost" onClick={() => setScratch('')}>
+                {ui('清除暫存便條')}
+              </button>
+            )}
+            <button type="button" className="btn primary" onClick={() => setScratchOpen(false)}>
+              {ui('返回繼續學習')}
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {cancelConfirmOpen && (
+        <Modal
+          title={ui('取消自由專注確認')}
+          onClose={closeCancelConfirm}
+        >
+          <p><strong>{ui('還剩 {0}，確定要取消這段自由專注嗎？', [clock(remaining)])}</strong></p>
+          <p className="muted small" style={{marginTop: 8}}>
+            {ui('取消後將退出全屏並解除專注限制，未完成的計時不會計入今日自由專注。')}
+          </p>
+          {leaveCount > 0 && (
+            <p className="muted small" style={{marginTop: 8}}>
+              {ui('目前紀錄：離開畫面 {0} 次，累計約 {1}。', [leaveCount, formatAwayDuration(awaySeconds)])}
+            </p>
+          )}
+          <div className="modal-actions">
+            <button type="button" className="btn primary" onClick={closeCancelConfirm}>
+              {ui('繼續專注')}
+            </button>
+            <button type="button" className="btn secondary" onClick={cancelOpen}>
+              {ui('確認取消並離開')}
+            </button>
+          </div>
+        </Modal>
+      )}
+    </>
+  );
+}
+
 const OPEN_PRESETS: {minutes: number; hint: string}[] = [
   {minutes: 15, hint: '短重溫 · 單一概念'},
   {minutes: 25, hint: '標準番茄鐘'},
@@ -560,7 +1044,7 @@ export function OpenFocusModal() {
   return (
     <Modal
       title={ui('開啟自由專注')}
-      subtitle={ui('適合紙本 Past Paper 操卷、課本重溫或自定練習。')}
+      subtitle={ui('進入全屏專注模式，同時可在站內自由看課題、做測驗、問 AI 或溫習筆記。')}
       onClose={closeLauncher}
     >
       <div className="open-focus-presets" role="radiogroup" aria-label={ui('選擇專注時長')}>
@@ -595,7 +1079,7 @@ export function OpenFocusModal() {
       )}
       <div className="info-callout" style={{marginBottom: 0}}>
         <Icon name="lock"/>
-        <p>{ui('開始後將進入全屏書桌並暫時鎖定站內頁面；如需中途離開，須點擊「取消自由專注」並再次確認。')}</p>
+        <p>{ui('開始後會進入瀏覽器全屏，你仍可自由探索站內所有頁面；站外連結會暫時攔截，切換分頁／視窗或退出全屏會即時提醒並記錄次數與時長。瀏覽器無法封鎖系統級熱鍵（如 Win 鍵），支援的桌面瀏覽器會自動防誤觸 Esc 及開關分頁快捷鍵；中途退出須按「取消專注」並再次確認。')}</p>
       </div>
       <div className="modal-actions">
         <button type="button" className="btn secondary" onClick={closeLauncher}>{ui('稍後再說')}</button>
@@ -620,13 +1104,10 @@ export function FocusDeskOverlay() {
     completed,
     remaining,
     running,
-    isLocked,
-    isFullscreen,
-    fullscreenSupported,
+    isFullscreenShieldOpen,
     todayOpenMinutes,
     scratch,
     pause,
-    resume,
     cancelOpen,
     setScratch,
     enterFullscreen,
@@ -635,13 +1116,13 @@ export function FocusDeskOverlay() {
   const [confirmCancel, setConfirmCancel] = useState(false);
 
   useEffect(() => {
-    if (!session || session.mode !== 'open') setConfirmCancel(false);
-  }, [session]);
-
-  if (!isLocked) return null;
+    if (!isFullscreenShieldOpen) setConfirmCancel(false);
+  }, [isFullscreenShieldOpen]);
 
   if (!session && completed?.mode === 'open') {
     const trimmedScratch = scratch.trim();
+    const leaveCount = completed.leaveCount ?? 0;
+    const awaySeconds = completed.awaySeconds ?? 0;
     const askAi = () => {
       const prompt = trimmedScratch;
       dismissCompleted();
@@ -674,6 +1155,21 @@ export function FocusDeskOverlay() {
           <div className="focus-desk-stage">
             <h1 id="focus-desk-heading">{ui('這 {0} 分鐘，你完整留給了自己。', [completed.minutes ?? 25])}</h1>
             <p className="focus-desk-subtitle">{ui('已完成「{0}」· 先喝口水、讓眼睛休息一下。', [ui(completed.label)])}</p>
+            <div className={`focus-report-card ${leaveCount === 0 ? 'clean' : 'noted'}`}>
+              <Icon name={leaveCount === 0 ? 'checkCircle' : 'alert'} size={18}/>
+              <div>
+                <strong>
+                  {leaveCount === 0
+                    ? ui('全程保持專注 · 0 次離開畫面')
+                    : ui('本次離開畫面 {0} 次 · 累計約 {1}', [leaveCount, formatAwayDuration(awaySeconds)])}
+                </strong>
+                <small>
+                  {leaveCount === 0
+                    ? ui('整個時段沒有切換分頁、離開視窗或退出全屏。')
+                    : ui('每次察覺分心並把自己拉回站內，都是在訓練專注力。')}
+                </small>
+              </div>
+            </div>
             <div className="focus-parking-lot">
               <label htmlFor="focus-scratch-done">
                 <Icon name="pencil" size={14}/>
@@ -718,42 +1214,51 @@ export function FocusDeskOverlay() {
     );
   }
 
-  const activeSession = session!;
-  const progressPct = ((activeSession.totalSeconds - remaining) / activeSession.totalSeconds) * 100;
+  if (!isFullscreenShieldOpen || !session) return null;
+
+  const progressPct = ((session.totalSeconds - remaining) / session.totalSeconds) * 100;
+  const leaveCount = session.leaveCount ?? 0;
+  const awaySeconds = session.awaySeconds ?? 0;
 
   return (
     <section className={`focus-desk-lock ${running ? '' : 'paused'}`} role="dialog" aria-modal="true" aria-labelledby="focus-desk-heading">
       <div className="focus-desk-inner">
         <header className="focus-desk-top">
           <div className="focus-desk-badges">
-            <Badge tone="amber">{ui('自由專注鎖定中')}</Badge>
+            <Badge tone="amber">{ui('已退出全屏專注')}</Badge>
             {todayOpenMinutes > 0 && (
               <span className="focus-desk-tally">{ui('今日已完成 {0} 分鐘自由專注', [todayOpenMinutes])}</span>
             )}
           </div>
-          {fullscreenSupported && !isFullscreen && (
-            <button type="button" className="btn secondary small-btn" onClick={enterFullscreen}>
-              <Icon name="maximize" size={15}/>
-              {ui('返回全屏繼續專注')}
-            </button>
-          )}
         </header>
 
         <div className="focus-desk-stage">
-          <h1 id="focus-desk-heading">{ui(activeSession.label)}</h1>
+          <h1 id="focus-desk-heading">{ui(session.label)}</h1>
           <p className="focus-desk-subtitle">
-            {running
-              ? ui('專注計時進行中 · 完成或取消前將鎖定其他頁面')
-              : ui('計時已暫停 · 準備好隨時繼續')}
+            {ui('自由專注仍在進行中，返回全屏後即可繼續自由瀏覽站內所有頁面。')}
           </p>
           <time className="focus-desk-clock" aria-live="off">{clock(remaining)}</time>
           <Progress value={progressPct} color="#9e7422" className="focus-desk-progress"/>
 
+          {leaveCount > 0 && (
+            <div className="focus-report-card noted">
+              <Icon name="alert" size={18}/>
+              <div>
+                <strong>{ui('本次已離開畫面 {0} 次 · 累計約 {1}', [leaveCount, formatAwayDuration(awaySeconds)])}</strong>
+                <small>{ui('點擊下方返回全屏，即可接續你剛才正在查看的頁面。')}</small>
+              </div>
+            </div>
+          )}
+
           {!confirmCancel ? (
             <div className="focus-desk-controls">
-              <button type="button" className="btn primary" onClick={running ? pause : resume}>
-                <Icon name={running ? 'pause' : 'play'} size={16}/>
-                {running ? ui('暫停') : ui('繼續專注')}
+              <button type="button" className="btn primary" onClick={enterFullscreen}>
+                <Icon name="maximize" size={16}/>
+                {ui('返回全屏繼續專注')}
+              </button>
+              <button type="button" className="btn secondary" onClick={pause}>
+                <Icon name="pause" size={16}/>
+                {ui('暫停計時')}
               </button>
               <button type="button" className="btn ghost focus-cancel-trigger" onClick={() => setConfirmCancel(true)}>
                 {ui('取消自由專注')}
@@ -763,7 +1268,7 @@ export function FocusDeskOverlay() {
             <div className="focus-cancel-gate" role="group" aria-label={ui('取消自由專注確認')}>
               <p>
                 <strong>{ui('還剩 {0}，確定要取消這段自由專注嗎？', [clock(remaining)])}</strong>
-                <small>{ui('取消後將退出全屏並返回原本頁面，未完成的計時不會計入今日自由專注。')}</small>
+                <small>{ui('取消後將退出全屏並解除專注限制，未完成的計時不會計入今日自由專注。')}</small>
               </p>
               <div className="focus-cancel-actions">
                 <button type="button" className="btn primary" onClick={() => setConfirmCancel(false)}>
@@ -775,30 +1280,11 @@ export function FocusDeskOverlay() {
               </div>
             </div>
           )}
-
-          <div className="focus-parking-lot">
-            <label htmlFor="focus-scratch-input">
-              <Icon name="pencil" size={14}/>
-              <span>{ui('卡點暫存便條')}</span>
-            </label>
-            <div className="focus-parking-row">
-              <input
-                id="focus-scratch-input"
-                value={scratch}
-                maxLength={240}
-                onChange={e => setScratch(e.target.value)}
-                placeholder={ui('記下剛才卡住的題號或概念，完成後可一鍵帶去提問…')}
-              />
-              {scratch && (
-                <button type="button" className="icon-btn" aria-label={ui('清除暫存便條')} onClick={() => setScratch('')}>
-                  <Icon name="x" size={15}/>
-                </button>
-              )}
-            </div>
-          </div>
         </div>
 
-        <p className="focus-desk-foot">{ui('自由專注只保存在此瀏覽器，不計入已記錄學習分鐘或掌握證據。')}</p>
+        <p className="focus-desk-foot">
+          {ui('瀏覽器無法封鎖 Windows／Alt+Tab 等系統熱鍵；離開全屏或切換視窗只在此瀏覽器記錄，不計入已記錄學習分鐘或掌握證據。')}
+        </p>
       </div>
     </section>
   );

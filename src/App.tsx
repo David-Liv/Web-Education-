@@ -9,7 +9,7 @@ import { Link, NavLink, Navigate, Route, Routes, useLocation, useNavigate } from
 import { useApp } from './state';
 import { Icon, Modal } from './components';
 import type { IconName } from './components';
-import { FocusDeskOverlay, FocusPill, OpenFocusModal, useFocus } from './focus';
+import { FocusDeskOverlay, FocusGuardBar, FocusPill, OpenFocusModal, useFocus } from './focus';
 import { Dashboard } from './pages/Dashboard';
 import { CalendarPage } from './pages/Calendar';
 import { DailyReviewPage } from './pages/DailyReview';
@@ -105,10 +105,11 @@ export default function App() {
         else if (e.key === 'ArrowUp' && results.length) { e.preventDefault(); setActive(i => (i - 1 + results.length) % results.length); }
         else if (e.key === 'Enter' && results[active]) { e.preventDefault(); choose(results[active]); }
     };
-    const immersive = !!focus.session?.immersive && !focus.isLocked;
+    const immersive = !!focus.session?.immersive && !focus.isOpenActive && !focus.isLocked;
     const pageTitle = ui(current?.label ?? (location.pathname === '/admin/help' ? '管理員使用指南' : location.pathname === '/start' ? '開始備試' : '個人設定'));
     const groupTitle = ui(current?.group ?? '帳戶與說明');
     return <div className={`app-shell ${collapsed?'sidebar-collapsed':''} ${immersive?'focus-immersive':''}`}>{mobile && !focus.isLocked && <button className="nav-scrim" aria-label={ui("關閉導覽")} onClick={() => setMobile(false)}/>}<div inert={focus.isLocked || undefined}><Sidebar mobile={mobile} collapsed={collapsed} onToggle={toggleSidebar} onClose={()=>setMobile(false)}/></div><div className="app-main" inert={mobile || focus.isLocked || undefined}>
+    <FocusGuardBar />
     <header className="topbar"><div className="breadcrumb"><button type="button" className="icon-btn mobile-only" aria-label={ui("開啟導覽")} aria-expanded={mobile} aria-controls="main-sidebar" onClick={() => setMobile(true)}><Icon name="menu"/></button>{location.pathname === '/overview' ? <span>{groupTitle}</span> : <Link to="/overview" className="breadcrumb-home" title={ui("返回學習總覽")}>{groupTitle}</Link>}<Icon name="right" size={13}/><strong>{pageTitle}</strong></div>
     <button aria-label={ui("搜尋知識點、對話或資源")} className="global-search" onClick={() => setSearchOpen(true)}><Icon name="search" size={17}/><span>{ui("搜尋知識點、對話或資源")}</span><kbd>{shortcutLabel}</kbd></button>
     <div className="topbar-actions"><FocusPill/><LanguageSwitch/>{billing && <Link className="credit-pill" to="/billing">{billing.account.plan} · {billing.available} credit</Link>}<span className="demo-pill"><i />{db.profile.year} {realMode ? ui("備試空間") : ui("備試示範")}</span><button className={`icon-btn notification-btn ${unread ? 'unread' : ''}`} aria-label={ui("查看通知")} onClick={() => setNotice(true)}><Icon name="bell" size={20}/></button></div></header>
