@@ -635,3 +635,428 @@ html:has(.focus-desk-lock),body:has(.focus-desk-lock){overflow:hidden}
 .guided-input-row .btn,.topic-hero-actions .btn,.topic-part-actions .btn{width:100%}
 .studio-direct-topic-link{flex-direction:column;align-items:flex-start}
 }
+
+
+/* DSE Scientific Calculator Simulator (fx-50FH II / fx-3650P II) */
+.calc-topbar-pill{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 11px;border-radius:8px;border:1px solid #d5e2d7;background:#f2f7f2;color:#245f4b;font-size:12px;font-weight:600;white-space:nowrap;transition:background .15s,border-color .15s,color .15s}
+.calc-topbar-pill:hover{background:#e7f1e8;border-color:#9fc0ab}
+.calc-topbar-pill.active{background:#245f4b;border-color:#1c4c3c;color:#fff}
+
+.math-calc-trigger{display:inline-flex;align-items:center;justify-content:center;gap:5px;height:34px;padding:0 10px;border-radius:8px;border:1px solid #d4e1d6;background:#f4f8f4;color:#245f4b;font-size:12px;font-weight:600;flex-shrink:0;white-space:nowrap;transition:background .15s,border-color .15s}
+.math-calc-trigger.compact{width:38px;height:38px;padding:0}
+.math-calc-trigger:hover,.math-calc-trigger.is-open{background:#e6f1e8;border-color:#8eb89d;color:#1a4737}
+
+.dse-calc-shell{position:fixed;right:20px;bottom:14px;z-index:120;display:flex;flex-direction:column;align-items:flex-end;gap:6px;width:298px;max-width:calc(100vw - 24px);background:transparent;color:#24352d;user-select:none;pointer-events:none}
+.dse-calc-shell>*{pointer-events:auto}
+.dse-calc-shell.with-library{width:640px}
+
+/* Slim Detached Floating Utility Pill Bar */
+.dse-calc-toolbar{width:100%;background:rgba(252,253,251,.95);backdrop-filter:blur(10px);border:1px solid #d5dfd5;border-radius:12px;padding:5px 7px;display:flex;flex-direction:column;gap:5px;cursor:grab;box-shadow:0 8px 24px rgba(15,23,42,.12)}
+.dse-calc-toolbar:active{cursor:grabbing}
+.dse-calc-toolbar-top{display:flex;align-items:center;justify-content:space-between;gap:4px}
+.dse-model-switch{display:inline-flex;background:#eaefe9;border-radius:6px;padding:1.5px;gap:1.5px}
+.dse-model-switch button{border:0;background:transparent;color:#596b60;font-size:10px;font-weight:750;padding:2.5px 6px;border-radius:4.5px;letter-spacing:.1px;transition:background .12s,color .12s;white-space:nowrap}
+.dse-model-switch button.active{background:#ef7548;color:#fff;box-shadow:0 1px 2px rgba(239,117,72,.35)}
+.dse-calc-shell.model-fx-3650p-ii .dse-model-switch button.active{background:#343c47;color:#fff}
+.dse-toolbar-right{display:flex;align-items:center;gap:3px}
+.dse-tool-chip{border:1px solid #d5dfd5;background:#fff;color:#42564a;font-size:10px;font-weight:600;padding:2.5px 5.5px;border-radius:5px;white-space:nowrap}
+.dse-tool-chip:hover{background:#eef4ee;border-color:#b2c7b7;color:#1f4938}
+.dse-tool-chip.active{background:#245f4b;border-color:#245f4b;color:#fff}
+.dse-tool-close{display:inline-flex;align-items:center;justify-content:center;width:21px;height:21px;border:1px solid #dde4dc;border-radius:5px;background:#fff;color:#5b6d62}
+.dse-tool-close:hover{background:#fcebe8;border-color:#e5b8b0;color:#993c2f}
+
+.dse-calc-actions-row{display:flex;align-items:center;gap:4px;flex-wrap:nowrap}
+.dse-insert-btn,.dse-copy-btn{display:inline-flex;align-items:center;gap:3.5px;border-radius:6px;font-size:10.5px;font-weight:650;padding:3.5px 7px;border:1px solid transparent;white-space:nowrap}
+.dse-insert-btn{background:#245f4b;color:#fff;border-color:#1e5240}
+.dse-insert-btn:hover:not(:disabled){background:#1c4d3c}
+.dse-copy-btn{background:#fff;color:#395244;border-color:#d4dfd5}
+.dse-copy-btn:hover{background:#edf4ee;border-color:#a8c1b0}
+.dse-auto-toggle{margin-left:auto;display:inline-flex;align-items:center;gap:3px;font-size:10px;color:#5b6c61;cursor:pointer;white-space:nowrap}
+.dse-auto-toggle input{width:12px;height:12px;accent-color:#245f4b;margin:0}
+
+.dse-calc-body-wrap{display:flex;align-items:flex-end;gap:10px;width:100%}
+
+/* Preset Library Side Drawer */
+.dse-preset-drawer{width:332px;height:598px;max-height:calc(100vh - 96px);flex-shrink:0;background:#f8faf7;color:#283c35;border:1px solid #d5dfd5;border-radius:14px;box-shadow:0 18px 44px rgba(15,23,42,.18);display:flex;flex-direction:column;overflow-y:auto;padding:12px}
+.dse-preset-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:10px}
+.dse-preset-head strong{display:block;font-size:13px;color:#1b4332}
+.dse-preset-head small{display:block;font-size:11px;color:#5c6c61;margin-top:2px}
+.dse-preset-drawer .dse-tool-close{background:#e7eee7;color:#395244}
+.dse-preset-drawer .dse-tool-close:hover{background:#d7e3d8;color:#1c3d2d}
+
+.dse-slots-strip{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-bottom:8px}
+.dse-slot-card{border:1px solid #dde6dc;background:#fff;border-radius:8px;padding:7px 8px}
+.dse-slot-card.filled{border-color:#a5c7b2;background:#f2f8f4}
+.dse-slot-top{display:flex;align-items:center;justify-content:space-between;font-size:11.5px;margin-bottom:5px}
+.dse-slot-top strong{color:#1b4c3d}
+.dse-slot-top span{font-size:10.5px;color:#64746a}
+.dse-slot-btns{display:flex;gap:4px;flex-wrap:wrap}
+.dse-slot-btns button{border:1px solid #d5e0d5;background:#fff;color:#2b4c3c;border-radius:5px;padding:2px 6px;font-size:10.5px;font-weight:600}
+.dse-slot-btns button:hover:not(:disabled){background:#e9f2ec}
+.dse-slot-btns button.danger{color:#a1493c;border-color:#e8c7c1}
+
+.dse-preset-tip{font-size:11px;line-height:1.55;color:#576a5e;background:#eef4ec;border-radius:7px;padding:7px 9px;margin-bottom:10px}
+.dse-preset-list{display:flex;flex-direction:column;gap:8px}
+.dse-preset-item{border:1px solid #dfe8de;background:#fff;border-radius:9px;padding:9px 10px;display:flex;flex-direction:column;gap:4px}
+.dse-preset-item-head{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.dse-preset-item-head strong{font-size:12px;color:#1d4233}
+.dse-preset-bytes{font-size:10.5px;font-weight:650;color:#245f4b;background:#e8f3ec;border-radius:4px;padding:1px 5px;flex-shrink:0}
+.dse-preset-formula{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;color:#345646;background:#f4f8f3;padding:3px 6px;border-radius:5px}
+.dse-preset-item p{font-size:11.5px;line-height:1.5;color:#4a5d52}
+.dse-preset-io{font-size:11px;line-height:1.45;color:#5c6c62}
+.dse-preset-load-row{display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-top:4px;font-size:11px;color:#4e6156}
+.dse-preset-load-row button{border:1px solid #c5dacb;background:#eff6f1;color:#1f513e;border-radius:5px;padding:2px 7px;font-size:11px;font-weight:650}
+.dse-preset-load-row button:hover{background:#245f4b;color:#fff;border-color:#245f4b}
+.dse-preset-code-toggle{margin-left:auto;background:#fff!important;border-color:#d8e1d8!important;color:#526559!important;font-weight:550!important}
+.dse-preset-code-box{margin-top:5px;background:#1b2430;color:#e2e8f0;border-radius:7px;padding:7px 8px;display:flex;flex-direction:column;gap:5px}
+.dse-preset-code-box code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:10.5px;line-height:1.5;word-break:break-all;color:#fde68a;user-select:text}
+.dse-preset-code-box small{font-size:10.5px;line-height:1.45;color:#cbd5e1}
+
+/* True 1:1 Physical Handheld Proportion (80mm × 162mm -> 296px × 600px) with Tapering Matte-Black Outer Rim */
+.dse-hardware-wrap{position:relative;width:296px;height:600px;flex-shrink:0;padding:0;border-radius:0;background:transparent;box-shadow:none;filter:drop-shadow(0 24px 36px rgba(15,23,42,.28)) drop-shadow(0 5px 12px rgba(15,23,42,.18));display:flex;flex-direction:column}
+.dse-body-shell-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0}
+.dse-chassis{position:relative;z-index:1;flex:1;padding:13px 14px 27px;border-radius:0;background:transparent;box-shadow:none;display:flex;flex-direction:column;justify-content:space-between;color:#1f252e;overflow:visible}
+
+/* Zone 1: Top Brand + Authentic Large Recessed Solar Panel (44% width × 36px height) */
+.dse-face-header{display:flex;align-items:stretch;justify-content:space-between;gap:8px;padding:0 3px;min-height:46px}
+.dse-face-brand{display:flex;flex-direction:column;justify-content:space-between;padding:2px 0 1px}
+.dse-brand-maker{font-size:14.5px;font-weight:900;letter-spacing:1.6px;color:#272d36;line-height:1}
+.dse-brand-model{font-size:12.5px;font-weight:750;font-style:italic;color:#3c4450;line-height:1;letter-spacing:.2px}
+.dse-solar-well{width:118px;height:36px;align-self:center;padding:3px;border-radius:6px;background:linear-gradient(180deg,#9aa1ab 0%,#d7dce3 100%);box-shadow:inset 0 1.5px 3px rgba(20,25,33,.35),0 1px 0 rgba(255,255,255,.78);display:flex}
+.dse-solar{flex:1;display:grid;grid-template-columns:repeat(4,1fr);background:#29221e;border-radius:3.5px;border:1px solid #49413d;box-shadow:inset 0 2px 5px rgba(0,0,0,.82);overflow:hidden}
+.dse-solar span{border-right:1px solid rgba(130,104,88,.24);background:linear-gradient(180deg,#443630 0%,#261d19 55%,#342823 100%)}
+.dse-solar span:last-child{border-right:0}
+
+/* Zone 2: 5 Coral Bars + DSE Line + SUPER-FX PLUS */
+.dse-face-stripe-row{display:flex;align-items:center;justify-content:space-between;gap:4px;padding:0 3px;margin-top:1px}
+.dse-dse-strip{display:inline-flex;align-items:center;gap:4px;min-width:0}
+.dse-red-bars{display:inline-flex;gap:2.5px;align-items:center}
+.dse-red-bars i{display:block;width:3px;height:7.5px;background:#dc6156;border-radius:.8px}
+.dse-red-bars i:last-child{width:6.5px}
+.dse-exam-text{font-size:8px;font-weight:800;letter-spacing:.2px;color:#cf5850;white-space:nowrap}
+.dse-brand-sub{font-size:8px;font-weight:850;font-style:italic;letter-spacing:.35px;color:#47505d;white-space:nowrap}
+
+/* Zone 3: Tall Authentic 2.6:1 Recessed LCD Window (~86px tall) */
+.dse-lcd-bevel{padding:3px 4px 4px;border-radius:8px;background:linear-gradient(180deg,#b4bbc4 0%,#e5e8ed 100%);box-shadow:inset 0 1px 2px rgba(25,30,38,.3),0 1px 0 rgba(255,255,255,.85)}
+.dse-lcd-frame{padding:3.5px;border-radius:6px;background:linear-gradient(180deg,#707780 0%,#98a0aa 100%);box-shadow:inset 0 2px 5px rgba(15,20,28,.55)}
+.dse-lcd{background:linear-gradient(180deg,#959c8d 0%,#8d9585 45%,#949b8b 100%);color:#192117;border-radius:3px;padding:5px 8px 6px;box-shadow:inset 0 3px 8px rgba(14,20,12,.42),inset 2px 0 5px rgba(14,20,12,.22);font-family:ui-monospace,'Cascadia Mono','SFMono-Regular',Consolas,monospace;height:76px;display:flex;flex-direction:column;justify-content:space-between}
+.dse-lcd-annunciators{display:flex;align-items:center;justify-content:space-between;gap:1.5px;font-size:7.2px;font-weight:800;letter-spacing:.1px;padding-bottom:1px}
+.dse-lcd-annunciators span{opacity:.1;transition:opacity .1s}
+.dse-lcd-annunciators span.on{opacity:1}
+.dse-lcd-annunciators span.angle,.dse-lcd-annunciators span.disp{background:#192117;color:#9da494;padding:0 2.5px;border-radius:1.5px}
+.dse-lcd-top{font-size:14px;font-weight:700;line-height:1.25;min-height:19px;white-space:pre;overflow-x:auto;scrollbar-width:none;letter-spacing:.4px}
+.dse-lcd-top::-webkit-scrollbar{display:none}
+.dse-lcd-cursor{display:inline-block;width:3px;height:14px;background:#192117;vertical-align:-2px;animation:dseBlink 1s steps(1) infinite}
+.dse-lcd-cursor.is-ins{width:1.5px}
+@keyframes dseBlink{50%{opacity:.12}}
+.dse-lcd-bottom-row{display:flex;align-items:flex-end;justify-content:space-between;gap:6px;min-height:28px}
+.dse-lcd-sub{font-size:8.5px;font-weight:700;color:rgba(22,30,19,.78);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-bottom:2px}
+.dse-lcd-bottom{font-size:25px;font-weight:850;line-height:1;letter-spacing:1px;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap;overflow-x:auto;scrollbar-width:none;margin-left:auto}
+.dse-lcd-bottom.is-text{font-size:12px;font-weight:750;letter-spacing:.15px;padding-bottom:3px}
+.dse-lcd-bottom::-webkit-scrollbar{display:none}
+
+/* Zone 4 & 5: Unified 6-Column Upper Cluster + SVG Molded Groove + Exact Circular REPLAY */
+.dse-upper-zone{position:relative;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));grid-template-rows:auto auto;gap:10px 4.5px;align-items:end;padding:2px 3px 0}
+.dse-contour-svg{position:absolute;left:-10px;right:-10px;top:4px;width:calc(100% + 20px);height:74px;pointer-events:none;z-index:0}
+.dse-upper-zone>*:not(.dse-contour-svg){position:relative;z-index:1}
+
+.dse-pos-shift{grid-column:1;grid-row:1;align-self:start}
+.dse-pos-alpha{grid-column:2;grid-row:1;align-self:start;transform:translateY(4px)}
+.dse-pos-replay{grid-column:3 / span 2;grid-row:1 / span 2;align-self:center;justify-self:center}
+.dse-pos-mode{grid-column:5;grid-row:1;align-self:start;transform:translateY(4px)}
+.dse-pos-on{grid-column:6;grid-row:1;align-self:start}
+.dse-pos-mode .dse-key-legends{font-size:6.3px;gap:2px;letter-spacing:-.2px}
+.dse-pos-shift .dse-key.tone-mod{transform:rotate(4deg)}
+.dse-pos-alpha .dse-key.tone-mod{transform:rotate(6deg)}
+.dse-pos-mode .dse-key.tone-mod{transform:rotate(-6deg)}
+.dse-pos-on .dse-key.tone-mod{transform:rotate(-4deg)}
+.dse-pos-shift .dse-key.tone-mod:active{transform:rotate(4deg) translateY(1.5px)}
+.dse-pos-alpha .dse-key.tone-mod:active{transform:rotate(6deg) translateY(1.5px)}
+.dse-pos-mode .dse-key.tone-mod:active{transform:rotate(-6deg) translateY(1.5px)}
+.dse-pos-on .dse-key.tone-mod:active{transform:rotate(-4deg) translateY(1.5px)}
+
+.dse-pos-sub1{grid-column:1;grid-row:2}
+.dse-pos-sub2{grid-column:2;grid-row:2}
+.dse-pos-sub3{grid-column:5;grid-row:2}
+.dse-pos-sub4{grid-column:6;grid-row:2}
+
+/* Perfectly Circular Matte-Grey REPLAY Pad in Recessed Circular Well */
+.dse-replay-well{width:70px;height:70px;border-radius:50%;padding:3px;background:linear-gradient(180deg,#9ea5b0 0%,#e0e4ea 100%);box-shadow:inset 0 2px 4px rgba(25,32,42,.38),0 1px 0 rgba(255,255,255,.8);display:flex;align-items:center;justify-content:center}
+.dse-replay-ring{position:relative;width:100%;height:100%;border-radius:50%;background:linear-gradient(160deg,#a8afb8 0%,#838b95 58%,#747c86 100%);border:1px solid #6e7580;box-shadow:0 2px 4px rgba(20,26,35,.4),inset 0 1.5px 2px rgba(255,255,255,.55),inset 0 -2px 4px rgba(20,26,35,.32);display:flex;align-items:center;justify-content:center}
+.dse-replay-title{font-size:7px;font-weight:800;letter-spacing:.6px;color:#474f5a;pointer-events:none;text-shadow:0 1px 0 rgba(255,255,255,.35)}
+.dse-replay-btn{position:absolute;border:0;background:transparent;color:#4a535e;font-size:8px;line-height:1;width:20px;height:18px;display:flex;align-items:center;justify-content:center;border-radius:50%}
+.dse-replay-btn:hover{background:rgba(15,23,42,.15);color:#111827}
+.dse-replay-btn:active{transform:scale(.88)}
+.dse-replay-btn.up{top:2px;left:50%;transform:translateX(-50%)}
+.dse-replay-btn.down{bottom:2px;left:50%;transform:translateX(-50%)}
+.dse-replay-btn.left{left:2px;top:50%;transform:translateY(-50%)}
+.dse-replay-btn.right{right:2px;top:50%;transform:translateY(-50%)}
+
+/* Zone 6: 3 × 6 Scientific Capsules — inset cleanly inside the gently tapering silver waist */
+.dse-sci-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:2.5px 4.5px;padding:0 5px;align-items:start}
+
+/* Zone 7: 4 × 5 Chunky Numeric & Operator Shield Keys — framed symmetrically inside the widening matte-black rim */
+.dse-num-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:3px 6px;padding:0 11px}
+
+.dse-key-cell{display:flex;flex-direction:column;gap:1.5px;min-width:0}
+.dse-key-legends{display:flex;align-items:flex-end;justify-content:space-between;gap:1px;min-height:11.5px;padding:0 1px;font-size:7px;font-weight:800;line-height:1;white-space:nowrap;letter-spacing:-.1px}
+.dse-key-legends.is-centered{justify-content:center;gap:2.5px;padding:0}
+.dse-key-legends.is-right{justify-content:flex-end;padding:0 4px 0 0}
+.dse-key-legends.is-pair{justify-content:space-between;padding:0 4px}
+.dse-key-legends.is-triple{justify-content:space-between;padding:0 .5px;font-size:6.4px;letter-spacing:-.2px}
+.dse-key-legends.is-compact{justify-content:center;gap:2px;padding:0;font-size:6.35px;letter-spacing:-.2px}
+.dse-legend-mode{color:#2c333d}
+.dse-legend-shift{color:#9a611c}
+.dse-legend-alpha{color:#c04356;font-style:normal}
+.dse-legend-alpha.is-dark{color:#2c333d;font-style:normal}
+.dse-legend-alpha.is-dark em{font-family:'Cambria Math','Times New Roman',Georgia,serif;font-style:italic;font-size:1.12em}
+.dse-legend-base{color:#295b7c;font-style:normal}
+
+/* Authentic Tight Casio Micro-Brackets */
+.bracket-blue{display:inline-flex;align-items:center;justify-content:center;padding:1px 1.6px 0;border-top:1px solid #3c77a0;border-left:1px solid #3c77a0;border-right:1px solid #3c77a0;border-radius:1.2px 1.2px 0 0;line-height:1}
+.bracket-dark{display:inline-flex;align-items:center;justify-content:center;padding:1px 1.6px 0;border-top:1px solid #48505c;border-left:1px solid #48505c;border-right:1px solid #48505c;border-radius:1.2px 1.2px 0 0;line-height:1}
+.dse-key-sublegends{display:flex;align-items:flex-start;justify-content:center;gap:2.5px;min-height:9.5px;font-size:6.8px;font-weight:800;line-height:1;margin-top:1px;white-space:nowrap}
+.subbracket-blue{display:inline-flex;align-items:center;justify-content:center;padding:0 1.6px 1px;border-bottom:1px solid #3c77a0;border-left:1px solid #3c77a0;border-right:1px solid #3c77a0;border-radius:0 0 1.2px 1.2px;line-height:1}
+
+/* Authentic Casio Keycap & Silkscreen Rich Math Typography */
+.dse-radical{display:inline-flex;align-items:center;position:relative;line-height:1}
+.dse-radical svg{display:block}
+.dse-radical-idx{position:absolute;left:-1.5px;top:-2.8px;font-size:5.4px;font-family:'Cambria Math','Times New Roman',Georgia,serif;font-style:italic;font-weight:700;line-height:1}
+.dse-caret-svg,.dse-dms-svg{display:block}
+.dse-frac-glyph{display:inline-flex;align-items:baseline;line-height:1}
+.dse-frac-glyph.is-mixed{gap:.3px}
+.dse-frac-whole{font-size:10.4px;font-weight:700;margin-right:1.6px;font-style:normal}
+.dse-frac-glyph.is-mixed .dse-frac-num{font-size:7.4px;font-weight:700;transform:translateY(-2.1px)}
+.dse-frac-glyph.is-mixed .dse-frac-slash{font-size:8.4px;font-weight:600;margin:0 .2px}
+.dse-frac-glyph.is-mixed .dse-frac-den{font-size:7.4px;font-weight:700;transform:translateY(.5px)}
+.dse-frac-glyph.is-simple{gap:.2px}
+.dse-frac-glyph.is-simple .dse-frac-num{font-size:6.8px;transform:translateY(-.7px)}
+.dse-frac-glyph.is-simple .dse-frac-slash{font-size:7.2px;margin:0 .2px}
+.dse-frac-glyph.is-simple .dse-frac-den{font-size:6.8px;transform:translateY(.5px)}
+.dse-math-key{display:inline-flex;align-items:baseline;font-family:'Cambria Math','Times New Roman',Georgia,serif;font-size:11.6px;font-weight:700;line-height:1}
+.dse-math-key em{font-style:italic}
+.dse-math-key sup{font-size:7px;font-family:system-ui,-apple-system,sans-serif;font-style:normal;font-weight:700;margin-left:.6px;transform:translateY(-3px);display:inline-block}
+.dse-math-leg{display:inline-flex;align-items:baseline;line-height:1}
+.dse-math-leg em{font-family:'Cambria Math','Times New Roman',Georgia,serif;font-style:italic;font-weight:700;font-size:1.18em}
+.dse-math-leg sup{font-size:5.6px;font-weight:800;transform:translateY(-2.3px);display:inline-block;margin-left:.2px}
+.dse-comb-glyph{display:inline-flex;align-items:baseline;line-height:1}
+.dse-comb-glyph em{font-family:'Cambria Math','Times New Roman',Georgia,serif;font-style:italic;font-weight:700;font-size:1.08em}
+.dse-pi-leg{font-family:'Cambria Math','Times New Roman',Georgia,serif;font-size:9px;font-weight:700;line-height:.95}
+.dse-dot-glyph{display:inline-block;width:4.8px;height:4.8px;border-radius:50%;background:currentColor}
+
+/* Tactile Key Styles */
+.dse-key{height:19.5px;border-radius:999px;border:1px solid rgba(0,0,0,.38);font-size:9.8px;font-weight:650;line-height:1;padding:0 1px;display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;transition:transform .06s,filter .1s;box-shadow:0 2px 1.5px rgba(18,23,32,.46),inset 0 1px 0 rgba(255,255,255,.22)}
+.dse-key:hover{filter:brightness(1.12)}
+.dse-key:active{transform:translateY(1.5px);box-shadow:0 0 0 rgba(0,0,0,.4)}
+
+/* Blank Curved Bean-Shaped Matte-Grey Top Pills (SHIFT, ALPHA, MODE, ON) */
+.dse-key.tone-mod{height:19.5px;border-radius:11px 11px 16px 16px;background:linear-gradient(180deg,#a6adb7 0%,#838b96 100%);border-color:#68707b;box-shadow:0 2px 2px rgba(25,32,42,.42),inset 0 1px 1px rgba(255,255,255,.55)}
+.dse-key.tone-mod.mod-shift.is-active{background:linear-gradient(180deg,#f6c25b 0%,#d88a1e 100%);border-color:#9e600c;box-shadow:0 0 0 2px rgba(230,148,30,.4),0 2px 2px rgba(25,32,42,.35)}
+.dse-key.tone-mod.mod-alpha.is-active{background:linear-gradient(180deg,#ec7a93 0%,#c73e5c 100%);border-color:#8f243d;box-shadow:0 0 0 2px rgba(209,70,104,.35),0 2px 2px rgba(25,32,42,.35)}
+
+/* Dark Charcoal-Black Capsule Scientific Keys */
+.dse-key.tone-sci{background:linear-gradient(180deg,#3d434c 0%,#20242b 100%);color:#f3f5f7}
+
+/* Authentic Coral-Orange Prog & FMLA Pills on fx-50FH II */
+.dse-key.tone-coral{background:linear-gradient(180deg,#f58d67 0%,#df6b44 100%);border-color:#b84c29;color:#fff;font-size:9.3px;font-weight:750;box-shadow:0 2px 2px rgba(80,28,12,.38),inset 0 1px 0 rgba(255,255,255,.38)}
+
+/* Tall Chunky Shield Numeric & Operator Keys */
+.dse-num-grid .dse-key{height:27.5px;border-radius:7.5px 7.5px 13px 13px;font-size:15.5px;font-weight:600}
+.dse-key.tone-num{background:linear-gradient(180deg,#343941 0%,#1a1e24 100%);color:#f8fafc;border-color:#12151a;box-shadow:0 2.5px 2px rgba(14,19,26,.52),inset 0 1px 0 rgba(255,255,255,.18)}
+.dse-key.tone-op{background:linear-gradient(180deg,#5b626d 0%,#3c424b 100%);color:#f8fafc;border-color:#2b3037;box-shadow:0 2.5px 2px rgba(14,19,26,.46),inset 0 1px 0 rgba(255,255,255,.24)}
+.dse-key.tone-delac{background:linear-gradient(180deg,#5b626d 0%,#3d434c 100%);color:#f28f94;font-size:12px;font-weight:750;border-color:#2b3037;box-shadow:0 2.5px 2px rgba(14,19,26,.46),inset 0 1px 0 rgba(255,255,255,.22)}
+.dse-num-grid .dse-key-cell:nth-child(18) .dse-key,.dse-num-grid .dse-key-cell:nth-child(19) .dse-key,.dse-num-grid .dse-key-cell:nth-child(20) .dse-key{font-size:12px;font-weight:650}
+/* Bottom outer keys hug the U-curved silver chin just like the real hardware */
+.dse-num-grid .dse-key-cell:nth-child(16) .dse-key{border-bottom-left-radius:19px}
+.dse-num-grid .dse-key-cell:nth-child(20) .dse-key{border-bottom-right-radius:19px}
+
+/* Preserve exact 80:162 aspect ratio on shorter laptop viewports without ever squishing or scrolling */
+@media(max-height:700px) and (min-width:901px){
+.dse-hardware-wrap{zoom:.88}
+.dse-preset-drawer{height:526px}
+}
+@media(min-width:1240px){
+body.dse-calc-open .app-main{padding-right:326px;transition:padding-right .2s ease}
+}
+@media(max-width:900px){
+.dse-calc-shell,.dse-calc-shell.with-library{right:8px;left:8px;bottom:64px;width:auto;max-width:none;align-items:center;transform:none!important}
+.dse-calc-body-wrap{flex-direction:column;align-items:center;max-height:calc(100vh - 150px);overflow-y:auto}
+.dse-preset-drawer{width:100%;height:auto;max-height:36vh}
+.dse-hardware-wrap{zoom:.92}
+.calc-topbar-pill span{display:none}
+}
+
+
+/* Starbean Mascot & Interactive Desktop Pet */
+.starbean-svg{display:inline-block;overflow:visible;user-select:none;flex-shrink:0}
+.starbean-svg.sb-facing-left .sb-rig{transform-box:fill-box;transform-origin:center;transform:scaleX(-1)}
+.starbean-svg .sb-ear{transition:transform .28s cubic-bezier(.34,1.56,.64,1)}
+.starbean-svg .sb-ear-left{transform-origin:58px 42px}
+.starbean-svg .sb-ear-right{transform-origin:90px 42px}
+.starbean-svg .sb-ear-left.is-droopy{transform:rotate(-38deg) translate(-4px,6px)}
+.starbean-svg .sb-ear-right.is-droopy{transform:rotate(38deg) translate(4px,6px)}
+.starbean-svg .sb-ear-left.is-flared{transform:rotate(-16deg) translateY(-2px)}
+.starbean-svg .sb-ear-right.is-flared{transform:rotate(16deg) translateY(-2px)}
+.starbean-svg.sb-animated.sb-mood-idle .sb-rig{animation:sb-breathe 3.2s ease-in-out infinite}
+.starbean-svg.sb-animated.sb-mood-idle .sb-eyes{transform-origin:81px 67px;animation:sb-blink 4.6s ease-in-out infinite}
+.starbean-svg.sb-animated.sb-mood-happy .sb-rig{animation:sb-hop .9s ease-in-out infinite}
+.starbean-svg.sb-animated.sb-mood-celebrate .sb-rig{animation:sb-celebrate .72s ease-in-out infinite}
+.starbean-svg.sb-animated.sb-mood-celebrate .sb-hands-cheer{animation:sb-cheer-hands .45s ease-in-out infinite alternate}
+.starbean-svg.sb-animated.sb-mood-celebrate .sb-fx-stars{animation:sb-sparkle 1.1s ease-in-out infinite}
+.starbean-svg.sb-animated.sb-mood-thinking .sb-ear-left{animation:sb-ear-twitch-l 1.5s ease-in-out infinite}
+.starbean-svg.sb-animated.sb-mood-thinking .sb-ear-right,.starbean-svg.sb-animated.sb-mood-quizGenerating .sb-ear-right{animation:sb-ear-twitch-r 1.3s ease-in-out infinite}
+.starbean-svg.sb-animated.sb-mood-thinking .sb-fx-bulb,.starbean-svg.sb-animated.sb-mood-quizGenerating .sb-fx-bulb{animation:sb-bulb-pulse 1.2s ease-in-out infinite}
+.starbean-svg.sb-animated.sb-mood-streaming .sb-rig,.starbean-svg.sb-animated.sb-mood-grading .sb-rig{animation:sb-nod .68s ease-in-out infinite}
+.starbean-svg.sb-animated.sb-mood-streaming .sb-hand-work,.starbean-svg.sb-animated.sb-mood-grading .sb-hand-work,.starbean-svg.sb-animated.sb-mood-thinking .sb-hand-work,.starbean-svg.sb-animated.sb-mood-quizGenerating .sb-hand-work{animation:sb-scribble .35s ease-in-out infinite alternate}
+.starbean-svg.sb-animated.sb-mood-sus .sb-hand-point{animation:sb-point-jab .85s ease-in-out infinite}
+.starbean-svg.sb-animated.sb-mood-sus .sb-fx-alert{animation:sb-sparkle .9s ease-in-out infinite}
+.starbean-svg.sb-animated.sb-mood-sleepy .sb-rig{animation:sb-sleep-breathe 3.8s ease-in-out infinite}
+.starbean-svg.sb-animated.sb-mood-sleepy .sb-fx-zzz{animation:sb-zzz-float 2.4s ease-in-out infinite}
+.starbean-svg.sb-animated.sb-mood-error .sb-fx-steam{animation:sb-steam-puff 1.6s ease-out infinite}
+.starbean-svg.sb-animated.sb-mood-dragged .sb-rig{animation:sb-dangle .24s ease-in-out infinite alternate}
+.starbean-svg.sb-animated.sb-mood-dragged .sb-hands-flail{animation:sb-flail .18s ease-in-out infinite alternate}
+.starbean-svg.sb-animated.sb-mood-patrol .sb-rig{animation:sb-waddle .36s ease-in-out infinite}
+.starbean-svg.sb-animated.sb-mood-focus .sb-rig{animation:sb-breathe 4.4s ease-in-out infinite}
+@keyframes sb-breathe{0%,100%{transform:translateY(0) scaleY(1)}50%{transform:translateY(-2.5px) scaleY(1.015)}}
+@keyframes sb-blink{0%,45%,51%,100%{transform:scaleY(1)}48%{transform:scaleY(.12)}}
+@keyframes sb-hop{0%,100%{transform:translateY(0)}45%{transform:translateY(-7px)}}
+@keyframes sb-celebrate{0%,100%{transform:translateY(0) rotate(0deg)}35%{transform:translateY(-11px) rotate(-3deg)}70%{transform:translateY(-6px) rotate(3deg)}}
+@keyframes sb-cheer-hands{from{transform:translateY(2px)}to{transform:translateY(-6px)}}
+@keyframes sb-sparkle{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.55;transform:scale(1.08)}}
+@keyframes sb-ear-twitch-l{0%,100%{transform:rotate(0deg)}40%{transform:rotate(-10deg)}65%{transform:rotate(3deg)}}
+@keyframes sb-ear-twitch-r{0%,100%{transform:rotate(0deg)}35%{transform:rotate(11deg)}60%{transform:rotate(-3deg)}}
+@keyframes sb-bulb-pulse{0%,100%{opacity:1;transform:translateY(0)}50%{opacity:.78;transform:translateY(-3px)}}
+@keyframes sb-nod{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(2px) rotate(1.8deg)}}
+@keyframes sb-scribble{from{transform:translate(0,0) rotate(-6deg)}to{transform:translate(3px,-3px) rotate(8deg)}}
+@keyframes sb-point-jab{0%,100%{transform:translateX(0)}45%{transform:translateX(5px)}}
+@keyframes sb-sleep-breathe{0%,100%{transform:translateY(4px) scaleY(.95)}50%{transform:translateY(6px) scaleY(.92)}}
+@keyframes sb-zzz-float{0%{opacity:.25;transform:translate(0,4px)}55%{opacity:1;transform:translate(3px,-4px)}100%{opacity:.2;transform:translate(6px,-10px)}}
+@keyframes sb-steam-puff{0%{opacity:.95;transform:translateY(3px) scale(.9)}100%{opacity:.15;transform:translateY(-8px) scale(1.12)}}
+@keyframes sb-dangle{from{transform:rotate(-4deg) translateY(-2px)}to{transform:rotate(4deg) translateY(2px)}}
+@keyframes sb-flail{from{transform:translateY(-4px)}to{transform:translateY(4px)}}
+@keyframes sb-waddle{0%,100%{transform:translateY(0) rotate(-3.5deg)}50%{transform:translateY(-4px) rotate(3.5deg)}}
+
+/* Topbar pill matching CalculatorPill & FocusPill */
+.starbean-topbar-pill{position:relative;display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 10px 0 7px;border-radius:8px;border:1px solid #e4d6b5;background:#fcf7ea;color:#5c4820;font-size:12px;font-weight:600;white-space:nowrap;transition:background .15s,border-color .15s,transform .15s}
+.starbean-topbar-pill:hover{background:#f7ecd2;border-color:#d4b775;transform:translateY(-1px)}
+.starbean-topbar-pill.active{background:#f5ecd6;border-color:#c9a65a;color:#3f3216}
+.starbean-topbar-pill.is-busy{border-color:#d98b24;box-shadow:0 0 0 2px rgba(245,183,47,.22)}
+.starbean-status-dot{position:absolute;top:4px;right:4px;width:7px;height:7px;border-radius:50%;border:1.5px solid #fff}
+.starbean-status-dot.tone-ai{background:#e69b28;animation:pulse 1.1s infinite}
+.starbean-status-dot.tone-alert{background:#d94b3d;animation:pulse .85s infinite}
+
+/* Global floating pet shell */
+.starbean-pet-shell{position:fixed;z-index:120;width:84px;height:90px;pointer-events:none;transition:left .28s cubic-bezier(.22,1,.36,1),top .28s cubic-bezier(.22,1,.36,1),opacity .2s}
+.starbean-pet-shell.is-dragging{transition:none;z-index:160}
+.starbean-pet-shell.is-quiet{opacity:.9}
+.starbean-trigger{pointer-events:auto;width:84px;height:90px;padding:0;border:0;background:transparent;display:flex;align-items:center;justify-content:center;cursor:grab;touch-action:none;transition:transform .2s cubic-bezier(.34,1.56,.64,1);filter:drop-shadow(0 8px 16px rgba(22,45,35,.16))}
+.starbean-trigger:hover{transform:translateY(-3px) scale(1.03)}
+.starbean-pet-shell.is-dragging .starbean-trigger{cursor:grabbing;filter:drop-shadow(0 16px 24px rgba(22,45,35,.26))}
+.starbean-pet-shell.is-docked .starbean-trigger{opacity:.92}
+.starbean-pet-shell.is-docked:hover .starbean-trigger{opacity:1}
+
+/* Speech & status bubble */
+.starbean-bubble{pointer-events:auto;position:absolute;bottom:calc(100% + 4px);width:max-content;max-width:248px;padding:8px 12px;border-radius:11px;background:#fffef9;border:1.5px solid #245f4b;color:#1e3a2f;font-size:12px;font-weight:550;line-height:1.45;box-shadow:0 8px 22px rgba(20,52,39,.14);display:flex;align-items:center;gap:8px;white-space:normal;animation:appear .18s ease-out}
+.starbean-bubble.align-right{right:2px}
+.starbean-bubble.align-left{left:2px}
+.starbean-pet-shell.is-docked-right .starbean-bubble{right:42px;left:auto}
+.starbean-pet-shell.is-docked-left .starbean-bubble{left:42px;right:auto}
+.starbean-pet-shell.is-docked-right .starbean-popover{right:42px;left:auto}
+.starbean-pet-shell.is-docked-left .starbean-popover{left:42px;right:auto}
+.starbean-bubble.tone-alert{background:#fff8f5;border-color:#c9503d;color:#7a2a1f}
+.starbean-bubble-link{border:0;background:#245f4b;color:#fff;font-size:11px;font-weight:600;padding:3px 8px;border-radius:6px;white-space:nowrap;flex-shrink:0}
+.starbean-bubble-link:hover{background:#1b4c3d}
+
+/* Compact quick-action & skin popover */
+.starbean-popover{pointer-events:auto;position:absolute;width:258px;background:#fffefb;border:1px solid #d4e0d4;border-radius:14px;padding:13px 14px;box-shadow:0 18px 44px rgba(20,50,38,.18);color:#263e34;animation:appear .16s ease-out;z-index:130}
+.starbean-popover.align-right{right:0}
+.starbean-popover.align-left{left:0}
+.starbean-popover.align-above{bottom:calc(100% + 10px)}
+.starbean-popover.align-below{top:calc(100% + 10px)}
+.starbean-pop-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.starbean-pop-head strong{display:block;font-size:13.5px;color:#1e4435}
+.starbean-pop-head small{display:block;font-size:11.5px;color:#5f6f64;margin-top:2px}
+.starbean-pop-meta{display:flex;align-items:center;gap:6px;margin:8px 0 10px;padding:6px 9px;border-radius:8px;background:#f3f7ef;font-size:11.5px;color:#476152;font-weight:550}
+.starbean-pop-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:11px}
+.starbean-action-chip{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:7px 8px;border-radius:8px;border:1px solid #dfe8dd;background:#fff;color:#2e4e40;font-size:11.5px;font-weight:600;transition:background .14s,border-color .14s}
+.starbean-action-chip:hover{background:#eef5ec;border-color:#9fc0ab;color:#1b4c3d}
+.starbean-pop-section{padding-top:9px;margin-top:9px;border-top:1px solid #edf1e8}
+.starbean-pop-label{display:block;font-size:11px;font-weight:650;color:#627066;margin-bottom:7px;letter-spacing:.3px}
+.starbean-swatch-row{display:flex;align-items:center;gap:9px}
+.starbean-swatch{width:24px;height:24px;border-radius:50%;border:2.5px solid #18201c;padding:0;transition:transform .14s,box-shadow .14s}
+.starbean-swatch:hover{transform:scale(1.1)}
+.starbean-swatch.selected{box-shadow:0 0 0 3px #fff,0 0 0 5px #245f4b}
+.starbean-acc-row{display:flex;flex-wrap:wrap;gap:5px}
+.starbean-acc-chip{border:1px solid #dfe7dd;background:#fff;color:#4b5f53;border-radius:6px;padding:4px 8px;font-size:11px;font-weight:550}
+.starbean-acc-chip:hover{background:#f2f7ef;border-color:#aec7b5}
+.starbean-acc-chip.selected{background:#245f4b;border-color:#245f4b;color:#fff}
+.starbean-pop-foot{display:flex;align-items:center;justify-content:space-between;margin-top:11px;padding-top:9px;border-top:1px solid #edf1e8}
+.starbean-link-btn{border:0;background:transparent;padding:3px 2px;font-size:11.5px;font-weight:600;color:#245f4b}
+.starbean-link-btn:hover{text-decoration:underline}
+.starbean-link-btn.muted{color:#667068;font-weight:500}
+
+/* Reused page touchpoints */
+.login-brand-mascot{display:inline-flex;align-items:center;gap:12px;margin-bottom:6px}
+.empty-mascot{display:inline-flex;align-items:center;justify-content:center;margin-bottom:14px}
+.chat-welcome>.welcome-mark.starbean-welcome-mark{height:auto;width:auto;padding:10px 14px;background:#eef5ec;border:1px solid #d7e6d6;border-radius:24px}
+.message-avatar.starbean-msg-avatar{background:#fcf6e6;border:1px solid #ead8ae;padding:1px}
+.quiz-result-mascot{margin-left:auto;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+
+@media(max-width:900px){
+.starbean-topbar-pill span{display:none}
+.starbean-topbar-pill{padding:0 7px}
+.starbean-pet-shell{width:70px;height:76px}
+.starbean-trigger{width:70px;height:76px}
+.starbean-trigger .starbean-svg{width:64px;height:68px}
+.starbean-popover{width:min(256px,calc(100vw - 24px))}
+.quiz-results-header{flex-wrap:wrap}
+.quiz-result-mascot{margin-left:0}
+}
+@media(prefers-reduced-motion:reduce){
+.starbean-svg.sb-animated *{animation:none!important;transition:none!important}
+}
+
+
+/* New Hand-Drawn Starbean Actions: Working Laptop, Exhausted Flop, Nap Mask, Sitting Gaze, Rolling */
+.starbean-pet-shell.is-wide{width:140px;height:94px}
+.starbean-pet-shell.is-wide .starbean-trigger{width:140px;height:94px}
+.starbean-pet-shell.is-rolling{transition:left 1.35s cubic-bezier(.42,.08,.58,.92),top .28s ease}
+
+/* Working mode: subtle small-amplitude back-leg flutter (後腳微小幅度亂晃) + light paw typing */
+.starbean-svg.sb-animated .sb-kick-leg{transform-box:fill-box;transform-origin:12% 52%}
+.starbean-svg.sb-animated .sb-kick-leg-1{animation:sb-kick-subtle-a .72s ease-in-out infinite}
+.starbean-svg.sb-animated .sb-kick-leg-2{animation:sb-kick-subtle-b .72s ease-in-out infinite}
+.starbean-svg.sb-animated .sb-kick-lines{animation:sb-sparkle .9s ease-in-out infinite}
+.starbean-svg.sb-animated .sb-type-paw-1{animation:sb-tap-paw .32s ease-in-out infinite alternate}
+.starbean-svg.sb-animated .sb-type-paw-2{animation:sb-tap-paw .32s ease-in-out .16s infinite alternate}
+.starbean-svg.sb-animated .sb-work-rig{animation:sb-work-bob 1.4s ease-in-out infinite}
+@keyframes sb-kick-subtle-a{0%,100%{transform:rotate(-5deg) translateY(-1.5px)}50%{transform:rotate(5deg) translateY(1.5px)}}
+@keyframes sb-kick-subtle-b{0%,100%{transform:rotate(5deg) translateY(1.5px)}50%{transform:rotate(-5deg) translateY(-1.5px)}}
+@keyframes sb-tap-paw{from{transform:translateY(0)}to{transform:translateY(-2.5px)}}
+@keyframes sb-work-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(1.2px)}}
+
+/* Exhausted finish-work pancake breathing */
+.starbean-svg.sb-animated .sb-exhausted-rig{transform-box:fill-box;transform-origin:center bottom;animation:sb-exhaust-sigh 2.8s ease-in-out infinite}
+@keyframes sb-exhaust-sigh{0%,100%{transform:scaleY(1) translateY(0)}50%{transform:scaleY(.95) translateY(1.5px)}}
+
+/* Nap with sleep mask cozy belly breathing */
+.starbean-svg.sb-animated .sb-nap-rig{transform-box:fill-box;transform-origin:center bottom;animation:sb-nap-breathe 3.6s ease-in-out infinite}
+.starbean-svg.sb-animated.sb-mood-nap .sb-fx-zzz{animation:sb-zzz-float 2.6s ease-in-out infinite}
+@keyframes sb-nap-breathe{0%,100%{transform:scaleY(1) scaleX(1)}50%{transform:scaleY(1.035) scaleX(.985)}}
+
+/* Sitting & watching you work: subtle breathing + smooth eye tracking */
+.starbean-svg.sb-animated.sb-mood-sitting .sb-rig{animation:sb-breathe 3.4s ease-in-out infinite}
+.starbean-svg .sb-pupil-left,.starbean-svg .sb-pupil-right{transition:cx .08s linear,cy .08s linear}
+
+/* Rolling left & right (滾 / 左右碌): continuous wheel tumble + subtle arc bounce */
+.starbean-svg.sb-animated.sb-mood-rolling .sb-roll-wheel{transform-origin:74px 86px}
+.starbean-svg.sb-animated.sb-mood-rolling.sb-roll-left .sb-roll-wheel{animation:sb-tumble-left 1.35s cubic-bezier(.35,.05,.65,.95) infinite}
+.starbean-svg.sb-animated.sb-mood-rolling.sb-roll-right .sb-roll-wheel{animation:sb-tumble-right 1.35s cubic-bezier(.35,.05,.65,.95) infinite}
+@keyframes sb-tumble-left{0%{transform:translateY(0) rotate(0deg)}25%{transform:translateY(-8px) rotate(-95deg)}50%{transform:translateY(0) rotate(-180deg)}75%{transform:translateY(-8px) rotate(-275deg)}100%{transform:translateY(0) rotate(-360deg)}}
+@keyframes sb-tumble-right{0%{transform:translateY(0) rotate(0deg)}25%{transform:translateY(-8px) rotate(95deg)}50%{transform:translateY(0) rotate(180deg)}75%{transform:translateY(-8px) rotate(275deg)}100%{transform:translateY(0) rotate(360deg)}}
+
+@media(max-width:900px){
+.starbean-pet-shell.is-wide{width:114px;height:78px}
+.starbean-pet-shell.is-wide .starbean-trigger{width:114px;height:78px}
+.starbean-pet-shell.is-wide .starbean-trigger .starbean-svg{width:112px;height:76px}
+}

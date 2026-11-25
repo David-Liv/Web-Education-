@@ -2,6 +2,7 @@ import { LanguageSwitch, ui, useInterfaceLanguage } from './i18n';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from './api/client';
+import { StarBean } from './StarBean';
 
 type Mode = 'login' | 'register' | 'reset';
 
@@ -88,7 +89,10 @@ export function Login({
     <main className="login-space">
       <section className="card login-card">
         <LanguageSwitch />
-        <img src="/favicon.svg" width="48" alt={ui("學序")} />
+        <div className="login-brand-mascot">
+          <img src="/favicon.svg" width="44" alt={ui("學序")} />
+          <StarBean mood={error ? 'error' : busy ? 'thinking' : 'happy'} size={62} label={ui("星豆")} />
+        </div>
         <div className="eyebrow">A LITTLE PROGRESS, EVERY DAY</div>
         <h1>
           {setup

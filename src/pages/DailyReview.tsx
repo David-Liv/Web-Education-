@@ -8,6 +8,7 @@ import { api, getDailyReview } from '../api/client';
 import { StudyReportButton } from './StudyWidgets';
 import { addDays, mastery} from '../domain';
 import { Badge, Empty, Icon, MediaInput, AttachmentPreview, Modal, NetworkError, PageHeading, Progress, SectionTitle, Skeleton, SubjectIcon, Tabs } from '../components';
+import { emitMascotReaction } from '../mascot-events';
 import type { IconName } from '../components';
 import type { Attachment, DailyReview, Note, PublicQuestion, Quiz } from '../types';
 const tools: {
@@ -103,6 +104,7 @@ export function DailyReviewPage() {
         for (const id of [...new Set(ids)])
             await mutate(`/review-items/${id}/complete`);
         await load();
+        emitMascotReaction({ mood: 'celebrate', messageKey: '又鞏固了一個知識點，繼續保持！', durationMs: 4200, priority: 2 });
         toast('已記錄這次回顧，下一次複習也排好了');
     }
     catch { }

@@ -34,6 +34,7 @@ import {TUTORS} from '../src/tutors.ts';
 import {readDocument} from './tutor-documents.ts';
 import {renderLessonPdf} from './lesson-pdf.ts';
 import {factorisationCoachingPack} from '../src/data/factorisation-guide.ts';
+import {sanitizeCalculatorState} from '../src/calculator-types.ts';
 
 interface Options { databaseUrl?:string; encryptionKey?:string; database?:string; staticDir?:string; allowSetup?:boolean; secureCookie?:boolean; origin?:string }
 const MIME:Record<string,string>={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json','.csv':'text/csv; charset=utf-8','.svg':'image/svg+xml','.wav':'audio/wav','.png':'image/png','.woff2':'font/woff2'};
@@ -176,6 +177,7 @@ export function createPilot(options:Options={}){
       if(path==='/catalog'&&method==='GET'){const topicIds=new Set(packs.map(p=>p.topicId));send({...catalog,topics:allTopics.map(t=>{const p=packs.find(p=>p.topicId===t.id),c=coaching.find(u=>u.topicId===t.id);return {...t,ready:topicIds.has(t.id)||!!c,summary:p?.lessons.map(l=>l.text)??(c?c.lessons.map(l=>l.text):[]),example:undefined,formula:undefined,misconception:undefined,source:p?.source??(c?'本平台原創自主輔導參考；不是已審校題庫':t.source)}}),sources:[...catalog.sources,{label:'首期真實內容',url:'/pilot',note:'只對已完成內容復核的二次方程、酸鹼與滴定開放正式診斷'}]});return}
       if(path.startsWith('/content/')&&method==='GET'){const p=(packs.find(p=>p.topicId===path.split('/')[2])??coaching.find(p=>p.topicId===path.split('/')[2]))??reject('此內容尚未發布',404);send({topicId:p.topicId,title:p.title,version:'version' in p?p.version:1,lessons:p.lessons,skills:p.skills});return}
       if(path==='/bootstrap'&&method==='GET'){send(studentView((await store.state(identity.id)),identity,packs));return}
+      if(path==='/calculator'){if(method==='GET'){send(sanitizeCalculatorState((await store.state(identity.id)).calculator));return}if(method==='PUT'){send((await change(data=>{const next=sanitizeCalculatorState(input);next.updatedAt=new Date().toISOString();data.calculator=next;return next})));return}}
       if(path==='/profile'&&method==='GET'){send((await store.state(identity.id)).profile);return}
       if(path==='/profile'&&method==='PATCH'){
         send((await change(data=>{

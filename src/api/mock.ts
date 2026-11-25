@@ -12,6 +12,7 @@ import { programmeComparison } from '../admissions';
 import { addDays, dailyCapacity, generatePlan, isReviewVisible, markAnswer, reviewGroup, uid, validateTask } from '../domain';
 import { applyGuidedAction } from '../factorisation-check';
 import { computeFactorisationProgress, FACTORISATION_PARTS, FACTORISATION_TOPIC_ID, factorisationTutorResources, findFactorisationSlot } from '../data/factorisation-guide';
+import { sanitizeCalculatorState } from '../calculator-types';
 import type { Chat, Database, DailyReview, Grade, Quiz, ReviewItem, Task } from '../types';
 
 export const DB_KEY='hokse.study.v1';
@@ -30,6 +31,8 @@ function publicQuestion(q:(typeof questions)[number]){const {answer,explanation,
 function findQuiz(id:string){return db().quizzes.find(q=>q.id===id)??fail('找不到這份測驗',404,'NOT_FOUND')}
 const handlers=[
  http.get('/api/v1/bootstrap',route(()=>response(db()))),
+ http.get('/api/v1/calculator',route(()=>response(sanitizeCalculatorState(db().calculator)))),
+ http.put('/api/v1/calculator',route(async(request)=>{const input=await body(request);const next=sanitizeCalculatorState(input);next.updatedAt=new Date().toISOString();db().calculator=next;save();return response(next)})),
  http.get('/api/v1/catalog',route(()=>response(catalog))),
  http.get('/api/v1/profile',route(()=>response(db().profile))),
  http.get('/api/v1/programmes/compare',route(()=>response([db().profile.primaryProgramme,...db().profile.backupProgrammes].flatMap(id=>{const p=catalog.programmes.find(p=>p.id===id);return p?[programmeComparison(p,db().profile,catalog.programmes)]:[]})))),

@@ -60,7 +60,7 @@ test('Harness 护栏 4：前后端共享 EDITABLE_PROFILE_FIELDS 契约，且纯
   assert.equal(EDITABLE_PROFILE_FIELDS.includes('name'), true);
   assert.equal((EDITABLE_PROFILE_FIELDS as readonly string[]).includes('date'), false);
 
-  const pureDomainFiles = ['domain.ts', 'pilot-rules.ts', 'admissions.ts', 'chat-content.ts', 'chat-math.ts', 'forum-types.ts'];
+  const pureDomainFiles = ['domain.ts', 'pilot-rules.ts', 'admissions.ts', 'chat-content.ts', 'chat-math.ts', 'forum-types.ts', 'calculator-types.ts', 'calculator-engine.ts', 'calculator-programs.ts', 'calculator-machine.ts'];
   for (const file of pureDomainFiles) {
     const content = fs.readFileSync(path.join(srcDir, file), 'utf8');
     assert.doesNotMatch(content, /from\s+['"]\.\.?\/server\//, `${file} 严禁反向 import server 模块`);

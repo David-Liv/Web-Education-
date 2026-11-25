@@ -7,6 +7,7 @@ import katex from 'katex';
 import { useApp } from './state';
 import { loadFile, storeFile } from './media';
 import { realMode } from './api/client';
+import { StarBean } from './StarBean';
 import type { Attachment, Subject } from './types';
 const ChatContent = lazy(()=>import('./ChatContent').then(m=>({default:m.ChatContent})));
 const icons = {maximize:Maximize2,minimize:Minimize2,sidebarOpen:PanelLeftOpen,sidebarClose:PanelLeftClose,creditCard:CreditCard, forum: MessagesSquare, thumbsUp: ThumbsUp, share: Share2, shield: ShieldAlert, chart: BarChart3, image: ImagePlus, reply: CornerDownRight, eye: Eye, book: BookOpen, calendar: CalendarDays, dashboard: LayoutDashboard, review: Repeat2, chat: MessageSquareText, quiz: ClipboardCheck, folder: FolderOpen, graduation: GraduationCap, settings: Settings, search: Search, bell: Bell, down: ChevronDown, left: ChevronLeft, right: ChevronRight, arrowUp: ArrowUpRight, arrow: ArrowRight, plus: Plus, check: Check, checkCircle: CheckCircle2, x: X, clock: Clock, flame: Flame, trend: TrendingUp, target: Target, more: MoreHorizontal, play: Play, pause: Pause, bookmark: Bookmark, external: ExternalLink, filter: Filter, sliders: SlidersHorizontal, upload: Upload, mic: Mic, send: Send, square: Square, reset: RotateCcw, pin: Pin, lock: Lock, alert: AlertCircle, bulb: Lightbulb, leaf: Leaf, sparkles: Sparkles, menu: Menu, layers: Layers, file: FileText, headphones: Headphones, trash: Trash2, pencil: Pencil, grip: GripVertical, chem: FlaskConical, maths: Calculator, languages: Languages, compass: Compass, sun: Sun, star: Star, help: HelpCircle, list: ListChecks, flag: Flag, question: CircleHelp, arrowDown: ArrowDown, refresh: RefreshCw, copy: Copy, volume: Volume2, Eye };
@@ -41,7 +42,11 @@ export function Empty({ icon = 'book', title, description, action }: {
     title: string;
     description: string;
     action?: ReactNode;
-}) { useInterfaceLanguage(); return <div className="empty-state"><span className="empty-icon"><Icon name={icon} size={30}/></span><h3>{ui(title)}</h3><p>{ui(description)}</p>{action}</div>; }
+}) {
+    useInterfaceLanguage();
+    const mood = icon === 'alert' ? 'error' : icon === 'leaf' || icon === 'checkCircle' ? 'celebrate' : 'comfort';
+    return <div className="empty-state"><div className="empty-mascot"><StarBean mood={mood} size={74}/></div><h3>{ui(title)}</h3><p>{ui(description)}</p>{action}</div>;
+}
 export function Modal({ title, subtitle, children, onClose, wide = false }: {
     title: string;
     subtitle?: string;

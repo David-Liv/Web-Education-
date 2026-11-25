@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import katex from 'katex';
@@ -7,6 +7,7 @@ import { useApp } from './state';
 import { mastery } from './domain';
 import { ui, useInterfaceLanguage } from './i18n';
 import { Badge, Empty, Formula, Icon, Progress, SubjectIcon } from './components';
+import { MathCalcTrigger } from './calculator';
 import { SkillPractice } from './LearningPractice';
 import { englishExamples, englishSummaries } from './data/teaching';
 import {
@@ -97,6 +98,7 @@ function GuidedProblemRow({
   const [showSteps, setShowSteps] = useState(false);
   const [lastCheck, setLastCheck] = useState<FactorisationCheckResult | null>(null);
   const [busy, setBusy] = useState(false);
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     setDraft(itemState?.lastAnswer ?? '');
@@ -276,8 +278,10 @@ function GuidedProblemRow({
       ) : (
         <div className="guided-input-row">
           <input
+            ref={inputRef}
             type="text"
             className="guided-math-input"
+            data-math-calc="formula"
             value={draft}
             disabled={busy}
             onChange={e => setDraft(e.target.value)}
@@ -294,6 +298,7 @@ function GuidedProblemRow({
             }
             aria-label={isEn ? slot.titleEn : slot.titleZh}
           />
+          <MathCalcTrigger inputRef={inputRef} compact />
           <button
             type="button"
             className="btn primary"

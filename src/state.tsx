@@ -8,6 +8,7 @@ import type { Catalog, Database, Chat, ChatMessage, Task } from './types';
 import { api, getBootstrap, getCatalog, realMode } from './api/client';
 import { Login } from './Login';
 import { ForumPage } from './pages/Forum';
+import { StarBean } from './StarBean';
 import type { BillingView } from './billing-types';
 interface AppState {
     billing?: BillingView;
@@ -89,9 +90,9 @@ export function AppProvider({ children }: {
         return <Login setup={auth.setup} registrationMode={auth.registrationMode} passwordResetEnabled={auth.passwordResetEnabled} onDone={() => { setLoginRequested(false); void load(); }} onBackToForum={!auth.setup && location.pathname.startsWith('/forum') ? () => setLoginRequested(false) : undefined}/>;
     }
     if (error)
-        return <main className="boot-state"><LanguageSwitch/><img src="/favicon.svg" width="52"/><h1>{ui("暫時未能載入學習工作室")}</h1><p>{ui(error)}</p><button className="btn primary" onClick={() => { localStorage.setItem('hokse.network', 'normal'); setNetworkState('normal'); void load(); }}>{ui("恢復正常連線並重試")}</button></main>;
+        return <main className="boot-state"><LanguageSwitch/><StarBean mood="error" size={88} label={ui("星豆")}/><h1>{ui("暫時未能載入學習工作室")}</h1><p>{ui(error)}</p><button className="btn primary" onClick={() => { localStorage.setItem('hokse.network', 'normal'); setNetworkState('normal'); void load(); }}>{ui("恢復正常連線並重試")}</button></main>;
     if (!db || !catalog)
-        return <main className="boot-state"><LanguageSwitch/><img src="/favicon.svg" width="56"/><h1>{ui("把今天的學習，慢慢排好。")}</h1><span className="loading-dots"><i /><i /><i /></span></main>;
+        return <main className="boot-state"><LanguageSwitch/><StarBean mood="thinking" size={88} label={ui("星豆")}/><h1>{ui("把今天的學習，慢慢排好。")}</h1><span className="loading-dots"><i /><i /><i /></span></main>;
     return <Context.Provider value={{ db, billing, catalog:localizeCatalog(catalog,interfaceLanguage), rawCatalog: catalog, refresh, applyChatMessage,applyChatSnapshot,applyTask,mutate, toast, network, setNetwork }}>{children}<div className="toast-stack" aria-live="polite">{toasts.map(t => <div key={t.id} className={`toast ${t.type}`}>{t.type === 'error' ? '!' : '✓'} <span>{ui(t.message)}</span>{t.action&&<><span aria-hidden="true">·</span><button type="button" onClick={()=>{setToasts(old=>old.filter(x=>x.id!==t.id));t.action!.run()}}>{ui(t.action.label)}</button></>}</div>)}</div></Context.Provider>;
 }
 export function useApp() { const value = useContext(Context); if (!value)
