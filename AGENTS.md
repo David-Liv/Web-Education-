@@ -17,6 +17,10 @@
 
 Subagent preferences supplied by the user remain applicable; this file does not authorize extra delegation.
 
+## Dedicated QA / test account
+
+- Keep all live verification, AI chat smoke tests, and persistent test chat histories inside the single dedicated student test account (`qa-test`, credentials stored privately in ignored `.data/test-account.private.json`). Do not run ad-hoc live tests against real student accounts or create throwaway test users when `qa-test` can be reused, and retain its test chats so history remains inspectable.
+
 ## Agent skills
 
 ### Issue tracker

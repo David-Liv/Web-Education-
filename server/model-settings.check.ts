@@ -115,3 +115,26 @@ test('chat review falls back to the working generation model when the configured
   assert.equal((await billing.view(student.id)).spent,20);
  }finally{await app.close();await new Promise<void>((r,j)=>provider.close(e=>e?j(e):r()))}
 });
+
+test('chat sends 60000 max_tokens and retries HTTP 200 empty reasoning-only responses',async()=>{
+ let calls=0,seenMaxTokens=0;
+ const provider=createServer(async(req,res)=>{let raw='';for await(const c of req)raw+=c;const body=JSON.parse(raw);calls++;seenMaxTokens=body.max_tokens;res.setHeader('Content-Type','application/json');if(calls===1){res.end(JSON.stringify({choices:[{finish_reason:'length',message:{role:'assistant',content:'',reasoning_content:'thinking...'}}]}));return}res.end(JSON.stringify({choices:[{finish_reason:'stop',message:{role:'assistant',content:'```review\n{"scope":"none"}\n```\nRecovered after empty reasoning-only response.'}}]}))});
+ await new Promise<void>(r=>provider.listen(0,'127.0.0.1',r));
+ const upstream=`http://127.0.0.1:${(provider.address() as {port:number}).port}`;
+ const app=createPilot({database:':memory:',allowSetup:false});const base=`http://127.0.0.1:${await app.listen(0)}`;
+ try{
+  const owner=await app.store.createUser('owner','fixture-password-123','owner','developer');
+  const student=await app.store.createUser('student','fixture-password-123','student','student');
+  const studentCookie=`hokse_session=${await app.store.session(student)}`;
+  const call=async(path:string,method='GET',body?:unknown)=>{const r=await fetch(base+'/api/v1'+path,{method,headers:{'X-Hokse-Client':'1','X-Hokse-Request-ID':crypto.randomUUID(),Cookie:studentCookie,...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify(body):undefined});return {status:r.status,data:r.headers.get('content-type')?.includes('text/event-stream')?await r.text():await r.json()}};
+  await app.store.putModel({id:'default',name:'Budget test',baseUrl:upstream,secret:'k',model:'假流式-pg-gemini-4-hydrogen',protocol:'openai-chat',enabled:true,maxRetries:2});
+  const billing=new Billing(app.store),p=await billing.policy();
+  p.models['假流式-pg-gemini-4-hydrogen']={credits:20,enabled:true};p.reviewModel='假流式-pg-gemini-4-hydrogen';
+  p.plans.Free.models.push('假流式-pg-gemini-4-hydrogen');p.plans.Free.defaultModel='假流式-pg-gemini-4-hydrogen';p.plans.Free.defaultModels={quiz:'假流式-pg-gemini-4-hydrogen',chat:'假流式-pg-gemini-4-hydrogen',evaluation:'假流式-pg-gemini-4-hydrogen'};
+  await billing.updatePolicy(owner.id,p);
+  const chat=(await call('/chats','POST',{topicId:units[0].topicId,mode:'explain'})).data;
+  const res=await call(`/chats/${chat.id}/messages`,'POST',{content:'Explain discriminant',requestId:crypto.randomUUID()});
+  assert.equal(res.status,200);assert.match(res.data,/Recovered after empty reasoning-only response/);
+  assert.equal(seenMaxTokens,60000);assert.equal(calls,2);
+ }finally{await app.close();await new Promise<void>((r,j)=>provider.close(e=>e?j(e):r()))}
+});

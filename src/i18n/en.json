@@ -2085,6 +2085,7 @@
   "設為全站預設與復核模型": "Set as site-wide default & review model",
   "已將 {0} 設為全站預設及復核模型。": "Set {0} as the site-wide default and review model.",
   "已切換對話模型：{0}": "Switched chat model to {0}",
+  "模型輸出達到長度上限且未返回正文，請稍後重試": "Model hit its output length limit before producing a reply. Please try again.",
   "新模型預設停用；設定單價、啟用並勾選套餐後才開放。停用模型前，請移除套餐權限並更換預設模型。": "New models start disabled. Set a price, enable the model and grant plan access before use. Before disabling a model, remove its plan access and replace any plan defaults.",
   "儲存套餐規則": "Save plan rules",
   "用戶套餐與額度": "User plans & credits",

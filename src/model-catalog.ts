@@ -4,10 +4,19 @@ export const modelPurposeLabels: Record<ModelPurpose, string> = {
   quiz: '測驗預設模型', chat: '普通對話預設模型', evaluation: '評估預設模型',
 };
 
+// Whitelist recognized model families so any upstream/proxy prefix (pg, pggo, 假流式, 抗截断, etc.)
+// or trailing routing marker is automatically hidden, showing only the real model family & variant.
+const MODEL_FAMILY_RE = /(?:^|[-/_:])((?:gemini|gpt|claude|deepseek|qwen|llama|mistral|grok|glm|kimi|moonshot|yi|doubao|hunyuan|minimax|ernie|spark|baichuan|step|cohere|command|nova|titan|o[134])(?:[-._][a-z0-9]+)*)/i;
+
 // Labels never become provider IDs. Keep meaningful variants such as Lite/Preview/Argon/Hydrogen.
 export function modelDisplayName(id: string) {
-  const stripped = id.replace(/^(?:(?:pggo|pgo|pg|bdgo|bdo|bd|抗截断|抗截斷)-)+/i, '')
-    .replace(/(?:-(?:pggo|pgo|pg|bdgo|bdo|bd|抗截断|抗截斷))+$/i, '');
+  const match = id.match(MODEL_FAMILY_RE);
+  if (match) {
+    const clean = match[1].replace(/(?:-(?:pggo|pgo|pg|bdgo|bdo|bd))+$/i, '');
+    if (clean) return clean;
+  }
+  const stripped = id.replace(/^(?:(?:pggo|pgo|pg|bdgo|bdo|bd|假流式|流式|抗截断|抗截斷)-)+/i, '')
+    .replace(/(?:-(?:pggo|pgo|pg|bdgo|bdo|bd|假流式|流式|抗截断|抗截斷))+$/i, '');
   return stripped || id;
 }
 

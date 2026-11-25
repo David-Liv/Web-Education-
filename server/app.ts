@@ -118,8 +118,8 @@ export function createPilot(options:Options={}){
       const packs=(await store.latestPacks());
       const coaching=[...units.map(u=>({...u,lessons:[{title:u.title,text:u.lesson,skillIds:u.skills.map(s=>s.id)}]})),factorisationCoachingPack];
       const allTopics=[...catalog.topics,...units.filter(u=>!catalog.topics.some(t=>t.id===u.topicId)).map(u=>({id:u.topicId,subjectId:u.subjectId,name:u.title,en:u.title,unit:u.title,module:'自主輔導',papers:['技能練習'],ready:true,summary:[u.lesson],source:'本平台原創學習參考；不是官方定級'}))];
-      if(path==='/learning'||path.startsWith('/learning/')||/^\/studio\/quizzes\/[^/]+\/pdf$/.test(path)){const controller=new AbortController();res.once('close',()=>{if(!res.writableEnded)controller.abort()});await practiceRoutes(store,identity,path,method,input,send,res,AbortSignal.any([controller.signal,AbortSignal.timeout(90000)]),options.origin);return;}
-      if(path.startsWith('/studio')){const controller=new AbortController();const signal=AbortSignal.any([controller.signal,AbortSignal.timeout(90000)]);res.once('close',()=>{if(!res.writableEnded)controller.abort()});await handleStudio(store,identity,path,method,input,send,signal);return;}
+      if(path==='/learning'||path.startsWith('/learning/')||/^\/studio\/quizzes\/[^/]+\/pdf$/.test(path)){const controller=new AbortController();res.once('close',()=>{if(!res.writableEnded)controller.abort()});await practiceRoutes(store,identity,path,method,input,send,res,AbortSignal.any([controller.signal,AbortSignal.timeout(240000)]),options.origin);return;}
+      if(path.startsWith('/studio')){const controller=new AbortController();const signal=AbortSignal.any([controller.signal,AbortSignal.timeout(240000)]);res.once('close',()=>{if(!res.writableEnded)controller.abort()});await handleStudio(store,identity,path,method,input,send,signal);return;}
       const quizFor=(data:StudentState,id:string)=>data.quizzes.find(q=>q.id===id)??reject('找不到此帳戶的測驗',404,'NOT_FOUND');
       if(path==='/admin/guide'&&method==='GET'){
         role(['developer']);const language=url.searchParams.get('lang')==='en'?'en':'zh-HK';
@@ -280,9 +280,10 @@ export function createPilot(options:Options={}){
         const key=String(input.requestId??input.previewId??req.headers['x-hokse-request-id']??(/^\/studio\/quizzes\/[^/]+\/submit$/.test(path)?path:''));
         if(!key||key.length>200)reject('缺少 AI 操作請求 ID',400,'REQUEST_ID_REQUIRED');
         const controller=new AbortController();res.once('close',()=>{if(!res.writableEnded)controller.abort()});
-        await billing.run(identity,path,input,key,AbortSignal.any([controller.signal,AbortSignal.timeout(90000)]),handle,(data,status)=>{if(data?.__sse){res.writeHead(status,{'Content-Type':'text/event-stream','Cache-Control':'no-store'});res.end(`event: delta\ndata: ${JSON.stringify({text:data.__sse.text})}\n\nevent: done\ndata: ${JSON.stringify({id:data.__sse.id})}\n\n`)}else send(data,status)});
+        await billing.run(identity,path,input,key,AbortSignal.any([controller.signal,AbortSignal.timeout(240000)]),handle,(data,status)=>{if(data?.__sse){res.writeHead(status,{'Content-Type':'text/event-stream','Cache-Control':'no-store'});res.end(`event: delta\ndata: ${JSON.stringify({text:data.__sse.text})}\n\nevent: done\ndata: ${JSON.stringify({id:data.__sse.id})}\n\n`)}else send(data,status)});
       }else await handle(send);
     }catch(e){const error=e as Error&{status?:number;code?:string};const status=error.status??500;send({error:{code:error.code??(status===500?'INTERNAL_ERROR':'INVALID_REQUEST'),message:status===500?'操作未完成，請重試；如持續出現請聯絡開發者':error.message}},status)}
   });
+  server.requestTimeout=10*60*1000;
   return {server,store,async listen(port=3001,host='127.0.0.1'){await store.ready;await new Promise<void>(resolve=>server.listen(port,host,resolve));return (server.address() as AddressInfo).port},async close(){await chats.close();await new Promise<void>((resolve,reject)=>server.close(e=>e?reject(e):resolve()));(await store.close())}};
 }

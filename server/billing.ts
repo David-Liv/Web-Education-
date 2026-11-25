@@ -124,7 +124,7 @@ export class Billing {
   private async operations(userId: string, period?: string): Promise<Operation[]> { const rows = await this.store.db.prepare('SELECT body FROM credit_operations WHERE user_id=?' + (period ? ' AND period=?' : '') + ' ORDER BY created_at DESC').all(...(period ? [userId, period] : [userId])); return rows.map(r => JSON.parse(r.body)); }
   private async putOperation(op: Operation, userId: string) { await this.store.db.prepare('INSERT INTO credit_operations VALUES(?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET status=excluded.status,body=excluded.body').run(op.id, userId, op.period, op.status, op.createdAt, JSON.stringify(op)); }
   private async recover(userId: string) {
-    const stale = (await this.operations(userId)).filter(o => o.status === 'held' && Date.parse(o.createdAt) < this.now().getTime() - 5 * 60000);
+    const stale = (await this.operations(userId)).filter(o => o.status === 'held' && Date.parse(o.createdAt) < this.now().getTime() - 10 * 60000);
     if (!stale.length) return;
     for (const op of stale) {
       op.status = 'released'; op.updatedAt = this.now().toISOString(); op.reason = 'Expired reservation; no committed delivery checkpoint';
@@ -261,7 +261,7 @@ export class Billing {
   async run(identity: Identity, path: string, input: any, key: string, signal: AbortSignal, work: (send: (data: unknown, status?: number) => void) => Promise<void>, deliver: (data: any, status: number) => void) {
     const requestId = String(input.requestId ?? input.previewId ?? key), id = hash(identity.id + ':' + path + ':' + requestId), signature = hash(JSON.stringify(input));
     const previous = await this.store.db.prepare('SELECT body FROM credit_operations WHERE id=? AND user_id=?').get(id, identity.id);
-    if (previous) { const op: Operation = JSON.parse(previous.body); if(op.status==='held'&&Date.parse(op.createdAt)>this.now().getTime()-5*60000)reject('此 AI 操作仍在處理，請稍候',409,'AI_IN_PROGRESS'); if (op.signature !== signature) reject('AI 請求 ID 已用於不同內容', 409, 'REQUEST_CONFLICT'); if (op.status === 'charged' && op.result) { const saved = JSON.parse(this.store.decrypt(op.result)); deliver(saved.data, saved.status); return; } }
+    if (previous) { const op: Operation = JSON.parse(previous.body); if(op.status==='held'&&Date.parse(op.createdAt)>this.now().getTime()-10*60000)reject('此 AI 操作仍在處理，請稍候',409,'AI_IN_PROGRESS'); if (op.signature !== signature) reject('AI 請求 ID 已用於不同內容', 409, 'REQUEST_CONFLICT'); if (op.status === 'charged' && op.result) { const saved = JSON.parse(this.store.decrypt(op.result)); deliver(saved.data, saved.status); return; } }
     const ctx: UsageContext = { billing: this, identity, id, signature, source: { path, requestId }, modelPurpose: requestModelPurpose(path, input), platform: isPlatformAiRoute(path), logs: [], discarded: false, completed: false, signal };
     await context.run(ctx, async () => { let response: { data: unknown; status: number } | undefined; try { await work((data, status = 200) => { response = { data, status }; }); if (response) { await finishUsage(response, response.status); deliver(response.data, response.status); } } catch (e) { if (ctx.op && !ctx.completed) await this.settle(identity.id, id, false, null, ctx.logs, (e as Error).message); throw e; } });
   }

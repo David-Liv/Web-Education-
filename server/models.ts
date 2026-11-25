@@ -4,6 +4,8 @@ import { beginProvider, normalizeTokens, recordProvider } from './billing.ts';
 import { isAllowedModel } from '../src/model-catalog.ts';
 
 export const DEFAULT_MAX_RETRIES = 3;
+export const DEFAULT_MAX_TOKENS = 60000;
+export const PROVIDER_TIMEOUT_MS = 240000;
 
 export function publicModel(config:ModelConfig|null){if(!config)return null;const {secret,...pub}=config;return {...pub,maxRetries:config.maxRetries??DEFAULT_MAX_RETRIES,hasKey:!!secret}}
 export function validateModel(input:any,previous:ModelConfig|null):ModelConfig{
@@ -39,7 +41,8 @@ function extractContent(protocol:ModelConfig['protocol'],result:any):string{
 }
 function isRetryableFailure(error:unknown,httpStatus:number|null):boolean{
   const code=(error as {code?:string}|null)?.code;
-  if(code==='RESPONSE_TOO_LARGE')return false;
+  if(code==='RESPONSE_TOO_LARGE'||code==='PROVIDER_AUTH_ERROR')return false;
+  if(code==='EMPTY_MODEL_RESPONSE'||code==='PROTOCOL_ERROR')return true;
   if(httpStatus===401||httpStatus===403)return false;
   if(httpStatus!==null)return httpStatus===408||httpStatus===429||httpStatus>=500;
   return true;
@@ -57,7 +60,7 @@ export async function generate(config:ModelConfig,messages:{role:string;content:
   const scoped=await beginProvider(config,review,reviewModelOverride);config=scoped.config;
   if(!isAllowedModel(config.model))reject('只可使用抗截斷模型；此模型不可用',403,'MODEL_NOT_ALLOWED');
   signal=signal&&scoped.signal?AbortSignal.any([signal,scoped.signal]):signal??scoped.signal;
-  const maxTokens=tokenBudget===undefined?(review?4800:2400):Math.min(6000,Math.max(1000,Math.floor(tokenBudget)));
+  const maxTokens=tokenBudget===undefined?DEFAULT_MAX_TOKENS:Math.min(DEFAULT_MAX_TOKENS,Math.max(1000,Math.floor(tokenBudget)));
   const payload=config.protocol==='openai-chat'?{model:config.model,messages,max_tokens:maxTokens}:{model:config.model,input:messages,max_output_tokens:maxTokens};
   const parsedUrl=new URL(config.baseUrl),endpoint=parsedUrl.pathname.replace(/\/$/,'')+'/'+(config.protocol==='openai-chat'?'chat/completions':'responses');
   const channel=/^pgg?o?-/i.test(config.model)?'PGGO':/^bdg?o?-/i.test(config.model)?'BDGO':parsedUrl.hostname;
@@ -68,7 +71,7 @@ export async function generate(config:ModelConfig,messages:{role:string;content:
     const start=Date.now();
     let httpStatus:number|null=null,raw='',content='',usage:any;
     try{
-      const attemptSignal=signal?AbortSignal.any([signal,AbortSignal.timeout(45000)]):AbortSignal.timeout(45000);
+      const attemptSignal=signal?AbortSignal.any([signal,AbortSignal.timeout(PROVIDER_TIMEOUT_MS)]):AbortSignal.timeout(PROVIDER_TIMEOUT_MS);
       const response=await fetch(config.baseUrl+'/'+(config.protocol==='openai-chat'?'chat/completions':'responses'),{method:'POST',headers:{'Content-Type':'application/json',...(config.secret?{Authorization:`Bearer ${config.secret}`}:{})},body:JSON.stringify(payload),redirect:'error',signal:attemptSignal});
       httpStatus=response.status;
       // Bound decoded bytes too: Content-Length may be absent or compressed.
@@ -79,7 +82,7 @@ export async function generate(config:ModelConfig,messages:{role:string;content:
       let result:any;try{result=JSON.parse(raw)}catch{reject('模型服務未返回有效 JSON',502,'PROTOCOL_ERROR')}
       usage=result.usage;
       content=extractContent(config.protocol,result);
-      if(typeof content!=='string'||!content.trim())reject('模型沒有回傳可用文字；請檢查協議與能力',502,'EMPTY_MODEL_RESPONSE');
+      if(typeof content!=='string'||!content.trim())reject(result.choices?.[0]?.finish_reason==='length'?'模型輸出達到長度上限且未返回正文，請稍後重試':'模型沒有回傳可用文字；請檢查協議與能力',502,'EMPTY_MODEL_RESPONSE');
       await recordProvider({stage:review?'review':'generation',model:config.model,channel,endpoint,at:new Date(start).toISOString(),status:'success',httpStatus,durationMs:Date.now()-start,request,tokens:normalizeTokens(usage),error:null,truncated:content.length>30000},content,config.secret);
       return content.slice(0,30000);
     }catch(e){

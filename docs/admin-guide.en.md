@@ -20,7 +20,7 @@ Enter the shared Base URL, protocol, API key and automatic retry count on failur
 
 Students choose separate quiz, conversation and assessment models. Independent quiz generation and repairs use the quiz model. Conversations, guided reading, quick exercises and plan explanations use the conversation model. Marking and error analysis use assessment. Only independent quiz generation has the full format-check and bounded repair workflow.
 
-The server accepts any valid model ID prefix and supports one-click batch addition of fetched models to plan lists. Display names hide routing labels (`pg`, `pgo`, `pggo`, `bdgo`, `抗截断`, etc.); technical requests and exports retain exact IDs. Keys are encrypted. A blank key keeps it for the same URL; a changed URL needs a new key. A successful text test does not validate teaching quality, images, native streaming or all structured output.
+The server accepts any valid model ID prefix and supports one-click batch addition of fetched models to plan lists. Display names extract recognized model families and variants (such as `gemini-4-hydrogen` or `gpt-4.1-mini`) to hide arbitrary proxy prefixes automatically; technical requests and exports retain exact IDs. The default output/reasoning budget is 60,000 tokens with a 4-minute per-call timeout. Keys are encrypted. A blank key keeps it for the same URL; a changed URL needs a new key. A successful text test does not validate teaching quality, images, native streaming or all structured output.
 
 ## 4. Plans and credits
 

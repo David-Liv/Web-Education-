@@ -2,13 +2,19 @@ import { describe, it, expect } from 'vitest';
 import { modelDisplayName, isAllowedModel, mergeDiscoveredModels, setGlobalDefaultModel } from './model-catalog';
 
 describe('model identity and display', () => {
-  it('hides transport labels without changing meaningful model variants', () => {
+  it('extracts recognized model family and variant regardless of arbitrary proxy prefixes or suffixes', () => {
     expect(modelDisplayName('pggo-抗截断-gemini-3.5-flash-lite')).toBe('gemini-3.5-flash-lite');
     expect(modelDisplayName('pggo-抗截断-gemini-4-argon')).toBe('gemini-4-argon');
     expect(modelDisplayName('pg-抗截断-gemini-4-hydrogen')).toBe('gemini-4-hydrogen');
+    expect(modelDisplayName('假流式-pg-gemini-4-hydrogen')).toBe('gemini-4-hydrogen');
+    expect(modelDisplayName('抗截断-pg-gemini-4-hydrogen-high')).toBe('gemini-4-hydrogen-high');
+    expect(modelDisplayName('任意中轉前綴-vip-gemini-4-neon-search')).toBe('gemini-4-neon-search');
     expect(modelDisplayName('pgo-gemini-4-hydrogen')).toBe('gemini-4-hydrogen');
     expect(modelDisplayName('gemini-4-hydrogen')).toBe('gemini-4-hydrogen');
     expect(modelDisplayName('bdgo-gemini-3-flash-preview-抗截断')).toBe('gemini-3-flash-preview');
+    expect(modelDisplayName('openai/gpt-4.1-mini')).toBe('gpt-4.1-mini');
+    expect(modelDisplayName('vip-claude-3.7-sonnet')).toBe('claude-3.7-sonnet');
+    expect(modelDisplayName('cn-deepseek-r1-假流式')).toBe('deepseek-r1');
   });
   it('allows any valid model ID prefix while rejecting empty or malformed IDs', () => {
     for (const id of ['pggo-抗截断-gemini-3.8-flash', 'gemini-4-hydrogen', 'pg-gemini-4-hydrogen', 'pgo-抗截断-gemini-4-hydrogen', 'bdgo-抗截断-gemini-3.8-flash', 'openai/gpt-4.1-mini']) {
