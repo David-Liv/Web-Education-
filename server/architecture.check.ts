@@ -103,6 +103,7 @@ test('Harness 护栏 2：加密 settings 表私有前缀必须由专属 Owner �
     { prefix: 'tutor-document:', owner: 'tutor-documents.ts' },
     { prefix: 'auth-mail:', owner: 'auth-mail.ts' },
     { prefix: 'forum:', owner: 'forum.ts' },
+    { prefix: 'stt-service:', owner: 'stt-service.ts' },
   ];
   const violations: string[] = [];
   for (const file of serverImplFiles()) {

@@ -29,6 +29,8 @@ import type { SandboxProbeInput } from './playbook-compiler.ts';
 import { catalog } from '../src/data/catalog.ts';
 import { units } from './studio-state.ts';
 import { topicTitleFor } from './playbook-routes.ts';
+import { getActiveSttConfig } from './stt-service.ts';
+import { sttTranscriptionAdapter } from './playbook-compiler.ts';
 
 // Seed-phase guard against runaway model spend from Partner Tutor accounts. In-memory on purpose:
 // it resets on restart and only needs to stop accidental loops, not act as billing.
@@ -95,12 +97,14 @@ export async function handlePartnerRoutes(
   };
 
   if (path === '/partner/workspace' && method === 'GET') {
-    const model = await store.model();
+    const [model, stt] = await Promise.all([store.model(), getActiveSttConfig(store)]);
     send({
       partnerTutor: partner,
       playbooks: (await listPlaybooks(store, { partnerTutorId: partner.id })).map(ownView),
       catalog: partnerTopicCatalog(),
       modelReady: Boolean(model?.enabled && model.model),
+      sttReady: Boolean(stt),
+      sttModel: stt?.model ?? null,
       remainingModelCalls: remainingModelCalls(identity.id),
       dailyModelCalls: DAILY_MODEL_CALLS,
     });
@@ -111,9 +115,17 @@ export async function handlePartnerRoutes(
     writable();
     const topicId = String(input?.topicId ?? '').trim();
     if (!partnerTopicCatalog().topics.some(t => t.id === topicId)) reject('請先選擇有效的單元');
-    const hasMedia = Boolean(input?.audioBase64 || input?.boardImages?.length);
-    const config = hasMedia ? await store.model() : null;
+    const hasAudio = Boolean(input?.audioBase64);
+    const hasImages = Boolean(input?.boardImages?.length);
+    const hasMedia = hasAudio || hasImages;
+    const [config, stt] = hasMedia ? await Promise.all([store.model(), getActiveSttConfig(store)]) : [null, null];
     if (hasMedia) spendModelCall(identity.id);
+    const adapter = hasAudio && stt
+      ? sttTranscriptionAdapter(stt, config)
+      : config?.enabled && config.model
+        ? multimodalModelAdapter(config)
+        : null;
+    const languageHint = input?.languageHint === 'en' ? 'en' : input?.languageHint === 'auto' ? 'auto' : 'zh-HK';
     const draft = await transcribeToManuscript(
       {
         topicId,
@@ -122,9 +134,9 @@ export async function handlePartnerRoutes(
         audioFormat: input?.audioFormat,
         boardImages: input?.boardImages,
         textNotes: input?.textNotes,
-        languageHint: input?.languageHint === 'en' ? 'en' : 'zh-HK',
+        languageHint,
       },
-      config ? multimodalModelAdapter(config) : null,
+      adapter,
       signal
     );
     send(draft);

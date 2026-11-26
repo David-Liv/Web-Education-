@@ -518,3 +518,97 @@ test('partner tutor accounts are scoped to their own playbooks and walk record �
     await f.close();
   }
 });
+
+test('encrypted Groq/OpenAI-compatible STT transcribes audio without sending raw audio to chat LLM and respects language choice', async () => {
+  const f = await fixture();
+  const sttRequests: { url: string; auth: string; body: string }[] = [];
+  const sttServer = createServer(async (req, res) => {
+    let raw = '';
+    for await (const chunk of req) raw += chunk;
+    sttRequests.push({ url: req.url ?? '', auth: String(req.headers.authorization ?? ''), body: raw });
+    res.setHeader('Content-Type', 'application/json');
+    if (req.url?.endsWith('/models')) {
+      res.end(JSON.stringify({ data: [{ id: 'whisper-large-v3-turbo' }] }));
+      return;
+    }
+    if (req.url?.endsWith('/audio/transcriptions')) {
+      const isEn = raw.includes('name="language"\r\n\r\nen');
+      res.end(JSON.stringify({
+        text: isEn
+          ? 'Step one: write standard form ax^2 + bx + c = 0 and check a != 0.'
+          : '第一步先化標準式 ax² + bx + c = 0，並確認二次項係數 a ≠ 0。',
+      }));
+      return;
+    }
+    res.statusCode = 404;
+    res.end('{}');
+  });
+  await new Promise<void>(r => sttServer.listen(0, '127.0.0.1', r));
+  const sttBaseUrl = `http://127.0.0.1:${(sttServer.address() as any).port}/v1`;
+  try {
+    // Only developer can configure/test STT; secrets stay encrypted & never returned
+    assert.equal((await f.call('/admin/stt', 'GET', undefined, f.revCookie)).status, 403);
+    assert.equal((await f.call('/admin/stt', 'GET', undefined, f.stuACookie)).status, 403);
+
+    const testRes = await f.call('/admin/stt/test', 'POST', {
+      config: { name: 'Groq Fixture', baseUrl: sttBaseUrl, apiKey: 'fixture-stt-secret-key', model: 'whisper-large-v3-turbo', enabled: true },
+    });
+    assert.equal(testRes.status, 200);
+    assert.equal((await testRes.json()).modelFound, true);
+
+    const saveRes = await f.call('/admin/stt', 'PUT', {
+      name: 'Groq Fixture',
+      baseUrl: sttBaseUrl,
+      apiKey: 'fixture-stt-secret-key',
+      model: 'whisper-large-v3-turbo',
+      enabled: true,
+    });
+    assert.equal(saveRes.status, 200);
+    const savedPublic = await saveRes.json();
+    assert.equal(savedPublic.hasKey, true);
+    assert.equal(savedPublic.enabled, true);
+    assert.doesNotMatch(JSON.stringify(savedPublic), /fixture-stt-secret-key/);
+    const rawSetting = (await f.app.store.db.prepare("SELECT body FROM settings WHERE id='stt-service:config'").get()) as any;
+    assert.ok(rawSetting && !String(rawSetting.body).includes('fixture-stt-secret-key'), 'STT API key must be AES-GCM encrypted at rest');
+
+    // Create a partner tutor & account and verify workspace reports sttReady + audio transcription works in zh-HK and en
+    const partner = await (await f.call('/admin/partner-tutors', 'POST', { name: '林 Sir', headlineZh: '語音示範', bioZh: '語音測試' })).json();
+    await f.call(`/admin/partner-tutors/${partner.id}/account`, 'POST', { username: 'lam-sir', password: 'partnerpass123' });
+    const login = await f.call('/auth/login', 'POST', { username: 'lam-sir', password: 'partnerpass123' }, '');
+    const partnerCookie = login.headers.get('set-cookie')!.split(';')[0];
+
+    const ws = await (await f.call('/partner/workspace', 'GET', undefined, partnerCookie)).json();
+    assert.equal(ws.sttReady, true);
+    assert.equal(ws.sttModel, 'whisper-large-v3-turbo');
+
+    const zhDraft = await (await f.call('/partner/transcribe', 'POST', {
+      topicId: 'maths-quadratic',
+      audioBase64: Buffer.from('RIFF....WAVE').toString('base64'),
+      audioFormat: 'wav',
+      languageHint: 'zh-HK',
+    }, partnerCookie)).json();
+    assert.equal(zhDraft.adapterUsed, 'stt:whisper-large-v3-turbo');
+    assert.match(zhDraft.manuscriptMarkdown, /標準式/);
+
+    const enDraft = await (await f.call('/partner/transcribe', 'POST', {
+      topicId: 'maths-quadratic',
+      audioBase64: Buffer.from('RIFF....WAVE').toString('base64'),
+      audioFormat: 'wav',
+      languageHint: 'en',
+    }, partnerCookie)).json();
+    assert.equal(enDraft.adapterUsed, 'stt:whisper-large-v3-turbo');
+    assert.match(enDraft.manuscriptMarkdown, /standard form/);
+
+    // Verify STT received Bearer auth and multipart model/language fields, and zero files persisted
+    const audioReq = sttRequests.filter(r => r.url.endsWith('/audio/transcriptions'));
+    assert.equal(audioReq.length, 2);
+    assert.equal(audioReq[0].auth, 'Bearer fixture-stt-secret-key');
+    assert.match(audioReq[0].body, /whisper-large-v3-turbo/);
+    assert.match(audioReq[0].body, /name="language"\r\n\r\nzh/);
+    assert.match(audioReq[1].body, /name="language"\r\n\r\nen/);
+    assert.equal(Number((await f.app.store.db.prepare('SELECT count(*) AS n FROM files').get())!.n), 0);
+  } finally {
+    await f.close();
+    await new Promise<void>(r => sttServer.close(() => r()));
+  }
+});

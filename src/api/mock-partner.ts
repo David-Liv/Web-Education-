@@ -99,6 +99,8 @@ export function createPartnerMockHandlers() {
         playbooks,
         catalog: topics(),
         modelReady: true,
+        sttReady: true,
+        sttModel: 'whisper-large-v3-turbo',
         remainingModelCalls: 60,
         dailyModelCalls: 60,
       });

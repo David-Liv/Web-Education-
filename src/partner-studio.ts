@@ -49,9 +49,18 @@ export interface PartnerWorkspace {
   playbooks: PlaybookVersionView[];
   catalog: { subjects: PartnerSubject[]; topics: PartnerTopic[] };
   modelReady: boolean;
+  sttReady?: boolean;
+  sttModel?: string | null;
   remainingModelCalls: number;
   dailyModelCalls: number;
 }
+
+export type SpokenLanguage = 'zh-HK' | 'en' | 'auto';
+export const SPOKEN_LANGUAGE_OPTIONS: readonly { id: SpokenLanguage; label: string }[] = [
+  { id: 'zh-HK', label: '粵語／中文' },
+  { id: 'en', label: 'English' },
+  { id: 'auto', label: '自動（粵英混雜）' },
+];
 
 export interface ManuscriptDraftView {
   manuscriptMarkdown: string;

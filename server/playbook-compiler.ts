@@ -19,6 +19,8 @@ import {
 } from './playbooks.ts';
 import type { PlaybookRuntime, PlaybookSandboxRun, SandboxProbeResult, TeachingPlaybookVersion } from './playbooks.ts';
 import { assemblePartnerPlaybookPrompt } from './tutors.ts';
+import { transcribeAudioWithStt } from './stt-service.ts';
+import type { SttConfig, SttLanguageHint } from './stt-service.ts';
 
 export interface MultimodalSourceInput {
   topicId: string;
@@ -27,7 +29,7 @@ export interface MultimodalSourceInput {
   audioFormat?: 'wav' | 'mp3' | 'm4a' | 'ogg' | 'webm';
   boardImages?: { mimeType: 'image/png' | 'image/jpeg' | 'image/webp'; dataBase64: string }[];
   textNotes?: string;
-  languageHint?: 'zh-HK' | 'en';
+  languageHint?: SttLanguageHint;
 }
 
 export interface ManuscriptDraft {
@@ -127,6 +129,74 @@ export function multimodalModelAdapter(config: ModelConfig): TranscriptionAdapte
         formulaChecks: Array.isArray(parsed.formulaChecks) ? parsed.formulaChecks.map((x: unknown) => String(x).trim()).filter(Boolean).slice(0, 20) : [],
         warnings: Array.isArray(parsed.warnings) ? parsed.warnings.map((x: unknown) => String(x).trim()).filter(Boolean).slice(0, 20) : [],
         adapterUsed: `multimodal-model:${config.model}`,
+      };
+    },
+  };
+}
+
+// Stage 1 adapter powered by dedicated STT (e.g. Groq Whisper v3 Turbo) for audio -> editable text,
+// optionally pairing the text transcript with the main model's vision when board photos are attached.
+export function sttTranscriptionAdapter(sttConfig: SttConfig, visionModelConfig?: ModelConfig | null): TranscriptionAdapter {
+  return {
+    name: `stt:${sttConfig.model}`,
+    async transcribe(input: MultimodalSourceInput, signal?: AbortSignal): Promise<ManuscriptDraft> {
+      let spokenText = '';
+      if (input.audioBase64 && input.audioFormat) {
+        const res = await transcribeAudioWithStt(
+          sttConfig,
+          {
+            audioBase64: input.audioBase64,
+            audioFormat: input.audioFormat,
+            languageHint: input.languageHint ?? 'zh-HK',
+            topicTitle: input.topicTitle,
+          },
+          signal
+        );
+        spokenText = res.text;
+      }
+
+      const notes = String(input.textNotes ?? '').trim();
+      const combinedText = [spokenText, notes ? `（補充筆記）\n${notes}` : ''].filter(Boolean).join('\n\n').trim();
+
+      // When board/handout photos are also provided and a vision model is configured, align text + photos
+      // WITHOUT sending raw audio to the main chat model.
+      if (input.boardImages?.length && visionModelConfig?.enabled && visionModelConfig.model) {
+        const visionDraft = await multimodalModelAdapter(visionModelConfig).transcribe(
+          {
+            topicId: input.topicId,
+            topicTitle: input.topicTitle,
+            boardImages: input.boardImages,
+            textNotes: combinedText || undefined,
+            languageHint: input.languageHint,
+          },
+          signal
+        );
+        return {
+          ...visionDraft,
+          adapterUsed: spokenText ? `stt:${sttConfig.model}+vision:${visionModelConfig.model}` : visionDraft.adapterUsed,
+        };
+      }
+
+      if (!combinedText) {
+        if (input.boardImages?.length) {
+          reject('已附帶板書相片，但尚未配置可用的 AI 模型來辨識圖片；請先配置主模型或直接輸入文字', 503, 'MODEL_NOT_CONFIGURED');
+        }
+        reject('語音轉寫結果為空，請重新錄音或改用文字輸入', 502, 'EMPTY_TRANSCRIPT');
+      }
+
+      const formulaChecks: string[] = [];
+      if (/[=≠≤≥Δ²³√^]|次方|平方|根號|判別式|方程|分數|系數|係數|摩爾|mole|pH/i.test(combinedText)) {
+        formulaChecks.push('此段由語音直接轉寫，請核對數學／科學公式符號與條件後再生成方法包');
+      }
+      if (input.boardImages?.length) {
+        formulaChecks.push('因主模型未啟用，本次僅轉寫語音文字，請自行核對板書圖片上的公式');
+      }
+      return {
+        manuscriptMarkdown: combinedText.slice(0, 60000),
+        detectedTerms: [],
+        formulaChecks,
+        warnings: [],
+        adapterUsed: `stt:${sttConfig.model}`,
       };
     },
   };

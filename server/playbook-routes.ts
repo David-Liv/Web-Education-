@@ -31,9 +31,18 @@ import {
   compileManuscriptToPlaybook,
   multimodalModelAdapter,
   runPlaybookSandbox,
+  sttTranscriptionAdapter,
   transcribeToManuscript,
 } from './playbook-compiler.ts';
 import type { SandboxProbeInput } from './playbook-compiler.ts';
+import {
+  getActiveSttConfig,
+  loadSttConfig,
+  publicSttConfig,
+  saveSttConfig,
+  testSttConfig,
+  validateSttDraft,
+} from './stt-service.ts';
 import { tutorResources } from './tutors.ts';
 import { catalog } from '../src/data/catalog.ts';
 import { units } from './studio-state.ts';
@@ -163,14 +172,46 @@ export async function handlePlaybookRoutes(
     return true;
   }
 
+  // --- Developer-Only: Encrypted Speech-to-Text (Groq Whisper / OpenAI-compatible) Config ---
+  if (path === '/admin/stt') {
+    if (identity.role !== 'developer') reject('此功能僅供開發者管理語音轉寫服務', 403, 'FORBIDDEN');
+    if (method === 'GET') {
+      const { config, source } = await loadSttConfig(store);
+      send(publicSttConfig(config, source));
+      return true;
+    }
+    if (method === 'PUT') {
+      const { config: previous } = await loadSttConfig(store);
+      const next = validateSttDraft(input, previous);
+      send(await saveSttConfig(store, next));
+      return true;
+    }
+  }
+  if (path === '/admin/stt/test' && method === 'POST') {
+    if (identity.role !== 'developer') reject('此功能僅供開發者測試語音轉寫服務', 403, 'FORBIDDEN');
+    const { config: previous } = await loadSttConfig(store);
+    const candidate = input?.config ? validateSttDraft({ ...input.config, enabled: true }, previous) : previous;
+    if (!candidate || !candidate.secret) reject('請先輸入語音轉寫 API Key 再測試連線');
+    const result = await testSttConfig(candidate, signal);
+    send(result);
+    return true;
+  }
+
   // --- Admin / Reviewer: Two-Stage Multimodal Compiler ---
   if (path === '/admin/playbooks/transcribe' && method === 'POST') {
     requireStaff();
     const topicId = String(input?.topicId ?? '').trim();
     if (!topicId) reject('請提供單元 ID (topicId)');
-    const hasMedia = Boolean(input?.audioBase64 || input?.boardImages?.length);
-    const config = hasMedia ? await store.model() : null;
-    const adapter = config ? multimodalModelAdapter(config) : null;
+    const hasAudio = Boolean(input?.audioBase64);
+    const hasImages = Boolean(input?.boardImages?.length);
+    const hasMedia = hasAudio || hasImages;
+    const [config, stt] = hasMedia ? await Promise.all([store.model(), getActiveSttConfig(store)]) : [null, null];
+    const adapter = hasAudio && stt
+      ? sttTranscriptionAdapter(stt, config)
+      : config?.enabled && config.model
+        ? multimodalModelAdapter(config)
+        : null;
+    const languageHint = input?.languageHint === 'en' ? 'en' : input?.languageHint === 'auto' ? 'auto' : 'zh-HK';
     const draft = await transcribeToManuscript(
       {
         topicId,
@@ -179,7 +220,7 @@ export async function handlePlaybookRoutes(
         audioFormat: input?.audioFormat,
         boardImages: input?.boardImages,
         textNotes: input?.textNotes,
-        languageHint: input?.languageHint === 'en' ? 'en' : 'zh-HK',
+        languageHint,
       },
       adapter,
       signal

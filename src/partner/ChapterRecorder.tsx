@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { ui, useInterfaceLanguage } from '../i18n';
 import { api } from '../api/client';
 import { Icon } from '../components';
-import { MAX_IMAGES_PER_CHAPTER, MAX_SEGMENT_SECONDS } from '../partner-studio';
-import type { ChapterTranscript, ManuscriptDraftView, RecordingChapter } from '../partner-studio';
+import { MAX_IMAGES_PER_CHAPTER, MAX_SEGMENT_SECONDS, SPOKEN_LANGUAGE_OPTIONS } from '../partner-studio';
+import type { ChapterTranscript, ManuscriptDraftView, RecordingChapter, SpokenLanguage } from '../partner-studio';
 import { audioFileToPayload, imageFileToPayload, microphoneSupported, startRecording, toWavPayload } from '../platform/partner-media';
 import type { AudioPayload, ImagePayload, RecordingSession } from '../platform/partner-media';
 import { usePartner } from './partner-context';
@@ -28,6 +28,7 @@ export function ChapterRecorder({ chapter, topicId, draft, updateDraft, readOnly
   const [notes, setNotes] = useState('');
   const [typed, setTyped] = useState('');
   const [busy, setBusy] = useState<'' | 'transcribing' | 'converting'>('');
+  const [spokenLang, setSpokenLang] = useState<SpokenLanguage>(language === 'en' ? 'en' : 'zh-HK');
   const [error, setError] = useState('');
   const [ticked, setTicked] = useState<number[]>([]);
   const session = useRef<RecordingSession | null>(null);
@@ -35,6 +36,9 @@ export function ChapterRecorder({ chapter, topicId, draft, updateDraft, readOnly
   const urls = useRef<string[]>([]);
   const transcript = draft.transcripts[chapter.id];
   const modelReady = workspace.modelReady;
+  const sttReady = Boolean(workspace.sttReady);
+  const canTranscribeAudio = sttReady || modelReady;
+  const canTranscribeCurrent = Boolean((clip && canTranscribeAudio) || (images.length && modelReady));
 
   useEffect(() => () => {
     session.current?.cancel();
@@ -129,7 +133,7 @@ export function ChapterRecorder({ chapter, topicId, draft, updateDraft, readOnly
         audioFormat: audio?.format,
         boardImages: images.map(i => ({ mimeType: i.mimeType, dataBase64: i.dataBase64 })),
         textNotes: notes.trim() || undefined,
-        languageHint: language === 'en' ? 'en' : 'zh-HK',
+        languageHint: spokenLang,
       });
       appendTranscript(result.manuscriptMarkdown, result, clip?.source ?? 'upload');
       setClip(null);
@@ -262,13 +266,25 @@ export function ChapterRecorder({ chapter, topicId, draft, updateDraft, readOnly
             <textarea rows={3} value={notes} disabled={disabled} onChange={e => setNotes(e.target.value)} placeholder={ui('例如：板書第二張圈起的位置是特別條件，學生常漏寫。')} />
           </label>
 
+          <div className="ps-lang-row">
+            <span className="small muted">{ui('口述語言')}</span>
+            <div className="segmented" role="radiogroup" aria-label={ui('口述語言')}>
+              {SPOKEN_LANGUAGE_OPTIONS.map(opt => (
+                <button key={opt.id} type="button" role="radio" aria-checked={spokenLang === opt.id} className={spokenLang === opt.id ? 'active' : ''} disabled={disabled} onClick={() => setSpokenLang(opt.id)}>
+                  {ui(opt.label)}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className="ps-transcribe-row">
-            <button type="button" className="btn primary" disabled={disabled || !modelReady || (!clip && !images.length)} onClick={() => void transcribe()}>
+            <button type="button" className="btn primary" disabled={disabled || !canTranscribeCurrent} onClick={() => void transcribe()}>
               <Icon name="sparkles" size={16} />
-              {busy === 'converting' ? ui('正在整理音訊…') : busy === 'transcribing' ? ui('正在轉寫，約需半分鐘至一分鐘…') : ui('轉寫這段')}
+              {busy === 'converting' ? ui('正在整理音訊…') : busy === 'transcribing' ? ui('正在轉寫，請稍候…') : ui('轉寫成文字')}
             </button>
-            {!modelReady && <span className="small muted">{ui('AI 模型未接通，暫時只可「直接打字」。')}</span>}
-            {transcript && !busy && <span className="small muted">{ui('新轉寫的內容會接在現有講稿後面。')}</span>}
+            {!canTranscribeAudio && <span className="small muted">{ui('語音轉寫服務尚未接通，暫時只可「直接打字」。')}</span>}
+            {sttReady && !busy && <span className="small muted">{ui('轉成文字後會放進下方講稿框，你可以自由修改。')}</span>}
+            {!sttReady && modelReady && transcript && !busy && <span className="small muted">{ui('新轉寫的內容會接在現有講稿後面。')}</span>}
           </div>
         </>
       )}
