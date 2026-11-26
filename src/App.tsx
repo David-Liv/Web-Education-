@@ -29,8 +29,10 @@ import { UserGuidePage } from './pages/UserGuide';
 import { MathsIndexPage } from './pages/MathsIndex';
 import { ForumPage } from './pages/Forum';
 import { api, realMode } from './api/client';
+import { persistentStorage } from './platform/storage';
 import type { ForumNotificationView } from './forum-types';
 import { BillingPage } from './pages/Billing';
+import { TermsUpdateGateModal } from './ConsentControls';
 type SearchResult = { key: string; icon: IconName; title: string; detail?: string; go: () => void };
 const shortcutLabel = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform) ? '⌘ K' : 'Ctrl K';
 export default function App() {
@@ -40,8 +42,8 @@ export default function App() {
     const location = useLocation();
     const navigate = useNavigate();
     const [mobile, setMobile] = useState(false);
-    const [collapsed,setCollapsed]=useState(()=>{try{return localStorage.getItem('hokse.sidebar-collapsed')==='true'}catch{return false}});
-    const toggleSidebar=()=>setCollapsed(value=>{const next=!value;try{localStorage.setItem('hokse.sidebar-collapsed',String(next))}catch{}return next});
+    const [collapsed, setCollapsed] = useState(() => persistentStorage.get('hokse.sidebar-collapsed') === 'true');
+    const toggleSidebar = () => setCollapsed(value => { const next = !value; persistentStorage.set('hokse.sidebar-collapsed', String(next)); return next; });
     const [searchOpen, setSearchOpen] = useState(false);
     const [query, setQuery] = useState('');
     const [active, setActive] = useState(0);
@@ -129,6 +131,7 @@ export default function App() {
     {notice && !focus.isLocked && <Modal title={ui("你的學習小提醒")} onClose={() => setNotice(false)}>{unread && <div className="notice-actions"><button type="button" className="btn ghost small-btn" onClick={markAllRead}><Icon name="check" size={15}/>{ui("全部標為已讀")}</button></div>}{forumNotices.slice(0, 5).map(n => <div key={n.id} className={`notification-card ${n.read ? '' : 'unread'}`}><Icon name="forum"/><div><strong>{ui("{0} 回覆了你的討論：{1}", [n.actorLabel, n.postTitle])}</strong><p>{n.excerpt}</p><Link to={`/forum/post/${n.postId}`} className="text-link" onClick={() => { setNotice(false); markAllRead(); }}>{ui("查看討論回覆")}<Icon name="arrow" size={14}/></Link></div></div>)}<div className="notification-card"><Icon name="review"/><div><strong>{dueCount > 0 ? ui("今天有 {0} 個知識點值得再回想", [dueCount]) : ui("今日待回顧知識點已完成")}</strong><p>{dueCount > 0 ? ui("從昨天學過的內容開始，花一點時間鞏固。") : ui("你已完成今天的到期回顧，可隨時翻看溫習筆記。")}</p><Link to="/review" className="text-link" onClick={() => setNotice(false)}>{ui("前往每日溫習")}<Icon name="arrow" size={14}/></Link></div></div><div className="notification-card"><Icon name="graduation"/><div><strong>{ui("讓學習目標更具體")}</strong><p>{ui("選擇一個主目標與兩個備選，看看哪些科目最值得先加強。")}</p><Link to="/goals" className="text-link" onClick={() => setNotice(false)}>{ui("查看升學目標")}<Icon name="arrow" size={14}/></Link></div></div></Modal>}
     {help && !focus.isLocked && <Modal title={ui("歡迎來到學序")} onClose={() => setHelp(false)}><p>{realMode ? ui("這是邀請制的 DSE 學習空間。學習、練習與日曆記錄保存在自己的服務端帳戶。") : ui("這是一個可以操作的 DSE 學習產品示範。練習、進度、筆記和日曆會保存在這個瀏覽器。")}</p><div className="info-callout"><Icon name="bulb"/><p>{realMode ? ui("三科自主輔導使用AI參考回饋；測驗生成獨立檢查，聊天與隨堂題快速回覆。已審校題庫保留原有規則。") : ui("選擇題、數值題與排程容量檢查會實際計算；AI 講解、作文批改、口語評價和學習收益建議目前使用示例。")}</p></div><p className="muted small">{ui("{0}{1}。考試日期以來源狀態為準。升學資料按原有年份呈現，並非 2028 錄取保證。", [realMode ? ui("香港日期：") : ui("示範時鐘："), db.profile.date])}</p><Link className="btn secondary" to="/help" onClick={() => setHelp(false)}>{ui("閱讀使用指南")}<Icon name="book"/></Link><Link className="btn primary" to="/start" onClick={() => setHelp(false)}>{ui("開始建立我的計劃")}<Icon name="arrow"/></Link></Modal>}
     <StarBeanPet />
+    {realMode && <TermsUpdateGateModal />}
     <OpenFocusModal />
     <FocusDeskOverlay /></div>;
 }

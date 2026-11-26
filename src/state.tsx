@@ -3,10 +3,11 @@ import {localizeCatalog} from './i18n-catalog';
 import { ui, useInterfaceLanguage } from "./i18n";
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
-import { Route, Routes, useLocation } from 'react-router-dom';
+import { Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import type { Catalog, Database, Chat, ChatMessage, Task } from './types';
 import { api, getBootstrap, getCatalog, realMode } from './api/client';
 import { Login } from './Login';
+import { PartnerApp } from './partner/PartnerApp';
 import { ForumPage } from './pages/Forum';
 import { StarBean } from './StarBean';
 import type { BillingView } from './billing-types';
@@ -35,6 +36,8 @@ export function AppProvider({ children }: {
     const [catalog, setCatalog] = useState<Catalog>();
     const [billing, setBilling] = useState<BillingView>();
     const [error, setError] = useState('');
+    const [partnerName, setPartnerName] = useState('');
+    const navigate = useNavigate();
     const [auth, setAuth] = useState<{
         setup: boolean;
         registrationMode?: 'closed' | 'passcode' | 'open';
@@ -62,6 +65,11 @@ export function AppProvider({ children }: {
                 return;
             }
             setAuth(null);
+            if (status.identity.role === 'partner') {
+                setPartnerName(status.identity.name);
+                return;
+            }
+            setPartnerName('');
         }
         const [d, c, b] = await Promise.all([getBootstrap(), getCatalog(), realMode ? api<BillingView>('/billing') : undefined]);
         setDb(d);
@@ -89,6 +97,10 @@ export function AppProvider({ children }: {
         }
         return <Login setup={auth.setup} registrationMode={auth.registrationMode} passwordResetEnabled={auth.passwordResetEnabled} onDone={() => { setLoginRequested(false); void load(); }} onBackToForum={!auth.setup && location.pathname.startsWith('/forum') ? () => setLoginRequested(false) : undefined}/>;
     }
+    if (partnerName)
+        return <PartnerApp name={partnerName} onLogout={() => { setPartnerName(''); void load(); }}/>;
+    if (!realMode && location.pathname.startsWith('/partner'))
+        return <PartnerApp name="Demo Tutor" demo onLogout={() => navigate('/overview')}/>;
     if (error)
         return <main className="boot-state"><LanguageSwitch/><StarBean mood="error" size={88} label={ui("星豆")}/><h1>{ui("暫時未能載入學習工作室")}</h1><p>{ui(error)}</p><button className="btn primary" onClick={() => { localStorage.setItem('hokse.network', 'normal'); setNetworkState('normal'); void load(); }}>{ui("恢復正常連線並重試")}</button></main>;
     if (!db || !catalog)

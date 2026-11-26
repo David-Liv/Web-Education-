@@ -71,9 +71,23 @@ export class Store {
       CREATE TABLE IF NOT EXISTS forum_notifications(id TEXT PRIMARY KEY,recipient_id TEXT NOT NULL REFERENCES users(id),post_id TEXT NOT NULL REFERENCES forum_posts(id),comment_id TEXT NOT NULL,actor_label TEXT NOT NULL,post_title TEXT NOT NULL,excerpt TEXT NOT NULL,is_read INTEGER NOT NULL DEFAULT 0,created_at TEXT NOT NULL);
       CREATE INDEX IF NOT EXISTS forum_notifications_recipient ON forum_notifications(recipient_id,is_read,created_at);
       INSERT INTO migrations VALUES(3) ON CONFLICT DO NOTHING;`);
+    await this.db.exec(`CREATE TABLE IF NOT EXISTS partner_tutors(id TEXT PRIMARY KEY,status TEXT NOT NULL,created_at TEXT NOT NULL,updated_at TEXT NOT NULL,body TEXT NOT NULL);
+      CREATE TABLE IF NOT EXISTS teaching_playbooks(id TEXT NOT NULL,version INTEGER NOT NULL,partner_tutor_id TEXT NOT NULL REFERENCES partner_tutors(id),topic_id TEXT NOT NULL,subject_id TEXT NOT NULL,status TEXT NOT NULL,created_at TEXT NOT NULL,updated_at TEXT NOT NULL,body TEXT NOT NULL,PRIMARY KEY(id,version));
+      CREATE INDEX IF NOT EXISTS playbooks_topic_status ON teaching_playbooks(topic_id,status);
+      CREATE INDEX IF NOT EXISTS playbooks_partner ON teaching_playbooks(partner_tutor_id,status);
+      CREATE TABLE IF NOT EXISTS playbook_sandbox_runs(id TEXT PRIMARY KEY,playbook_id TEXT NOT NULL,version INTEGER NOT NULL,actor_id TEXT NOT NULL,passed INTEGER NOT NULL,created_at TEXT NOT NULL,body TEXT NOT NULL);
+      CREATE INDEX IF NOT EXISTS playbook_sandbox_lookup ON playbook_sandbox_runs(playbook_id,version,created_at);
+      CREATE TABLE IF NOT EXISTS user_consents(user_id TEXT PRIMARY KEY REFERENCES users(id),terms_version TEXT NOT NULL,accepted_at TEXT NOT NULL,share_partner_chats INTEGER NOT NULL DEFAULT 1,updated_at TEXT NOT NULL);
+      CREATE TABLE IF NOT EXISTS playbook_events(id TEXT PRIMARY KEY,playbook_id TEXT NOT NULL,version TEXT NOT NULL,partner_tutor_id TEXT NOT NULL,topic_id TEXT NOT NULL,kind TEXT NOT NULL,created_at TEXT NOT NULL,body TEXT NOT NULL);
+      CREATE INDEX IF NOT EXISTS playbook_events_lookup ON playbook_events(playbook_id,kind,created_at);
+      CREATE TABLE IF NOT EXISTS tutor_export_audit(id TEXT PRIMARY KEY,partner_tutor_id TEXT NOT NULL,playbook_id TEXT,actor_id TEXT NOT NULL,chat_count INTEGER NOT NULL,created_at TEXT NOT NULL,body TEXT NOT NULL);
+      INSERT INTO migrations VALUES(4) ON CONFLICT DO NOTHING;`);
+    await this.db.exec(`CREATE TABLE IF NOT EXISTS partner_accounts(user_id TEXT PRIMARY KEY REFERENCES users(id),partner_tutor_id TEXT UNIQUE NOT NULL REFERENCES partner_tutors(id),created_at TEXT NOT NULL);
+      INSERT INTO migrations VALUES(5) ON CONFLICT DO NOTHING;`);
     if(this.db.kind==='postgres'){
-      await this.db.exec('ALTER TABLE billing_accounts ENABLE ROW LEVEL SECURITY; ALTER TABLE credit_operations ENABLE ROW LEVEL SECURITY; ALTER TABLE billing_orders ENABLE ROW LEVEL SECURITY; ALTER TABLE billing_audit ENABLE ROW LEVEL SECURITY; ALTER TABLE ai_usage_logs ENABLE ROW LEVEL SECURITY; ALTER TABLE forum_profiles ENABLE ROW LEVEL SECURITY; ALTER TABLE forum_posts ENABLE ROW LEVEL SECURITY; ALTER TABLE forum_images ENABLE ROW LEVEL SECURITY; ALTER TABLE forum_comments ENABLE ROW LEVEL SECURITY; ALTER TABLE forum_reactions ENABLE ROW LEVEL SECURITY; ALTER TABLE forum_poll_votes ENABLE ROW LEVEL SECURITY; ALTER TABLE forum_reports ENABLE ROW LEVEL SECURITY; ALTER TABLE forum_notifications ENABLE ROW LEVEL SECURITY; REVOKE ALL ON billing_accounts,credit_operations,billing_orders,billing_audit,ai_usage_logs,forum_profiles,forum_posts,forum_images,forum_comments,forum_reactions,forum_poll_votes,forum_reports,forum_notifications FROM PUBLIC;');
-      for(const role of ['anon','authenticated'])if(await this.db.prepare('SELECT 1 FROM pg_roles WHERE rolname=?').get(role))await this.db.exec(`REVOKE ALL ON billing_accounts,credit_operations,billing_orders,billing_audit,ai_usage_logs,forum_profiles,forum_posts,forum_images,forum_comments,forum_reactions,forum_poll_votes,forum_reports,forum_notifications FROM ${role}`);
+      const protectedTables='billing_accounts,credit_operations,billing_orders,billing_audit,ai_usage_logs,forum_profiles,forum_posts,forum_images,forum_comments,forum_reactions,forum_poll_votes,forum_reports,forum_notifications,partner_tutors,teaching_playbooks,playbook_sandbox_runs,user_consents,playbook_events,tutor_export_audit,partner_accounts';
+      await this.db.exec(protectedTables.split(',').map(t=>`ALTER TABLE ${t} ENABLE ROW LEVEL SECURITY;`).join(' ')+` REVOKE ALL ON ${protectedTables} FROM PUBLIC;`);
+      for(const role of ['anon','authenticated'])if(await this.db.prepare('SELECT 1 FROM pg_roles WHERE rolname=?').get(role))await this.db.exec(`REVOKE ALL ON ${protectedTables} FROM ${role}`);
     }
     const legacyModel=await this.db.prepare("SELECT body FROM settings WHERE id='model'").get();
     if(legacyModel)try{this.decrypt(JSON.parse(legacyModel.body).secret)}catch{throw new Error('資料庫密鑰不匹配，拒絕啟動；請恢復原有 HOKSE_ENCRYPTION_KEY／secret.key。')}

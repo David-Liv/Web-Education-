@@ -55,16 +55,55 @@ async function waitBackoff(ms:number,signal?:AbortSignal){
     signal?.addEventListener('abort',onAbort,{once:true});
   });
 }
+export type MultimodalPart =
+  | { type: 'text'; text: string }
+  | { type: 'image_url'; image_url: { url: string } }
+  | { type: 'input_audio'; input_audio: { data: string; format: 'wav' | 'mp3' | 'm4a' | 'ogg' | 'webm' } };
+
+export interface MultimodalMessage {
+  role: string;
+  content: string | MultimodalPart[];
+}
+
+function responsesInputMessages(messages: MultimodalMessage[]) {
+  return messages.map(m => {
+    if (typeof m.content === 'string') return { role: m.role, content: m.content };
+    return {
+      role: m.role,
+      content: m.content.map(part => {
+        if (part.type === 'text') return { type: 'input_text', text: part.text };
+        if (part.type === 'image_url') return { type: 'input_image', image_url: part.image_url.url };
+        return { type: 'input_audio', input_audio: part.input_audio };
+      }),
+    };
+  });
+}
+
+function messageChars(messages: MultimodalMessage[]): number {
+  return messages.reduce((sum, m) => {
+    if (typeof m.content === 'string') return sum + m.content.length;
+    return sum + m.content.reduce((acc, part) => {
+      if (part.type === 'text') return acc + part.text.length;
+      if (part.type === 'image_url') return acc + part.image_url.url.length;
+      return acc + part.input_audio.data.length;
+    }, 0);
+  }, 0);
+}
+
 export async function generate(config:ModelConfig,messages:{role:string;content:string}[],signal?:AbortSignal, review=false,tokenBudget?:number,reviewModelOverride?:string){
+  return generateMultimodal(config,messages,signal,review,tokenBudget,reviewModelOverride);
+}
+
+export async function generateMultimodal(config:ModelConfig,messages:MultimodalMessage[],signal?:AbortSignal, review=false,tokenBudget?:number,reviewModelOverride?:string){
   if(!config.enabled||!config.model)reject('開發者尚未啟用模型或選擇模型 ID',503,'MODEL_NOT_CONFIGURED');
   const scoped=await beginProvider(config,review,reviewModelOverride);config=scoped.config;
   if(!isAllowedModel(config.model))reject('只可使用抗截斷模型；此模型不可用',403,'MODEL_NOT_ALLOWED');
   signal=signal&&scoped.signal?AbortSignal.any([signal,scoped.signal]):signal??scoped.signal;
   const maxTokens=tokenBudget===undefined?DEFAULT_MAX_TOKENS:Math.min(DEFAULT_MAX_TOKENS,Math.max(1000,Math.floor(tokenBudget)));
-  const payload=config.protocol==='openai-chat'?{model:config.model,messages,max_tokens:maxTokens}:{model:config.model,input:messages,max_output_tokens:maxTokens};
+  const payload=config.protocol==='openai-chat'?{model:config.model,messages,max_tokens:maxTokens}:{model:config.model,input:responsesInputMessages(messages),max_output_tokens:maxTokens};
   const parsedUrl=new URL(config.baseUrl),endpoint=parsedUrl.pathname.replace(/\/$/,'')+'/'+(config.protocol==='openai-chat'?'chat/completions':'responses');
   const channel=/^pgg?o?-/i.test(config.model)?'PGGO':/^bdg?o?-/i.test(config.model)?'BDGO':parsedUrl.hostname;
-  const request={model:config.model,stream:false,msg_count:messages.length,chars:messages.reduce((n,m)=>n+m.content.length,0),has_tools:false,tools_count:0,first_role:messages[0]?.role??null,temperature:null,max_tokens:maxTokens};
+  const request={model:config.model,stream:false,msg_count:messages.length,chars:messageChars(messages),has_tools:false,tools_count:0,first_role:messages[0]?.role??null,temperature:null,max_tokens:maxTokens};
   const maxRetries=typeof config.maxRetries==='number'?Math.max(0,Math.min(5,Math.floor(config.maxRetries))):DEFAULT_MAX_RETRIES;
   const localHost=['localhost','127.0.0.1','[::1]'].includes(parsedUrl.hostname);
   for(let attempt=0;attempt<=maxRetries;attempt++){

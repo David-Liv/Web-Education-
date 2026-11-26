@@ -1,6 +1,7 @@
 import {PracticeMistakes} from '../LearningPractice';
 import { boardForSubject } from '../forum-types';
 import { AiCostNotice } from './Billing';
+import { PrivacyConsentCard } from '../ConsentControls';
 import { ui, useInterfaceLanguage } from "../i18n";
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
@@ -77,7 +78,7 @@ function StrategyPanel({ onPreview }: {
 }
 export function PilotSettings() { useInterfaceLanguage(); const { db } = useApp(); return <div className="page-enter"><PageHeading eyebrow="YOUR OWN SPACE" title={ui("帳戶與學習設定")} description={ui("記錄保存於服務端，使用自己的邀請帳戶繼續。")}/><section className="card pilot-card"><h2>{db.profile.name}</h2><p>{db.pilot?.identity.username} · {db.pilot?.identity.role === 'student' ? ui("學生") : db.pilot?.identity.role === 'reviewer' ? ui("內容復核者") : ui("開發者")}</p><div className="pilot-actions"><Link className="btn primary" to="/goals?tab=profile">{ui("成績、目標與每日時間")}</Link>{db.pilot?.identity.role !== 'student' && <Link className="btn secondary" to="/developer">{ui("開發者與內容設定")}</Link>}<button className="btn secondary" onClick={async () => { const blob = new Blob([JSON.stringify(db, null, 2)], { type: 'application/json' }), url = URL.createObjectURL(blob), a = document.createElement('a'); a.href = url; a.download = '我的學序記錄.json'; a.click(); URL.revokeObjectURL(url); }}>{ui("匯出我的記錄")}</button><button className="btn ghost" onClick={() => void api('/auth/logout', 'POST').then(() => { for (const key of Object.keys(localStorage))
     if (key.startsWith('hokse.quiz-draft.'))
-        localStorage.removeItem(key); window.location.assign('/'); })}>{ui("登出")}</button></div><p className="small muted">{ui("真實帳戶使用香港日期；示範資料重設與演示時鐘只存在於演示模式。")}</p></section><PilotEmailBinding /></div>; }
+        localStorage.removeItem(key); window.location.assign('/'); })}>{ui("登出")}</button></div><p className="small muted">{ui("真實帳戶使用香港日期；示範資料重設與演示時鐘只存在於演示模式。")}</p></section><PrivacyConsentCard /><PilotEmailBinding /></div>; }
 
 function PilotEmailBinding() {
     useInterfaceLanguage();

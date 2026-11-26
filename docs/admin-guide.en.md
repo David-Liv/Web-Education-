@@ -1,6 +1,6 @@
 # HOKSE Administrator Manual
 
-v1.8 · 13 November 2026. For maintaining accounts, content, AI services, forum moderation and programme data.
+v1.11 · 26 November 2026. For maintaining accounts, content, AI services, forum moderation, Partner Tutors and programme data.
 
 Navigation can collapse to icons on desktop and remembers the browser preference. Calendar moves and Undo use the same ownership, conflict and budget checks; they do not call AI.
 
@@ -72,6 +72,7 @@ For provider failures, inspect status and protocol. For balances, inspect operat
 
 ## 9. Administrator release record
 
+- v1.11 / 26 November 2026: new Partner Tutor account role `partner` (schema migration v5 `partner_accounts`), the Partner Tutor Studio at `/partner` and the review console in Content & Developer Workspace → Partner Tutors; see “v1.11 Partner Tutors and Teaching Playbooks” at the end.
 - v1.8 / 13 November 2026: Student Forum (`/forum`) schema migration v3, separate 40 MiB compressed image quota, 3-report auto-hide, reviewer/developer moderation queue, developer-only account mute and `hokse-cloud-v3` backup support.
 - v1.7 / 11 November 2026: Google Apps Script email verification code self-registration (with optional class passcode), username or verified-email sign-in, password reset and email linking; unified module contracts and architecture checks.
 - v1.3 / 5 November 2026: one-pass chat practice review, updates in the original floor, one failure retry, and an administrator-configured reviewer.
@@ -115,3 +116,16 @@ The forum makes zero AI calls, consumes zero student or platform credits, and ne
 Forum images require browser compression and server-side magic-byte validation (WebP/JPEG/PNG, up to 200 KB per image and 3 images per post) within a dedicated 40 MiB site-wide `forum_images` quota, separate from the 100 MiB private `files` attachment cap so forum uploads cannot exhaust free-tier database storage.
 
 Post-moderation runs from the Moderation Queue tab inside `/forum`: 3 distinct user reports automatically set `auto_hidden`. Both `reviewer` and `developer` roles can pin, lock, restore or soft-delete posts and comments; only `developer` can mute or unmute the underlying author account (`muteHours`) across anonymous and non-anonymous posts without exposing anonymous identities in ordinary views.
+
+
+## v1.11 Partner Tutors and Teaching Playbooks
+
+**Adding a Partner Tutor**: in Content & Developer Workspace → Partner Tutors → Partner Tutor profiles, create a profile card (name, headline, background, credentials, optional external page link). The external link appears only on the static profile card students see, never inside chats or lessons. Only a `developer` can use “Create account” to give the tutor a sign-in (role `partner`, one account per tutor, initial password at least 10 characters). Hand it over securely and keep it out of public documents.
+
+**Tutor flow (`/partner`)**: after signing in, a tutor sees only the Partner Tutor Studio. They cannot enter the student workspace or see other tutors' data. Each unit moves through Prepare → Record → Check the script → Playbook → Sandbox chat → Submit for review. Recordings are converted in the browser to 16 kHz WAV (up to 7 minutes per segment) and sent to the configured AI model service only for the transcription request; they are not written to `files` or any other table. Unsubmitted script text is kept in the tutor's browser. Before submitting, a tutor must pass the sandbox chat (4 platform questions, including an anti-extraction/anti-promotion probe, plus up to 2 of their own) and tick the confirmation. Each tutor account is limited to 60 AI actions (transcribe, compile, sandbox) per day; the counter lives in server memory and resets on restart.
+
+**Review (`reviewer`/`developer`)**: Review Playbooks → To review lists drafts the tutor has confirmed. After checking compliance notes, sandbox results, the five parts and the tutor's script, choose “Approve and publish” or write a reason and “Return for changes” (returning clears the tutor's confirmation; the tutor must re-run the sandbox and resubmit). Publishing stops new chats on older versions of the same method. Live versions can be archived here; tutors can also take down their own methods or withdraw a pending submission.
+
+**Usage and de-identified samples**: tutors see usage only for their own methods and can download de-identified chat samples under the same rules as staff exports (only students who agreed to share, attachments and identifiers removed, random anonymous IDs). Every download is written to `tutor_export_audit`.
+
+**Database**: migration v5 adds `partner_accounts(user_id, partner_tutor_id)`, with RLS and `REVOKE ALL` on PostgreSQL; cloud backups upgrade to `hokse-cloud-v4` (including all Partner Tutor and Playbook tables while remaining compatible with `v1`–`v3` restores). Archiving a Partner Tutor also archives their live methods and makes the account view-only.

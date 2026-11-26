@@ -3,6 +3,8 @@ import { passwordHash, passwordMatches } from './store.ts';
 import type { Store } from './store.ts';
 import type { Identity } from '../src/pilot-types.ts';
 import { reject } from './learning.ts';
+import { CURRENT_TERMS_VERSION } from '../src/tutors.ts';
+import { acceptUserTerms, getUserConsent } from './playbooks.ts';
 
 export type RegistrationMode = 'closed' | 'passcode' | 'open';
 export type OtpPurpose = 'register' | 'reset' | 'bind';
@@ -313,6 +315,7 @@ export async function publicAuthStatus(store: Store, identity: Identity | null, 
   const serviceReady = Boolean(config?.enabled && config.webhookUrl && config.secret);
   const registrationMode: RegistrationMode = serviceReady ? config!.mode : 'closed';
   const email = identity ? await getUserBoundEmail(store, identity.id) : null;
+  const consent = identity ? await getUserConsent(store, identity.id) : null;
   return {
     identity,
     setupRequired: (await store.userCount()) === 0 && allowSetup !== false,
@@ -320,6 +323,8 @@ export async function publicAuthStatus(store: Store, identity: Identity | null, 
     passwordResetEnabled: serviceReady,
     emailServiceEnabled: serviceReady,
     email,
+    currentTermsVersion: CURRENT_TERMS_VERSION,
+    consent,
   };
 }
 
@@ -394,6 +399,14 @@ export async function handlePublicAuthMailRoutes(
       await bindUserEmail(store, created.id, email, normalized);
       return created;
     });
+    if (input.acceptTermsVersion) {
+      await acceptUserTerms(
+        store,
+        user.id,
+        String(input.acceptTermsVersion),
+        typeof input.sharePartnerChats === 'boolean' ? input.sharePartnerChats : true
+      );
+    }
     attempts.delete(`${ip}:register:${username}`);
     cookie(await store.session(user), 604800);
     send({ ...user, email }, 201);

@@ -1,6 +1,6 @@
 import type { Database, Evidence, PlanPreview, Question } from './types.ts';
 
-export type Role = 'student' | 'reviewer' | 'developer';
+export type Role = 'student' | 'reviewer' | 'developer' | 'partner';
 export interface Identity { id: string; username: string; name: string; role: Role }
 export interface Skill { id: string; name: string; prerequisites: string[]; minutes: [number, number]; policy?:Partial<Pick<typeof MASTERY_POLICY,'provisionalQuestions'|'stableQuestions'|'stableFamilies'|'stablePercent'|'delayedHours'>> }
 export interface ReviewedQuestion extends Question {

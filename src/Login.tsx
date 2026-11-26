@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from './api/client';
 import { StarBean } from './StarBean';
+import { TermsAgreementField } from './ConsentControls';
+import { CURRENT_TERMS_VERSION } from './tutors';
 
 type Mode = 'login' | 'register' | 'reset';
 
@@ -33,6 +35,7 @@ export function Login({
   const [sendingCode, setSendingCode] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   const canRegister = !setup && registrationMode !== 'closed';
   const canReset = !setup && passwordResetEnabled;
@@ -155,7 +158,12 @@ export function Login({
               setError('');
               setNotice('');
               try {
-                await api(setup ? '/auth/setup' : '/auth/login', 'POST', { username, password, name });
+                await api(setup ? '/auth/setup' : '/auth/login', 'POST', {
+                  username,
+                  password,
+                  name,
+                  ...(setup || acceptedTerms ? { acceptTermsVersion: CURRENT_TERMS_VERSION } : {}),
+                });
                 clearDrafts();
                 onDone();
               } catch (e) {
@@ -201,6 +209,7 @@ export function Login({
                 autoComplete={setup ? 'new-password' : 'current-password'}
               />
             </label>
+            {!setup && <TermsAgreementField checked={acceptedTerms} onChange={setAcceptedTerms} />}
             {error && <p role="alert" className="form-error">{ui(error)}</p>}
             {notice && <p role="status" className="model-explanation">{ui(notice)}</p>}
             <button className="btn primary" disabled={busy}>
@@ -224,6 +233,7 @@ export function Login({
                   username: username.trim(),
                   name: name.trim(),
                   password,
+                  acceptTermsVersion: CURRENT_TERMS_VERSION,
                 });
                 clearDrafts();
                 onDone();
@@ -320,6 +330,7 @@ export function Login({
                 autoComplete="new-password"
               />
             </label>
+            <TermsAgreementField checked={acceptedTerms} onChange={setAcceptedTerms} />
             {error && <p role="alert" className="form-error">{ui(error)}</p>}
             {notice && <p role="status" className="model-explanation">{ui(notice)}</p>}
             <button className="btn primary" disabled={busy}>

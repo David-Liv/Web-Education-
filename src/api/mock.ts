@@ -1,5 +1,6 @@
-import {TUTORS,tutorSupported} from '../tutors';
+import {CURRENT_TERMS_VERSION,TUTORS,tutorSupported} from '../tutors';
 import {createForumMockHandlers,resetMockForum} from './mock-forum';
+import {createPartnerMockHandlers} from './mock-partner';
 import {calendarMoveIssue} from '../calendar-move';
 import { http, HttpResponse, delay } from 'msw';
 import { setupWorker } from 'msw/browser';
@@ -58,6 +59,10 @@ const handlers=[
  http.post('/api/v1/bookmarks/:id',route((_,params)=>{const id=String(params.id);if(!catalog.resources.some(r=>r.id===id))fail('找不到資源',404);db().bookmarks=db().bookmarks.includes(id)?db().bookmarks.filter(x=>x!==id):[...db().bookmarks,id];save();return response(db().bookmarks)})),
  http.post('/api/v1/resource-clicks',route(async(request)=>{const {id}=await body(request);if(!catalog.resources.some(r=>r.id===id))fail('找不到資源',404);db().resourceClicks[id]=(db().resourceClicks[id]??0)+1;save();return response({ok:true})})),
  http.get('/api/v1/tutors',route(()=>response({tutors:TUTORS,resources:factorisationTutorResources.map(({text:_t,...s})=>s)}))),
+ http.post('/api/v1/tutors/:id/link-click',route(()=>response({ok:true}))),
+ http.post('/api/v1/chats/:id/feedback',route(()=>response({ok:true}))),
+ http.get('/api/v1/me/consent',route(()=>response({currentVersion:CURRENT_TERMS_VERSION,acceptedVersion:CURRENT_TERMS_VERSION,acceptedAt:new Date().toISOString(),needsAcceptance:false,sharePartnerChats:true,updatedAt:new Date().toISOString()}))),
+ http.put('/api/v1/me/consent',route(async(request)=>{const input=await body(request);return response({currentVersion:CURRENT_TERMS_VERSION,acceptedVersion:CURRENT_TERMS_VERSION,acceptedAt:new Date().toISOString(),needsAcceptance:false,sharePartnerChats:typeof input?.sharePartnerChats==='boolean'?input.sharePartnerChats:true,updatedAt:new Date().toISOString()})})),
  http.get('/api/v1/learning',route(()=>response(db().learning))),
  http.post('/api/v1/learning/guided',route(async(request)=>{const input=await body(request);if(input?.topicId!==FACTORISATION_TOPIC_ID||typeof input?.itemId!=='string'||!['assist','submit','next-variant'].includes(input?.action))fail('引導練習參數無效',422);const found=findFactorisationSlot(input.itemId)??fail('找不到這個引導練習題目',404);if(input.action==='submit'&&(typeof input.answer!=='string'||!input.answer.trim()||input.answer.length>300))fail('請先輸入有效答案',400);const data=db(),guided=data.learning!.guided!;const idx=(guided[input.itemId]?.variantIndex??0)%found.slot.variants.length,variant=found.slot.variants[idx];const {state,check}=applyGuidedAction(guided,{itemId:input.itemId,topicId:FACTORISATION_TOPIC_ID,partId:found.part.id,mode:found.slot.mode,action:input.action,answer:input.answer,variantCount:found.slot.variants.length,variant});if(input.action==='submit'&&found.slot.mode==='check'&&check?.verdict==='correct'&&!data.events.some(e=>e.topicId===FACTORISATION_TOPIC_ID&&e.type==='quiz'&&e.date===data.profile.date))learningEvent(FACTORISATION_TOPIC_ID,'quiz',10,'因式分解引導檢核','/subjects/maths?topic=maths-factorisation');save();return response({itemId:input.itemId,mode:found.slot.mode,state,check,guided,progress:computeFactorisationProgress(guided)})})),
  http.patch('/api/v1/chats/:id/teaching',route(async(request,params)=>{const c=db().chats.find(c=>c.id===params.id)??fail('找不到對話',404);const input=await body(request);if(!c.teaching)fail('請建立新的導師對話');for(const field of ['mission','success','constraints','outOfScope','preferences'] as const)if(typeof input[field]==='string')c.teaching![field]=input[field].slice(0,1200);save();return response(c)})),
@@ -93,4 +98,4 @@ function richDemo(chat:Chat,prompt:string){
  if(chat.subjectId==='maths'&&/用圖|圖形|圖像|畫圖|visual|graph|plot/i.test(prompt))return intro+'\n\n'+block('plot',{title:english?'A quadratic and its roots':'二次函數與根',functions:[{expression:'x^2-5*x+6',label:'y = x² − 5x + 6'}],xMin:-1,xMax:6,yMin:-3,yMax:10,caption:english?'The intersections with the x-axis are x=2 and x=3.':'曲線與 x 軸的交點為 x=2、x=3。'});
  return null;
 }
-export const worker=setupWorker(...handlers);
+export const worker=setupWorker(...handlers,...createPartnerMockHandlers());
