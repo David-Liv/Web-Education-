@@ -84,8 +84,10 @@ export class Store {
       INSERT INTO migrations VALUES(4) ON CONFLICT DO NOTHING;`);
     await this.db.exec(`CREATE TABLE IF NOT EXISTS partner_accounts(user_id TEXT PRIMARY KEY REFERENCES users(id),partner_tutor_id TEXT UNIQUE NOT NULL REFERENCES partner_tutors(id),created_at TEXT NOT NULL);
       INSERT INTO migrations VALUES(5) ON CONFLICT DO NOTHING;`);
+    await this.db.exec(`CREATE TABLE IF NOT EXISTS forum_post_boosts(post_id TEXT PRIMARY KEY REFERENCES forum_posts(id),boosted_until TEXT NOT NULL);
+      INSERT INTO migrations VALUES(6) ON CONFLICT DO NOTHING;`);
     if(this.db.kind==='postgres'){
-      const protectedTables='billing_accounts,credit_operations,billing_orders,billing_audit,ai_usage_logs,forum_profiles,forum_posts,forum_images,forum_comments,forum_reactions,forum_poll_votes,forum_reports,forum_notifications,partner_tutors,teaching_playbooks,playbook_sandbox_runs,user_consents,playbook_events,tutor_export_audit,partner_accounts';
+      const protectedTables='billing_accounts,credit_operations,billing_orders,billing_audit,ai_usage_logs,forum_profiles,forum_posts,forum_post_boosts,forum_images,forum_comments,forum_reactions,forum_poll_votes,forum_reports,forum_notifications,partner_tutors,teaching_playbooks,playbook_sandbox_runs,user_consents,playbook_events,tutor_export_audit,partner_accounts';
       await this.db.exec(protectedTables.split(',').map(t=>`ALTER TABLE ${t} ENABLE ROW LEVEL SECURITY;`).join(' ')+` REVOKE ALL ON ${protectedTables} FROM PUBLIC;`);
       for(const role of ['anon','authenticated'])if(await this.db.prepare('SELECT 1 FROM pg_roles WHERE rolname=?').get(role))await this.db.exec(`REVOKE ALL ON ${protectedTables} FROM ${role}`);
     }

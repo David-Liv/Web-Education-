@@ -7,6 +7,8 @@ import { useFocus } from '../focus';
 import { api, realMode } from '../api/client';
 import { addDays, dailyCapacity, mastery } from '../domain';
 import { Badge, Icon, Modal, Progress, SectionTitle, SubjectIcon } from '../components';
+import { RealtimeProgressPanel, WeakSpotReportModal } from './ProgressInsights';
+import { hasPlanFeature } from '../billing-types';
 import type { Task } from '../types';
 
 // Seven real daily totals, one labelled column per Hong Kong school weekday.
@@ -47,11 +49,13 @@ function greeting(name: string) {
 
 export function Dashboard() {
     useInterfaceLanguage();
-    const { db, catalog, applyTask, refresh, toast } = useApp();
+    const { db, billing, catalog, applyTask, refresh, toast } = useApp();
     const focus = useFocus();
     const navigate = useNavigate();
     const [report, setReport] = useState(false);
+    const [weakReport, setWeakReport] = useState(false);
     const [busyId, setBusyId] = useState<string | null>(null);
+    const canWeakReport = !realMode || hasPlanFeature(billing?.account.plan, 'weak-spot-report', db.pilot?.identity.role);
 
     const today = db.profile.date;
     const weekDates = Array.from({ length: 7 }, (_, i) => addDays(today, i - 6));
@@ -131,6 +135,13 @@ export function Dashboard() {
                     </p>
                 </div>
                 <div className="heading-actions">
+                    {realMode && (
+                        <button className="btn secondary" onClick={() => setWeakReport(true)}>
+                            <Icon name="target" size={16}/>
+                            {ui("弱項診斷報告")}
+                            {!canWeakReport && <Badge tone="green">Pro</Badge>}
+                        </button>
+                    )}
                     <button className="btn secondary" onClick={() => setReport(true)}>
                         <Icon name="chart" size={17}/>
                         {ui("我的學習報告")}
@@ -301,6 +312,8 @@ export function Dashboard() {
                 </aside>
             </div>
 
+            <RealtimeProgressPanel />
+
             <div className="desk-lower">
                 <section className="card desk-week" aria-labelledby="desk-week-title">
                     <div className="desk-card-head">
@@ -417,6 +430,7 @@ export function Dashboard() {
                     </div>
                 </Modal>
             )}
+            {weakReport && <WeakSpotReportModal onClose={() => setWeakReport(false)} />}
         </div>
     );
 }

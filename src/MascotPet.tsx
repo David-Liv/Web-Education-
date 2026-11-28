@@ -531,16 +531,31 @@ export function StarBeanPet() {
           data-testid="starbean-bubble"
         >
           <span>{ui(visual.bubbleKey, visual.bubbleArgs)}</span>
-          {visual.actionRoute && visual.actionLabelKey && (
+          {(visual.actionRoute || visual.actionEvent) && visual.actionLabelKey && (
             <button
               type="button"
               className="starbean-bubble-link"
               onClick={() => {
                 clearMascotReaction();
-                navigate(visual.actionRoute!);
+                if (visual.actionEvent) {
+                  window.dispatchEvent(new CustomEvent(visual.actionEvent, { detail: visual.actionDetail }));
+                }
+                if (visual.actionRoute) {
+                  navigate(visual.actionRoute);
+                }
               }}
             >
               {ui(visual.actionLabelKey)}
+            </button>
+          )}
+          {visual.actionEvent && (
+            <button
+              type="button"
+              className="starbean-bubble-close"
+              aria-label={ui('稍後再說')}
+              onClick={() => clearMascotReaction()}
+            >
+              <Icon name="x" size={12} />
             </button>
           )}
         </div>

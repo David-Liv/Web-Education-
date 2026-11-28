@@ -454,6 +454,7 @@ export function ForumPage({
   const [composeBody, setComposeBody] = useState('');
   const [composeAnon, setComposeAnon] = useState(true);
   const [composeMembersOnly, setComposeMembersOnly] = useState(true);
+  const [composeBoost, setComposeBoost] = useState(true);
   const [composeQuestionRef, setComposeQuestionRef] = useState<ForumQuestionRef | undefined>(undefined);
   const [composeImages, setComposeImages] = useState<PendingImage[]>([]);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -682,6 +683,7 @@ export function ForumPage({
         title: composeTitle.trim(),
         body: composeBody.trim(),
         isAnonymous: composeAnon,
+        ...(profile?.canBoost ? { boost: composeBoost } : {}),
         imageIds: composeImages.map(x => x.id),
         ...(composeQuestionRef ? { questionRef: composeQuestionRef } : {}),
         ...(composeHasPoll
@@ -1224,6 +1226,11 @@ export function ForumPage({
                           <Icon name="pin" size={12} /> {ui('置頂')}
                         </Badge>
                       )}
+                      {detail.boosted && (
+                        <Badge tone="green">
+                          <Icon name="sparkles" size={12} /> {ui('優先曝光')}
+                        </Badge>
+                      )}
                       <span
                         className="forum-board-pill"
                         style={{ '--board-color': boardById.get(detail.boardId)?.color ?? '#3d7d66' } as React.CSSProperties}
@@ -1624,6 +1631,11 @@ export function ForumPage({
                                 <Icon name="pin" size={11} /> {ui('置頂')}
                               </Badge>
                             )}
+                            {post.boosted && (
+                              <Badge tone="green">
+                                <Icon name="sparkles" size={11} /> {ui('優先曝光')}
+                              </Badge>
+                            )}
                             {board && (
                               <button
                                 type="button"
@@ -1917,6 +1929,16 @@ export function ForumPage({
                 />
                 <span>{ui('僅登入同學可見（外部訪客或 WhatsApp 預覽不會顯示正文與附圖，適合樹洞傾訴）')}</span>
               </label>
+              {profile?.canBoost ? (
+                <label className="forum-check">
+                  <input type="checkbox" checked={composeBoost} onChange={e => setComposeBoost(e.target.checked)} />
+                  <span>{ui('Pro 貼文優先曝光 48 小時（匿名發文同樣有效，不公開個人身分）')}</span>
+                </label>
+              ) : (
+                <p className="small muted" style={{ margin: '4px 0 0' }}>
+                  {ui('升級至 Pro 可享討論區貼文 48 小時優先曝光。')}
+                </p>
+              )}
             </div>
 
             <div className="modal-actions">

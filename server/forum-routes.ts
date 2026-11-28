@@ -1,7 +1,9 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Store } from './store.ts';
 import type { ForumService } from './forum.ts';
+import type { Billing } from './billing.ts';
 import type { Identity } from '../src/pilot-types.ts';
+import { hasPlanFeature } from '../src/billing-types.ts';
 import { catalog } from '../src/data/catalog.ts';
 import { buildForumBoards } from '../src/forum-types.ts';
 import type { ForumReactionKind, ForumSort } from '../src/forum-types.ts';
@@ -35,6 +37,7 @@ function requireAuth(identity: Identity | null): Identity {
 export async function handleForumRoutes(
   store: Store,
   forumService: ForumService,
+  billing: Billing,
   identity: Identity | null,
   path: string,
   method: string,
@@ -57,7 +60,15 @@ export async function handleForumRoutes(
         selectedSubjects = [];
       }
     }
-    const profile = identity ? await forumService.getProfile(identity) : null;
+    let profile = identity ? await forumService.getProfile(identity) : null;
+    if (identity && profile) {
+      let canBoost = hasPlanFeature(undefined, 'boosted-forum', identity.role);
+      if (!canBoost) {
+        const view = await billing.view(identity.id);
+        canBoost = hasPlanFeature(view.account.plan, 'boosted-forum', identity.role);
+      }
+      profile = { ...profile, canBoost };
+    }
     send({ boards: buildForumBoards(catalog.subjects, selectedSubjects), profile });
     return true;
   }
@@ -81,7 +92,16 @@ export async function handleForumRoutes(
 
   if (path === '/forum/posts' && method === 'POST') {
     const user = requireAuth(identity);
-    send(await forumService.createPost(user, input), 201);
+    let canBoost = hasPlanFeature(undefined, 'boosted-forum', user.role);
+    if (!canBoost) {
+      const view = await billing.view(user.id);
+      canBoost = hasPlanFeature(view.account.plan, 'boosted-forum', user.role);
+    }
+    if (input.boost === true && !canBoost) {
+      await billing.requireFeature(user, 'boosted-forum');
+    }
+    const shouldBoost = canBoost && input.boost !== false;
+    send(await forumService.createPost(user, input, shouldBoost), 201);
     return true;
   }
 

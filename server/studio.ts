@@ -6,10 +6,10 @@ import type { StudyAttempt, StudyFeedback, StudyItem, StudioUnit } from '../src/
 import type { Store, StudentState } from './store.ts';
 import { generate } from './models.ts';
 import { generateAssessment, parseAiFeedback, parseObject } from './quiz-contract.ts';
-import { appendStudioAttempt, disputeStudioAttempt, fixedItems, hasSeenAttemptFamily, publicStudyQuiz, seenStudioFamilies, studioAttemptCount, studioState, studioView, studySkills, units } from './studio-state.ts';
+import { appendStudioAttempt, buildAdaptiveQuizProfile, detectWeakSpotAlert, disputeStudioAttempt, fixedItems, hasSeenAttemptFamily, pickAdaptiveTeacherSkill, publicStudyQuiz, seenStudioFamilies, studioAttemptCount, studioState, studioView, studySkills, units } from './studio-state.ts';
 import type { StudyQuiz } from './studio-state.ts';
 import { recordLearning, reject } from './learning.ts';
-import { discardUsage } from './billing.ts';
+import { Billing, discardUsage } from './billing.ts';
 const active=new Set<string>();
 const validId=(v:unknown)=>typeof v==='string'&&/^[a-zA-Z0-9-]{8,80}$/.test(v);
 const dateOK=(v:unknown)=>typeof v==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(v)&&Number.isFinite(Date.parse(v))&&new Date(v+'T12:00:00Z').toISOString().slice(0,10)===v;
@@ -34,12 +34,13 @@ async function grade(store:Store,q:StudyQuiz,signal:AbortSignal,english=false){
   else if(!results.has(item.id)||item.skillId==='quadratic-model')results.set(item.id,unavailable(config?'參考要點：'+item.explanation+'。AI評分欄位暫未可用，可稍後用新練習再確認。':'參考要點：'+item.explanation+'。尚未配置AI，沒有生成主觀分數。'));
  }if(!accepted)discardUsage();return results;
 }
-export async function handleStudio(store:Store,identity:Identity,path:string,method:string,input:any,send:(data:unknown,status?:number)=>void,signal:AbortSignal){
+export async function handleStudio(store:Store,billing:Billing,identity:Identity,path:string,method:string,input:any,send:(data:unknown,status?:number)=>void,signal:AbortSignal){
  if(!path.startsWith('/studio'))return false;
  const change=async<T>(fn:(data:StudentState)=>T|Promise<T>)=>store.transaction(async()=>{const data=await store.state(identity.id);const result=await fn(data);await store.save(identity.id,data);return result});
  const find=(data:StudentState,id:string)=>studioState(data).quizzes.find(q=>q.id===id)??reject('找不到此帳戶的學習練習',404);
  if(path==='/studio'&&method==='GET'){send(studioView(await store.state(identity.id)));return true}
  if(path==='/studio/rest'&&method==='POST'){
+  await billing.requireFeature(identity,'calendar-advanced');
   if(!dateOK(input.date)||typeof input.rest!=='boolean')reject('請提供有效日期與休息選項');
   send(await change(data=>{const dates=new Set(data.profile.restDates??[]);if(input.rest){dates.add(input.date);for(const t of data.tasks.filter(t=>t.date===input.date&&t.kind!=='exam'&&t.status==='pending'&&!t.locked)){t.schedule='floating';t.start=''}}else dates.delete(input.date);data.profile.restDates=[...dates].sort();return {restDates:data.profile.restDates,movedToChecklist:input.rest}}));return true;
  }
@@ -48,31 +49,49 @@ export async function handleStudio(store:Store,identity:Identity,path:string,met
  if(path==='/studio/resume'&&method==='POST'){const unit=units.find(u=>u.subjectId===input.subjectId)??reject('學科無效');if(input.skillId&&!unit.skills.some(s=>s.id===input.skillId))reject('知識點無效');send(await change(data=>{const s=studioState(data);s.resumedAt??={};for(const skill of unit.skills.filter(s=>!input.skillId||s.id===input.skillId))s.resumedAt[skill.id]=new Date().toISOString();recordLearning(data,unit.topicId,'換方法／前置示例','lesson',5,'/studio');return {ok:true}}));return true}
  if(path==='/studio/quizzes'&&method==='POST'){
   const unit=units.find(u=>u.subjectId===input.subjectId)??reject('首期支援數學、中文、英文');
-  if(!['quick','assessment'].includes(input.purpose)||!['fixed','ai','auto'].includes(input.source)||!validId(input.requestId)||!Number.isInteger(input.count)||input.count<1||input.count>5)reject('練習用途、來源、請求ID或題數無效');
+  if(!['quick','assessment'].includes(input.purpose)||!['fixed','ai','auto','hybrid'].includes(input.source)||!validId(input.requestId)||!Number.isInteger(input.count)||input.count<1||input.count>5)reject('練習用途、來源、請求ID或題數無效');
+  if(input.source==='ai')await billing.requireFeature(identity,'ai-quizzes');
+  if(input.source==='hybrid')await billing.requireFeature(identity,'hybrid-quizzes');
   if(input.skillId!==undefined&&(unit.subjectId!=='maths'||!quadraticSkill(input.skillId)))reject('請選擇有效知識點',422);if(input.retest&&(!input.skillId||input.count>2))reject('復測請選擇一項技能及一至兩題',422);
   const data=await store.state(identity.id);if(input.reviewId!==undefined&&!practiceState(data).reviews.some(r=>r.id===input.reviewId&&r.skillId===input.skillId))reject('復習項目不存在',404);const old=studioState(data).quizzes.find(q=>q.requestId===input.requestId);if(old){if(old.subjectId!==input.subjectId||old.purpose!==input.purpose||(input.source!=='auto'&&old.source!==input.source)||old.items.length!==input.count||old.skillId!==input.skillId||!!old.retest!==!!input.retest||old.reviewId!==input.reviewId)reject('請求ID已用於不同練習，請重新開始。',409,'REQUEST_CONFLICT');send(publicStudyQuiz(old,studioState(data)));return true}
   if(studySkills(data).some(s=>s.subjectId===unit.subjectId&&(!input.skillId||s.id===input.skillId)&&s.paused))reject('連續遇到困難，先閱讀示例或換方法，再主動繼續。',409,'REMEDIATION_PAUSED');
   if(active.has(identity.id))reject('仍有學習請求在處理，請稍候',409);active.add(identity.id);
   try{
-   let items:StudyItem[]=[],attempts=0,trace:unknown,resolvedSource:'ai'|'fixed'=input.source==='ai'?'ai':'fixed';
-   if(input.source!=='ai')items=fixedItems(unit,input.count,input.skillId,seenStudioFamilies(data,input.skillId),data.profile.teachingLanguage==='en');
-   if(input.source==='auto'&&input.skillId){
-    const seen=new Set(practiceState(data).items.map(i=>i.prompt+'\n'+i.answer));items=[];
-    for(let tries=0;tries<200&&items.length<input.count;tries++)for(const item of fixedItems(unit,input.count,input.skillId,Array(studioAttemptCount(data)+tries).fill('seen'),data.profile.teachingLanguage==='en')){const key=item.prompt+'\n'+item.answer;if(!seen.has(key)){seen.add(key);items.push(item);if(items.length===input.count)break;}}
-   }
-   if(input.source==='ai'||items.length!==input.count){resolvedSource='ai';
+   const adaptive=buildAdaptiveQuizProfile(data,unit,input.skillId);
+   let items:StudyItem[]=[],attempts=0,trace:unknown,resolvedSource:'ai'|'fixed'|'hybrid'=input.source==='hybrid'?'hybrid':input.source==='ai'?'ai':'fixed';
+   if(input.source==='hybrid'){
+    const teacherCount=Math.floor(input.count/2),aiCount=input.count-teacherCount;
+    const teacherSkill=input.skillId??pickAdaptiveTeacherSkill(data,unit);
+    let teacherItems=teacherCount>0?fixedItems(unit,teacherCount,teacherSkill,seenStudioFamilies(data,teacherSkill),data.profile.teachingLanguage==='en'):[];
+    if(teacherItems.length<teacherCount&&teacherSkill&&!input.skillId)teacherItems=fixedItems(unit,teacherCount,undefined,seenStudioFamilies(data,undefined),data.profile.teachingLanguage==='en');
     const config=await store.model()??reject('請開發者先配置模型；目前可使用固定練習。',503,'MODEL_NOT_CONFIGURED');
-    if(input.purpose==='assessment'){const result=await generateAssessment(input.skillId?{...unit,skills:unit.skills.filter(s=>s.id===input.skillId)}:unit,input.count,m=>generate(config,m,signal),practiceState(data).items.map(i=>i.prompt));items=result.items;attempts=result.attempts;trace=result.trace}
-    else {
-     // Fast exercises have one model call, local shape checks, and no repair loop.
-     const text=await generate(config,[{role:'system',content:'生成原創隨堂短答練習，只回JSON {"items":[{"skillId":"指定技能ID","prompt":"題目","answer":"參考要點","explanation":"簡短解釋","hint":"提示","criterion":"評價依據"}]}。可加passage供閱讀。接受合理不同答案，不宣稱官方程度。'},{role:'user',content:JSON.stringify({count:input.count,unit})}],signal);
-     let value:any;try{value=parseObject(text)}catch{discardUsage();send({text,quiz:null,notice:'已返回快速文字；未保存無效題目欄位。'});return true}
-     if(!Array.isArray(value.items)||value.items.length!==input.count||value.items.some((q:any)=>!q||!unit.skills.some(s=>s.id===q.skillId)||['prompt','answer','explanation','hint','criterion'].some(k=>typeof q[k]!=='string'||!q[k].trim()||q[k].length>6000)||q.passage!==undefined&&(typeof q.passage!=='string'||q.passage.length>12000))){discardUsage();send({text,quiz:null,notice:'已返回快速文字；未保存無效題目欄位。'});return true}
-     items=value.items.map((q:any)=>({...q,id:crypto.randomUUID(),family:q.prompt.toLowerCase().replace(/\d+|\s+/g,'#'),kind:'short'}));attempts=1;
+    const result=await generateAssessment(input.skillId?{...unit,skills:unit.skills.filter(s=>s.id===input.skillId)}:unit,aiCount,m=>generate(config,m,signal),[...practiceState(data).items.map(i=>i.prompt),...teacherItems.map(i=>i.prompt)],adaptive);
+    items=[...teacherItems,...result.items];attempts=result.attempts;trace=result.trace;
+   }else{
+    if(input.source!=='ai')items=fixedItems(unit,input.count,input.skillId,seenStudioFamilies(data,input.skillId),data.profile.teachingLanguage==='en');
+    if(input.source==='auto'&&input.skillId){
+     const seen=new Set(practiceState(data).items.map(i=>i.prompt+'\n'+i.answer));items=[];
+     for(let tries=0;tries<200&&items.length<input.count;tries++)for(const item of fixedItems(unit,input.count,input.skillId,Array(studioAttemptCount(data)+tries).fill('seen'),data.profile.teachingLanguage==='en')){const key=item.prompt+'\n'+item.answer;if(!seen.has(key)){seen.add(key);items.push(item);if(items.length===input.count)break;}}
+    }
+    if(input.source==='ai'||items.length!==input.count){
+     await billing.requireFeature(identity,'ai-quizzes');
+     resolvedSource='ai';
+     const config=await store.model()??reject('請開發者先配置模型；目前可使用固定練習。',503,'MODEL_NOT_CONFIGURED');
+     if(input.purpose==='assessment'){const result=await generateAssessment(input.skillId?{...unit,skills:unit.skills.filter(s=>s.id===input.skillId)}:unit,input.count,m=>generate(config,m,signal),practiceState(data).items.map(i=>i.prompt),adaptive);items=result.items;attempts=result.attempts;trace=result.trace}
+     else {
+      // Fast exercises have one model call, local shape checks, and no repair loop.
+      const adaptiveNote=adaptive?' 如提供 internalTargeting，請按 prioritySkills 權重與 difficultyTier 調整出題重點，並針對 errorPatterns 設易錯位；嚴禁在題目、提示或解析中透露「系統偵測到你的弱項」或過往分數，保持自然出題。':'';
+      const payload=adaptive?{count:input.count,unit,internalTargeting:adaptive}:{count:input.count,unit};
+      const text=await generate(config,[{role:'system',content:`生成原創隨堂短答練習，只回JSON {"items":[{"skillId":"指定技能ID","prompt":"題目","answer":"參考要點","explanation":"簡短解釋","hint":"提示","criterion":"評價依據"}]}。可加passage供閱讀。接受合理不同答案，不宣稱官方程度。${adaptiveNote}`},{role:'user',content:JSON.stringify(payload)}],signal);
+      let value:any;try{value=parseObject(text)}catch{discardUsage();send({text,quiz:null,notice:'已返回快速文字；未保存無效題目欄位。'});return true}
+      if(!Array.isArray(value.items)||value.items.length!==input.count||value.items.some((q:any)=>!q||!unit.skills.some(s=>s.id===q.skillId)||['prompt','answer','explanation','hint','criterion'].some(k=>typeof q[k]!=='string'||!q[k].trim()||q[k].length>6000)||q.passage!==undefined&&(typeof q.passage!=='string'||q.passage.length>12000))){discardUsage();send({text,quiz:null,notice:'已返回快速文字；未保存無效題目欄位。'});return true}
+      items=value.items.map((q:any)=>({...q,id:crypto.randomUUID(),family:q.prompt.toLowerCase().replace(/\d+|\s+/g,'#'),kind:'short'}));attempts=1;
+     }
     }
    }
    if(signal.aborted)reject('已取消生成',409);
-   const result=await change(current=>{const existing=studioState(current).quizzes.find(q=>q.requestId===input.requestId);if(existing)return publicStudyQuiz(existing,studioState(current));const q:StudyQuiz={id:crypto.randomUUID(),requestId:input.requestId,title:`${unit.title} · ${input.purpose==='assessment'?'獨立小測':'隨堂練習'}`,subjectId:unit.subjectId,topicId:unit.topicId,purpose:input.purpose,source:resolvedSource,skillId:input.skillId,retest:!!input.retest,reviewId:input.reviewId,createdAt:new Date().toISOString(),generationAttempts:attempts,generationTrace:trace,items,hintedIds:[],answers:{},answerRevision:0};studioState(current).quizzes.unshift(q);if(unit.subjectId==='maths')items.forEach((item,index)=>registerQuestion(current,item,{kind:'pack',quizId:q.id,ordinal:index+1,version:1}));return publicStudyQuiz(q,studioState(current))});send(result,201);return true;
+   const quizLabel=resolvedSource==='hybrid'?'AI＋導師混合測驗':input.purpose==='assessment'?'獨立小測':'隨堂練習';
+   const result=await change(current=>{const existing=studioState(current).quizzes.find(q=>q.requestId===input.requestId);if(existing)return publicStudyQuiz(existing,studioState(current));const q:StudyQuiz={id:crypto.randomUUID(),requestId:input.requestId,title:`${unit.title} · ${quizLabel}`,subjectId:unit.subjectId,topicId:unit.topicId,purpose:input.purpose,source:resolvedSource,skillId:input.skillId,retest:!!input.retest,reviewId:input.reviewId,createdAt:new Date().toISOString(),generationAttempts:attempts,generationTrace:trace,items,hintedIds:[],answers:{},answerRevision:0};studioState(current).quizzes.unshift(q);if(unit.subjectId==='maths')items.forEach((item,index)=>registerQuestion(current,item,{kind:'pack',quizId:q.id,ordinal:index+1,version:1}));return publicStudyQuiz(q,studioState(current))});send(result,201);return true;
   }finally{active.delete(identity.id)}
  }
  const match=path.match(/^\/studio\/quizzes\/([^/]+)(?:\/(answers|hint|submit))?$/);
@@ -87,13 +106,14 @@ export async function handleStudio(store:Store,identity:Identity,path:string,met
    try{
     const data=await store.state(identity.id),snapshot=find(data,id);if(snapshot.submittedAt){send(publicStudyQuiz(snapshot,studioState(data)));return true}
     const revision=snapshot.answerRevision,feedback=await grade(store,snapshot,signal,data.profile.teachingLanguage==='en');if(signal.aborted)reject('已取消；作答仍已保存',409);
-    send(await change(current=>{const q=find(current,id),s=studioState(current);if(q.submittedAt)return publicStudyQuiz(q,s);if(q.answerRevision!==revision)reject('答案已改變，請重新提交',409,'STALE_STATE');
+    const canWeakAlert=await billing.hasFeature(identity,'weak-spot-report');
+    send(await change(current=>{const q=find(current,id),s=studioState(current);if(q.submittedAt)return {...publicStudyQuiz(q,s),...(canWeakAlert?{weakSpotAlert:detectWeakSpotAlert(current)}:{})};if(q.answerRevision!==revision)reject('答案已改變，請重新提交',409,'STALE_STATE');
      for(const item of q.items){const a=q.answers[item.id]??{value:'',steps:''},seen=hasSeenAttemptFamily(current,item.family);
       const linked=practiceState(current).items.find(i=>i.id===item.id);
       if(linked){const record=putAttempt(current,linked,`${q.id}:${item.id}`,a.value,a.steps,feedback.get(item.id));record.feedback=feedback.get(item.id)??record.feedback;record.independent=record.independent&&q.purpose==='assessment'&&!q.hintedIds.includes(item.id);if(a.value.trim()||a.steps.trim())queueReview(current,item.skillId,item.id);assistQuestion(current,item.id,'feedback');}
       else {const record:StudyAttempt={id:crypto.randomUUID(),requestId:`${q.id}:${item.id}`,quizId:q.id,itemId:item.id,family:item.family,subjectId:q.subjectId,topicId:q.topicId,skillId:item.skillId,at:new Date().toISOString(),answer:a.value,steps:a.steps,independent:q.purpose==='assessment'&&!q.hintedIds.includes(item.id)&&!seen,hinted:q.hintedIds.includes(item.id),feedback:feedback.get(item.id)??unavailable('尚無可用評價'),disputed:false,corrections:[]};appendStudioAttempt(current,record);}
      }
-     if(q.reviewId&&q.items.every(i=>q.answers[i.id]?.value.trim()))completeSkillReview(current,q.reviewId);q.submittedAt=new Date().toISOString();if(Object.values(q.answers).some(a=>a.value.trim()||a.steps.trim()))recordLearning(current,q.topicId,q.title,'quiz',Math.min(20,q.items.length*2),'/studio?quiz='+q.id);return publicStudyQuiz(q,s);
+     if(q.reviewId&&q.items.every(i=>q.answers[i.id]?.value.trim()))completeSkillReview(current,q.reviewId);q.submittedAt=new Date().toISOString();if(Object.values(q.answers).some(a=>a.value.trim()||a.steps.trim()))recordLearning(current,q.topicId,q.title,'quiz',Math.min(20,q.items.length*2),'/studio?quiz='+q.id);return {...publicStudyQuiz(q,s),...(canWeakAlert?{weakSpotAlert:detectWeakSpotAlert(current)}:{})};
     }));return true;
    }finally{active.delete(identity.id)}
   }

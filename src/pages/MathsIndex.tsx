@@ -1,7 +1,10 @@
 import { ui, useInterfaceLanguage } from "../i18n";
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Badge, Empty, Icon, NetworkError, PageHeading, Skeleton, Tabs } from '../components';
+import { Badge, Empty, Icon, NetworkError, PageHeading, PlanGate, Skeleton, Tabs } from '../components';
+import { useApp } from '../state';
+import { realMode } from '../api/client';
+import { hasPlanFeature } from '../billing-types';
 interface Source {
     id: string;
     name: string;
@@ -52,14 +55,18 @@ interface MathsIndex {
 }
 export function MathsIndexPage() {
     useInterfaceLanguage();
+    const { db, billing } = useApp();
+    const canAccess = !realMode || hasPlanFeature(billing?.account.plan, 'maths-index', db.pilot?.identity.role);
     const [data, setData] = useState<MathsIndex | null>(null), [error, setError] = useState(''), [attempt, setAttempt] = useState(0);
     const [mode, setMode] = useState('questions'), [source, setSource] = useState('all'), [topic, setTopic] = useState('all'), [difficulty, setDifficulty] = useState('all'), [year, setYear] = useState('all'), [query, setQuery] = useState(''), [page, setPage] = useState(1);
-    useEffect(() => { const controller = new AbortController(); setError(''); fetch('/data/maths-source-index.json', { signal: controller.signal }).then(async (r) => { if (!r.ok)
+    useEffect(() => { if (!canAccess) return; const controller = new AbortController(); setError(''); fetch('/data/maths-source-index.json', { signal: controller.signal }).then(async (r) => { if (!r.ok)
         throw new Error('題目索引暫時未能讀取'); const result = await r.json(); if (result.schemaVersion !== 1 || !Array.isArray(result.questions) || !Array.isArray(result.collections))
         throw new Error('題目索引格式需要更新'); setData(result); }).catch(e => { if (e.name !== 'AbortError')
-        setError(e.message); }); return () => controller.abort(); }, [attempt]);
+        setError(e.message); }); return () => controller.abort(); }, [attempt, canAccess]);
     useEffect(() => setPage(1), [mode, source, topic, difficulty, year, query]);
     const topics = useMemo(() => [...new Set([...(data?.questions ?? []), ...(data?.collections ?? [])].map(q => q.topic))].sort((a, b) => a.localeCompare(b, 'zh-Hant')), [data]);
+    if (!canAccess)
+        return <div className="page-enter maths-index"><PageHeading title={ui("數學題目，按課題慢慢找。")} description={ui("按知識點、年份與來源篩選 580+ 道 DSE 數學卷二與樣本題目元資料。")} action={<Link className="btn secondary" to="/resources"><Icon name="folder" size={16}/>{ui("返回基礎學習資源")}</Link>}/><PlanGate requiredPlan="Plus" title="數學 By Topic 題目索引為 Plus 以上功能" description="升級至 Plus 即可按知識點、年份與來源篩選全部數學 By Topic 索引及課題文件，同時開放全部 AI 模型、AI 專題測驗與 AI 學習計劃。"/></div>;
     const filteredQuestions = (data?.questions ?? []).filter(q => (source === 'all' || q.sourceId === source) && (topic === 'all' || q.topic === topic) && (year === 'all' || String(q.year) === year) && (difficulty === 'all' || q.sourceDifficultyLabels.includes(difficulty) || q.publisherTargetLevel === difficulty) && `${q.id} ${ui(q.topic)} ${q.knowledgePoints?.join(' ') ?? ''}`.toLowerCase().includes(query.toLowerCase()));
     const filteredCollections = (data?.collections ?? []).filter(c => (source === 'all' || c.sourceId === source) && (topic === 'all' || c.topic === topic) && (difficulty === 'all' || difficulty === '待標註') && (year === 'all' || (Number(year) >= c.yearRange[0] && Number(year) <= c.yearRange[1])) && `${ui(c.topic)} ${ui(c.sourceTopicLabel)} ${c.paper} ${ui(c.language)}`.toLowerCase().includes(query.toLowerCase()));
     const count = mode === 'questions' ? filteredQuestions.length : filteredCollections.length, totalPages = Math.max(1, Math.ceil(count / 24)), currentPage = Math.min(page, totalPages), offset = (currentPage - 1) * 24;

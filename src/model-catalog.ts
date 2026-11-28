@@ -20,9 +20,16 @@ export function modelDisplayName(id: string) {
   return stripped || id;
 }
 
+// Two-tier model access: Free is restricted to lightweight models (lite / mini / haiku / nano / small);
+// Plus and Pro have full access to all enabled AI models.
+export function isLiteModel(id: string): boolean {
+  const name = modelDisplayName(id).toLowerCase();
+  return /(?:^|[-._/])(lite|mini|nano|haiku|small|tiny)(?:$|[-._/])/.test(name) || name.includes('lite');
+}
+
 export function defaultModelCredits(id: string) {
   const lower = id.toLowerCase();
-  return lower.includes('lite') ? 2 : (lower.includes('argon') || lower.includes('hydrogen') || lower.includes('pro')) ? 20 : 5;
+  return isLiteModel(id) ? 2 : (lower.includes('argon') || lower.includes('hydrogen') || lower.includes('pro')) ? 20 : 5;
 }
 
 // Enforced again immediately before any provider generation, including admin tests.
@@ -48,10 +55,19 @@ export function mergeDiscoveredModels<T extends {
       added++;
     }
     if (enableAll) {
-      for (const plan of ['Free', 'Plus', 'Pro'] as const) {
+      // Free receives lightweight models automatically; Plus & Pro receive all enabled models.
+      const targets: readonly ('Free' | 'Plus' | 'Pro')[] = isLiteModel(id)
+        ? ['Free', 'Plus', 'Pro']
+        : ['Plus', 'Pro'];
+      for (const plan of targets) {
         if (!policy.plans[plan].models.includes(id)) policy.plans[plan].models.push(id);
       }
     }
+  }
+  // Ensure Free still has at least one enabled model (preferring lite, otherwise cheapest enabled).
+  if (enableAll && !policy.plans.Free.models.some(m => policy.models[m]?.enabled) && validIds.length > 0) {
+    const cheapest = [...validIds].sort((a, b) => (policy.models[a]?.credits ?? 5) - (policy.models[b]?.credits ?? 5))[0];
+    if (cheapest) policy.plans.Free.models.push(cheapest);
   }
   let updatedDefaults = false;
   if (enableAll && validIds.length > 0) {
@@ -66,15 +82,18 @@ export function mergeDiscoveredModels<T extends {
       }
       for (const plan of ['Free', 'Plus', 'Pro'] as const) {
         const rule = policy.plans[plan];
-        if (!rule.defaultModel || !idSet.has(rule.defaultModel) || !policy.models[rule.defaultModel]?.enabled) {
-          rule.defaultModel = chosen;
+        const planChosen = rule.models.includes(chosen)
+          ? chosen
+          : rule.models.find(m => idSet.has(m) && policy.models[m]?.enabled) ?? rule.models.find(m => policy.models[m]?.enabled) ?? chosen;
+        if (!rule.defaultModel || !idSet.has(rule.defaultModel) || !policy.models[rule.defaultModel]?.enabled || !rule.models.includes(rule.defaultModel)) {
+          rule.defaultModel = planChosen;
           updatedDefaults = true;
         }
         if (rule.defaultModels) {
           for (const purpose of modelPurposes) {
             const cur = rule.defaultModels[purpose];
-            if (!cur || !idSet.has(cur) || !policy.models[cur]?.enabled) {
-              rule.defaultModels[purpose] = chosen;
+            if (!cur || !idSet.has(cur) || !policy.models[cur]?.enabled || !rule.models.includes(cur)) {
+              rule.defaultModels[purpose] = planChosen;
               updatedDefaults = true;
             }
           }
@@ -97,8 +116,10 @@ export function setGlobalDefaultModel<T extends {
   policy.reviewModel = id;
   for (const plan of ['Free', 'Plus', 'Pro'] as const) {
     const rule = policy.plans[plan];
-    rule.defaultModel = id;
-    rule.defaultModels = { quiz: id, chat: id, evaluation: id };
+    const target = rule.models.includes(id) ? id : (rule.models.find(m => policy.models[m]?.enabled) ?? id);
+    if (!rule.models.includes(target)) rule.models.push(target);
+    rule.defaultModel = target;
+    rule.defaultModels = { quiz: target, chat: target, evaluation: target };
   }
   return policy;
 }

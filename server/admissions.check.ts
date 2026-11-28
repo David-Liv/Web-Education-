@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createPilot } from './app.ts';
+import { Billing } from './billing.ts';
 import { programmes } from '../src/data/programmes.ts';
 import { programmeComparison } from '../src/admissions.ts';
 
@@ -24,6 +25,9 @@ test('administrator help is protected for both display and download; student com
   const profile=(await app.store.state(users.student.id)).profile;assert.deepEqual(comparison.data[0],programmeComparison(programmes.find(p=>p.id==='JS1000')!,profile,programmes));
   assert.deepEqual((await call('/programmes/compare','other')).data,[]);
   assert.equal(Number((await app.store.db.prepare('SELECT COUNT(*) AS n FROM credit_operations').get())!.n),0);
+  // Free student is gated from AI study plan preview until upgraded to Plus.
+  assert.equal((await call('/plans/preview','student','POST',{})).r.status,403);
+  await new Billing(app.store).adminAccount(users.owner.id,users.student.id,'Plus');
   const preview=await call('/plans/preview','student','POST',{});assert.equal(preview.r.status,200,preview.text);assert.equal(preview.data.programmeId,'JS1000');
   await call('/profile','student','PATCH',{primaryProgramme:'JS1001'});
   const stale=await call('/plans/apply','student','POST',{previewId:preview.data.previewId});assert.equal(stale.r.status,409);

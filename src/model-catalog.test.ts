@@ -24,7 +24,7 @@ describe('model identity and display', () => {
       expect(isAllowedModel(id)).toBe(false);
     }
   });
-  it('batch-adds discovered models with default credits, enables them across plans, and updates stale defaults', () => {
+  it('batch-adds discovered models with default credits, applies two-tier plan access (Free = lite only; Plus/Pro = all), and updates stale defaults', () => {
     const base: {
       models: Record<string, { credits: number; enabled: boolean }>;
       plans: Record<'Free' | 'Plus' | 'Pro', { models: string[]; defaultModel?: string; defaultModels?: Record<'quiz' | 'chat' | 'evaluation', string> }>;
@@ -38,17 +38,23 @@ describe('model identity and display', () => {
       },
       reviewModel: 'pggo-抗截断-gemini-3.8-flash',
     };
-    const { policy, added, updatedDefaults } = mergeDiscoveredModels(base, ['gemini-4-hydrogen', 'pg-抗截断-gemini-3.8-flash'], true, 'gemini-4-hydrogen');
-    expect(added).toBe(2);
+    const { policy, added, updatedDefaults } = mergeDiscoveredModels(base, ['gemini-4-hydrogen', 'pg-抗截断-gemini-3.8-flash', 'pg-gemini-3.6-flash-lite'], true, 'gemini-4-hydrogen');
+    expect(added).toBe(3);
     expect(updatedDefaults).toBe(true);
     expect(policy.models['gemini-4-hydrogen']).toEqual({ credits: 20, enabled: true });
     expect(policy.models['pg-抗截断-gemini-3.8-flash']).toEqual({ credits: 5, enabled: true });
-    expect(policy.plans.Free.models).toContain('gemini-4-hydrogen');
+    expect(policy.models['pg-gemini-3.6-flash-lite']).toEqual({ credits: 2, enabled: true });
+    expect(policy.plans.Free.models).not.toContain('gemini-4-hydrogen');
+    expect(policy.plans.Free.models).not.toContain('pg-抗截断-gemini-3.8-flash');
+    expect(policy.plans.Free.models).toContain('pg-gemini-3.6-flash-lite');
+    expect(policy.plans.Plus.models).toContain('gemini-4-hydrogen');
     expect(policy.plans.Pro.models).toContain('pg-抗截断-gemini-3.8-flash');
     expect(policy.reviewModel).toBe('gemini-4-hydrogen');
-    expect(policy.plans.Free.defaultModel).toBe('gemini-4-hydrogen');
+    expect(policy.plans.Free.defaultModel).toBe('pg-gemini-3.6-flash-lite');
+    expect(policy.plans.Plus.defaultModel).toBe('gemini-4-hydrogen');
     const explicit = setGlobalDefaultModel(policy, 'pg-抗截断-gemini-3.8-flash');
     expect(explicit.reviewModel).toBe('pg-抗截断-gemini-3.8-flash');
+    expect(explicit.plans.Free.defaultModel).toBe('pggo-抗截断-gemini-3.5-flash-lite');
     expect(explicit.plans.Pro.defaultModels).toEqual({ quiz: 'pg-抗截断-gemini-3.8-flash', chat: 'pg-抗截断-gemini-3.8-flash', evaluation: 'pg-抗截断-gemini-3.8-flash' });
   });
 });

@@ -53,28 +53,133 @@ const CONFIG_KEY = 'auth-mail:config';
 const USER_EMAIL_PREFIX = 'auth-mail:user:';
 const EMAIL_INDEX_PREFIX = 'auth-mail:email:';
 const OTP_PREFIX = 'auth-mail:otp:';
+const REG_IP_PREFIX = 'auth-mail:reg-ip:';
 
 const OTP_COOLDOWN_MS = 60_000;
 const OTP_TTL_MS = 10 * 60_000;
 const OTP_WINDOW_MS = 60 * 60_000;
 const OTP_MAX_PER_HOUR = 5;
 const OTP_MAX_ATTEMPTS = 5;
+const IP_REG_WINDOW_MS = 24 * 60 * 60_000;
+const IP_REG_LIMIT_OPEN = 3;
+const IP_REG_LIMIT_PASSCODE = 40;
 
 const DISPOSABLE_DOMAINS = new Set([
   '10minutemail.com',
-  'tempmail.com',
-  'temp-mail.org',
-  'guerrillamail.com',
-  'mailinator.com',
-  'yopmail.com',
-  'sharklasers.com',
-  'trashmail.com',
-  'getnada.com',
-  'maildrop.cc',
+  '10minutemail.net',
+  '10minutemail.org',
+  '10minmail.com',
+  '20minutemail.com',
+  '33mail.com',
+  'anonbox.net',
+  'binkmail.com',
+  'burnermail.io',
+  'byom.de',
+  'cock.li',
+  'crazymailing.com',
+  'deadaddress.com',
+  'discard.email',
+  'discardmail.com',
+  'disposableemailaddresses.com',
   'dispostable.com',
-  'throwawaymail.com',
+  'dropmail.me',
+  'emailondeck.com',
+  'emailtemporanea.net',
+  'emkei.cz',
+  'fakemail.net',
+  'fakemailgenerator.com',
   'fakeinbox.com',
+  'filzmail.com',
+  'getairmail.com',
+  'getnada.com',
+  'grr.la',
+  'guerrillamail.biz',
+  'guerrillamail.com',
+  'guerrillamail.de',
+  'guerrillamail.info',
+  'guerrillamail.net',
+  'guerrillamail.org',
+  'guerrillamailblock.com',
+  'harakirimail.com',
+  'hidemail.de',
+  'inboxbear.com',
+  'inboxkitten.com',
+  'incognitomail.org',
+  'jetable.org',
+  'klzlk.com',
+  'linshi-email.com',
+  'mail-temporaire.fr',
+  'mailcatch.com',
+  'maildrop.cc',
+  'mailexpire.com',
+  'mailforspam.com',
+  'mailfreeonline.com',
+  'mailimate.com',
+  'mailinator.com',
+  'mailinator.net',
+  'mailinator2.com',
+  'mailnesia.com',
+  'mailnull.com',
+  'mailsac.com',
+  'mailtemp.info',
+  'mailtothis.com',
+  'meltmail.com',
+  'mintemail.com',
+  'moakt.com',
+  'moakt.ws',
   'mohmal.com',
+  'mt2015.com',
+  'my10minutemail.com',
+  'mytemp.email',
+  'nada.email',
+  'nada.ltd',
+  'nervmich.net',
+  'nowmymail.com',
+  'objectmail.com',
+  'one-time.email',
+  'pokemail.net',
+  'proxymail.eu',
+  'putthisinyourspamdatabase.com',
+  'sharklasers.com',
+  'shieldemail.com',
+  'shitmail.me',
+  'snapmail.cc',
+  'spam4.me',
+  'spambox.us',
+  'spamex.com',
+  'spamgourmet.com',
+  'spaml.de',
+  'temp-mail.io',
+  'temp-mail.org',
+  'temp-mail.ru',
+  'tempail.com',
+  'tempalias.com',
+  'tempe-mail.com',
+  'tempemail.co.za',
+  'tempemail.net',
+  'tempinbox.com',
+  'tempmail.com',
+  'tempmail.de',
+  'tempmail.net',
+  'tempmail.plus',
+  'tempmailaddress.com',
+  'tempmailo.com',
+  'tempr.email',
+  'throwaway.email',
+  'throwawaymail.com',
+  'tmpmail.net',
+  'tmpmail.org',
+  'trash-mail.at',
+  'trashmail.com',
+  'trashmail.de',
+  'trashmail.io',
+  'trashmail.me',
+  'trashmail.net',
+  'wegwerfmail.de',
+  'wegwerfmail.net',
+  'yopmail.com',
+  'yopmail.fr',
+  'yopmail.net',
 ]);
 
 export const GAS_WEBHOOK_TEMPLATE = `// Google Apps Script (script.google.com) — 學序 HOKSE 電郵驗證碼發信服務
@@ -144,8 +249,16 @@ export function normalizeEmail(raw: unknown): { email: string; normalized: strin
   }
   const plusIndex = local.indexOf('+');
   const baseLocal = plusIndex >= 0 ? local.slice(0, plusIndex) : local;
-  const canonicalDomain = domain === 'googlemail.com' ? 'gmail.com' : domain;
-  const canonicalLocal = canonicalDomain === 'gmail.com' ? baseLocal.replaceAll('.', '') : baseLocal;
+  const canonicalDomain =
+    domain === 'googlemail.com' ? 'gmail.com'
+      : domain === 'protonmail.com' || domain === 'pm.me' ? 'proton.me'
+      : domain === 'me.com' || domain === 'mac.com' ? 'icloud.com'
+      : domain;
+  const canonicalLocal =
+    canonicalDomain === 'gmail.com' ? baseLocal.replaceAll('.', '')
+      : (canonicalDomain === 'yahoo.com' || canonicalDomain === 'yahoo.com.hk') && baseLocal.includes('-')
+        ? baseLocal.slice(0, baseLocal.indexOf('-'))
+      : baseLocal;
   if (!canonicalLocal) reject('請填寫有效的電郵地址');
   return { email: clean, normalized: `${canonicalLocal}@${canonicalDomain}` };
 }
@@ -352,6 +465,35 @@ function checkRateLimit(
   attempts.set(key, { n: rate && rate.until > Date.now() ? rate.n + 1 : 1, until: Date.now() + 600_000 });
 }
 
+async function readRegistrationIpTimestamps(store: Store, ip: string, now = Date.now()): Promise<number[]> {
+  const key = REG_IP_PREFIX + sha256(ip || 'unknown');
+  const row = await store.db.prepare('SELECT body FROM settings WHERE id=?').get(key);
+  if (!row) return [];
+  try {
+    const list = JSON.parse(store.decrypt(row.body)) as number[];
+    return Array.isArray(list) ? list.filter(t => typeof t === 'number' && now - t < IP_REG_WINDOW_MS) : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function checkRegistrationIpQuota(store: Store, ip: string, mode: RegistrationMode, now = Date.now()) {
+  const limit = mode === 'passcode' ? IP_REG_LIMIT_PASSCODE : IP_REG_LIMIT_OPEN;
+  const recent = await readRegistrationIpTimestamps(store, ip, now);
+  if (recent.length >= limit) {
+    reject('此網絡 24 小時內建立的新帳戶數量已達上限，請稍後再試或改用班級通行碼', 429, 'REGISTRATION_IP_LIMIT');
+  }
+}
+
+export async function recordRegistrationIp(store: Store, ip: string, now = Date.now()) {
+  const key = REG_IP_PREFIX + sha256(ip || 'unknown');
+  const recent = await readRegistrationIpTimestamps(store, ip, now);
+  recent.push(now);
+  await store.db
+    .prepare('INSERT INTO settings VALUES(?,?) ON CONFLICT(id) DO UPDATE SET body=excluded.body')
+    .run(key, store.encrypt(JSON.stringify(recent.slice(-IP_REG_LIMIT_PASSCODE))));
+}
+
 export async function handlePublicAuthMailRoutes(
   store: Store,
   path: string,
@@ -365,6 +507,7 @@ export async function handlePublicAuthMailRoutes(
   if (path === '/auth/register/code' && method === 'POST') {
     checkRateLimit(attempts, `${ip}:register-code`, 15);
     const config = verifyRegistrationAccess(await getAuthMailConfig(store), input.passcode);
+    await checkRegistrationIpQuota(store, ip, config.mode);
     const { email, normalized } = normalizeEmail(input.email);
     if (await findUserByEmail(store, normalized)) {
       reject('此電郵已綁定現有帳戶，請直接登入或使用忘記密碼', 409, 'EMAIL_TAKEN');
@@ -379,7 +522,8 @@ export async function handlePublicAuthMailRoutes(
     const name = String(input.name ?? '').trim();
     const password = String(input.password ?? '');
     checkRateLimit(attempts, `${ip}:register:${username || 'anon'}`, 12);
-    verifyRegistrationAccess(await getAuthMailConfig(store), input.passcode);
+    const config = verifyRegistrationAccess(await getAuthMailConfig(store), input.passcode);
+    await checkRegistrationIpQuota(store, ip, config.mode);
     if (!/^[a-z0-9_.-]{2,40}$/.test(username) || !name || name.length > 30 || password.length < 10 || password.length > 200) {
       reject('帳戶需 2–40 個英數字元、顯示名字 1–30 字，且密碼至少 10 字元');
     }
@@ -397,6 +541,7 @@ export async function handlePublicAuthMailRoutes(
       }
       const created = await store.createUser(username, password, name.slice(0, 30), 'student');
       await bindUserEmail(store, created.id, email, normalized);
+      await recordRegistrationIp(store, ip);
       return created;
     });
     if (input.acceptTermsVersion) {

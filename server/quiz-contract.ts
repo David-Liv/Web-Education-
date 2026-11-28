@@ -1,6 +1,7 @@
 import {assessmentMath} from './quadratic-practice.ts';
 import { createHash } from 'node:crypto';
 import type { StudyFeedback, StudyItem, StudioUnit } from '../src/studio-types.ts';
+import type { AdaptiveQuizProfile } from './studio-state.ts';
 export const QUIZ_CONTRACT={version:'learning-contract-v2',maxAttempts:3,maxItems:5,maxChars:30000,itemFields:['skillId','kind','prompt','passage','options','answer','explanation','hint','criterion','check']} as const;
 export type Issue={code:string;path:string;message:string};
 export function parseObject(text:string):any {return JSON.parse(text.trim().replace(/^```(?:json)?\s*/,'').replace(/\s*```$/,''))}
@@ -47,8 +48,10 @@ export function validateQuiz(text:string,unit:StudioUnit,count:number):{items:St
   items.push({...q,...(rebuilt??{}),id:crypto.randomUUID(),family:rebuilt?.family??family,prompt,explanation:rebuilt?.explanation??q.explanation});
  });return {items:issues.length?[]:items,issues};
 }
-export async function generateAssessment(unit:StudioUnit,count:number,call:(messages:{role:string;content:string}[])=>Promise<string>,excluded:string[]=[]){
- const messages=[{role:'system',content:`只回JSON，格式為{"contractVersion":"${QUIZ_CONTRACT.version}","items":[{"skillId":"本次技能ID","kind":"choice|numeric|short","prompt":"題目","answer":"選項字母或數值或參考要點","explanation":"解析","hint":"提示","criterion":"評價依據"}]}。選擇題另帶options文字陣列，閱讀題附原創passage。數學只用本次指定的技能，生成二次方程數值題，另帶check:{a:整數,b:整數,c:整數,root:"larger|smaller"}，求根題保證有實根；factor須可因式分解；standard求b，discriminant求D，parameter把常數項換k並求二重實根的k，model取a=1,b>0,c<0且可分解的長方形面積題。用係數計算答案。數學題干由代碼依係數生成。不得聲稱歷屆原題或官方等級。`},{role:'user',content:JSON.stringify({count,unit})}];
+export async function generateAssessment(unit:StudioUnit,count:number,call:(messages:{role:string;content:string}[])=>Promise<string>,excluded:string[]=[],adaptive?:AdaptiveQuizProfile|null){
+ const adaptiveNote=adaptive?' 如提供 internalTargeting，請按 prioritySkills 權重優先分配題目（高權重優先，同時保持合理覆蓋）、依 difficultyTier 調整數字與推導複雜度（foundation 較簡潔直觀，standard 平衡，stretch 增加係數變化與多步條件），並針對 errorPatterns 設計易錯檢核點；internalTargeting 僅供內部出題分配與難度校準，嚴禁在 prompt、passage、hint、explanation 或 criterion 中提及「系統偵測到你的弱項」「根據你的過往表現／分數」等字眼，保持自然出題。':'';
+ const payload=adaptive?{count,unit,internalTargeting:adaptive}:{count,unit};
+ const messages=[{role:'system',content:`只回JSON，格式為{"contractVersion":"${QUIZ_CONTRACT.version}","items":[{"skillId":"本次技能ID","kind":"choice|numeric|short","prompt":"題目","answer":"選項字母或數值或參考要點","explanation":"解析","hint":"提示","criterion":"評價依據"}]}。選擇題另帶options文字陣列，閱讀題附原創passage。數學只用本次指定的技能，生成二次方程數值題，另帶check:{a:整數,b:整數,c:整數,root:"larger|smaller"}，求根題保證有實根；factor須可因式分解；standard求b，discriminant求D，parameter把常數項換k並求二重實根的k，model取a=1,b>0,c<0且可分解的長方形面積題。用係數計算答案。數學題干由代碼依係數生成。不得聲稱歷屆原題或官方等級。${adaptiveNote}`},{role:'user',content:JSON.stringify(payload)}];
  const canonical=(s:string)=>s.toLowerCase().replace(/\s/g,''),seen=new Set(excluded.map(canonical));
  const trace:{attempt:number;issues:Issue[]}[]=[];
  for(let attempt=1;attempt<=QUIZ_CONTRACT.maxAttempts;attempt++){

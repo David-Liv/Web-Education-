@@ -2,12 +2,16 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 import { createHash } from 'node:crypto';
 import type { Store, ModelConfig } from './store.ts';
 import type { Identity } from '../src/pilot-types.ts';
-import type { BillingPolicy, BillingAccount, BillingOrder, BillingView, PlanId, CreditUsage, UsageLog, TokenUsage } from '../src/billing-types.ts';
+import { BILLING_CYCLE_DAYS, FEATURE_MIN_PLAN, FREE_WEEKLY_DEFAULT, hasPlanFeature } from '../src/billing-types.ts';
+import type { BillingPolicy, BillingAccount, BillingOrder, BillingView, PlanFeature, PlanId, CreditUsage, UsageLog, TokenUsage } from '../src/billing-types.ts';
 import { reject } from './learning.ts';
-import { isAllowedModel, modelDisplayName, modelPurposes } from '../src/model-catalog.ts';
+import { isAllowedModel, isLiteModel, modelDisplayName, modelPurposes } from '../src/model-catalog.ts';
 import type { ModelPurpose } from '../src/model-catalog.ts';
 
 const plans: PlanId[] = ['Free', 'Plus', 'Pro'];
+const CURRENT_POLICY_SCHEMA = 2;
+const CYCLE_MS = BILLING_CYCLE_DAYS * 86400000;
+const WEEK_MS = 7 * 86400000;
 export const defaults = ['pggo-抗截断-gemini-3.5-flash-lite', 'pggo-抗截断-gemini-3.8-flash', 'pggo-抗截断-gemini-4-argon'];
 const hash = (value: string) => createHash('sha256').update(value).digest('hex');
 export function hkPeriod(now = new Date()) { return new Date(now.getTime() + 8 * 3600000).toISOString().slice(0, 7); }
@@ -16,8 +20,18 @@ const emptyTokens = (): TokenUsage => ({ input: null, output: null, total: null 
 export function initialPolicy(): BillingPolicy {
   const models: BillingPolicy['models'] = {};
   for (const suffix of ['gemini-3.5-flash-lite', 'gemini-3.1-flash-lite', 'gemini-3.8-flash', 'gemini-3-flash-preview', 'gemini-4-argon']) models['pggo-抗截断-' + suffix] = { credits: suffix.includes('lite') ? 2 : suffix.includes('argon') ? 20 : 5, enabled: true };
-  const light = Object.keys(models).filter(id => !id.includes('argon'));
-  return { version: 1, models, plans: { Free: { price: 0, credits: 500, models: light, defaultModel: defaults[0] }, Plus: { price: 39, credits: 2000, models: light, defaultModel: defaults[1] }, Pro: { price: 79, credits: 5000, models: Object.keys(models), defaultModel: defaults[2] } } };
+  const all = Object.keys(models);
+  const lite = all.filter(isLiteModel);
+  return {
+    version: 1,
+    schemaVersion: CURRENT_POLICY_SCHEMA,
+    models,
+    plans: {
+      Free: { price: 0, credits: 100, weeklyCredits: FREE_WEEKLY_DEFAULT, models: lite, defaultModel: defaults[0] },
+      Plus: { price: 39, credits: 2000, weeklyCredits: null, models: [...all], defaultModel: defaults[1] },
+      Pro: { price: 79, credits: 5000, weeklyCredits: null, models: [...all], defaultModel: defaults[2] },
+    },
+  };
 }
 const purposeModels = (model: string) => ({ quiz: model, chat: model, evaluation: model });
 const counterpart = (model: string) => 'pggo-抗截断-' + modelDisplayName(model);
@@ -27,29 +41,51 @@ export function requestModelPurpose(path: string, input: any): ModelPurpose {
   return 'chat'; // Chat, guided/quick exercises and plan explanations stay on the fast path.
 }
 export function isPlatformAiRoute(path: string): boolean { return path === '/admin/model/test' || /^\/learning\/attempts\/[^/]+\/appeal$/.test(path); }
-export function isBillableAiRoute(method: string, path: string, input: any): boolean { return method === 'POST' && (isPlatformAiRoute(path) || path === '/plans/explain' || /^\/wrong\/[^/]+\/analyse$/.test(path) || (path === '/studio/quizzes' && ['ai', 'auto'].includes(input?.source)) || /^\/studio\/quizzes\/[^/]+\/submit$/.test(path)); }
+export function isBillableAiRoute(method: string, path: string, input: any): boolean { return method === 'POST' && (isPlatformAiRoute(path) || path === '/plans/explain' || /^\/wrong\/[^/]+\/analyse$/.test(path) || (path === '/studio/quizzes' && ['ai', 'auto', 'hybrid'].includes(input?.source)) || /^\/studio\/quizzes\/[^/]+\/submit$/.test(path)); }
 function permitted(policy: BillingPolicy, plan: PlanId, model: string) {
   return isAllowedModel(model) && policy.plans[plan].models.includes(model) && !!policy.models[model]?.enabled;
 }
 function planDefault(policy: BillingPolicy, plan: PlanId, purpose: ModelPurpose) {
   return policy.plans[plan].defaultModels?.[purpose] ?? policy.plans[plan].defaultModel;
 }
-// Old JSON settings need no DDL migration. Preserve prices/quotas and historical ledgers.
+// Old JSON settings need no DDL migration. Preserve admin custom edits once migrated to schema v2.
 export function migrateModelPolicy(input: BillingPolicy): BillingPolicy {
   const p = structuredClone(input);
   p.reviewModel ??= defaults[1];
   p.models = Object.fromEntries(Object.entries(p.models).filter(([id]) => isAllowedModel(id)));
+  const enabledIds = Object.entries(p.models).filter(([, m]) => m.enabled).map(([id]) => id);
+  if ((p.schemaVersion ?? 1) < CURRENT_POLICY_SCHEMA) {
+    if (p.plans.Free.credits === 500) p.plans.Free.credits = 100;
+    if (p.plans.Free.weeklyCredits === undefined) p.plans.Free.weeklyCredits = FREE_WEEKLY_DEFAULT;
+    if (p.plans.Plus.weeklyCredits === undefined) p.plans.Plus.weeklyCredits = null;
+    if (p.plans.Pro.weeklyCredits === undefined) p.plans.Pro.weeklyCredits = null;
+    const liteEnabled = enabledIds.filter(isLiteModel);
+    if (liteEnabled.length > 0) {
+      p.plans.Free.models = p.plans.Free.models.filter(m => isLiteModel(m) && p.models[m]?.enabled);
+      if (!p.plans.Free.models.length) p.plans.Free.models = [...liteEnabled];
+    } else if (enabledIds.length > 0) {
+      const cheapest = [...enabledIds].sort((a, b) => (p.models[a]?.credits ?? 5) - (p.models[b]?.credits ?? 5))[0];
+      p.plans.Free.models = [cheapest];
+    }
+    p.plans.Plus.models = [...new Set([...p.plans.Plus.models, ...enabledIds])];
+    p.plans.Pro.models = [...new Set([...p.plans.Pro.models, ...enabledIds])];
+    p.schemaVersion = CURRENT_POLICY_SCHEMA;
+  }
   for (const id of plans) {
     const rule = p.plans[id];
     const resolve = (model: string) => p.models[model]?.enabled ? model : counterpart(model);
     rule.models = [...new Set(rule.models.map(resolve))].filter(m => isAllowedModel(m) && p.models[m]?.enabled);
+    if (!rule.models.length && enabledIds.length) {
+      const fallbackPool = id === 'Free' ? (enabledIds.filter(isLiteModel).length ? enabledIds.filter(isLiteModel) : enabledIds) : enabledIds;
+      rule.models = [fallbackPool[0]];
+    }
     const pick = (model: string) => {
       const m = resolve(model);
       return rule.models.includes(m) ? m : rule.models[0] ?? '';
     };
     rule.defaultModels = Object.fromEntries(modelPurposes.map(k => [k, pick(rule.defaultModels?.[k] ?? rule.defaultModel)])) as Record<ModelPurpose, string>;
     rule.defaultModel = rule.defaultModels.chat;
-    if (!isAllowedModel(p.reviewModel) || !p.models[p.reviewModel]?.enabled) { const fb = counterpart(p.reviewModel ?? ''); p.reviewModel = p.models[fb]?.enabled ? fb : Object.entries(p.models).find(([, m]) => m.enabled)?.[0] ?? defaults[1]; }
+    if (!isAllowedModel(p.reviewModel) || !p.models[p.reviewModel]?.enabled) { const fb = counterpart(p.reviewModel ?? ''); p.reviewModel = p.models[fb]?.enabled ? fb : enabledIds[0] ?? defaults[1]; }
   }
   return p;
 }
@@ -112,12 +148,40 @@ export class Billing {
   async policy(): Promise<BillingPolicy> { const row = await this.store.db.prepare("SELECT body FROM settings WHERE id='billing-policy'").get(); return migrateModelPolicy(row ? JSON.parse(row.body) : initialPolicy()); }
   private async audit(actor: string, action: string, before: unknown, after: unknown) { await this.store.db.prepare('INSERT INTO billing_audit VALUES(?,?,?,?)').run(crypto.randomUUID(), actor, this.now().toISOString(), JSON.stringify({ action, before, after })); }
   private async account(userId: string): Promise<BillingAccount> {
-    const stamp = this.now().toISOString(), period = hkPeriod(this.now());
-    const initial: BillingAccount = { plan: 'Free', period, renewal: true, pendingPlan: null, model: '', models: purposeModels(''), updatedAt: stamp };
+    const now = this.now(), stamp = now.toISOString(), cycleEnd = new Date(now.getTime() + CYCLE_MS).toISOString();
+    const initial: BillingAccount = { plan: 'Free', period: stamp, cycleStart: stamp, cycleEnd, carryover: 0, renewal: true, pendingPlan: null, model: '', models: purposeModels(''), updatedAt: stamp };
     await this.store.db.prepare('INSERT INTO billing_accounts VALUES(?,?) ON CONFLICT DO NOTHING').run(userId, JSON.stringify(initial));
     const row = await this.store.db.prepare('SELECT body FROM billing_accounts WHERE user_id=?' + (this.store.db.kind === 'postgres' ? ' FOR UPDATE' : '')).get(userId);
     const account: BillingAccount = JSON.parse(row!.body);
-    if (account.period !== period) { account.plan = account.pendingPlan ?? (account.renewal ? account.plan : 'Free'); account.period = period; account.pendingPlan = null; account.renewal = true; account.model = ''; account.models = purposeModels(''); account.updatedAt = stamp; await this.saveAccount(userId, account); }
+    let dirty = false;
+    // Migrate legacy calendar-month accounts seamlessly without losing current-month spend.
+    if (!account.cycleStart || !account.cycleEnd) {
+      if (/^\d{4}-\d{2}$/.test(account.period)) {
+        account.cycleStart = new Date(account.period + '-01T00:00:00+08:00').toISOString();
+        account.cycleEnd = periodEnd(account.period);
+      } else {
+        account.cycleStart = stamp;
+        account.cycleEnd = cycleEnd;
+        account.period = stamp;
+      }
+      account.carryover ??= 0;
+      dirty = true;
+    }
+    // Rolling 30-day cycle expiry: reset cleanly without rollover (Free never stacks; renewals reset to plan quota).
+    if (now.getTime() >= Date.parse(account.cycleEnd)) {
+      account.plan = account.pendingPlan ?? (account.renewal ? account.plan : 'Free');
+      account.cycleStart = stamp;
+      account.cycleEnd = cycleEnd;
+      account.period = stamp;
+      account.carryover = 0;
+      account.pendingPlan = null;
+      account.renewal = true;
+      account.model = '';
+      account.models = purposeModels('');
+      account.updatedAt = stamp;
+      dirty = true;
+    }
+    if (dirty) await this.saveAccount(userId, account);
     return account;
   }
   private async saveAccount(id: string, account: BillingAccount) { await this.store.db.prepare('UPDATE billing_accounts SET body=? WHERE user_id=?').run(JSON.stringify(account), id); }
@@ -131,6 +195,20 @@ export class Billing {
       await this.putOperation(op, userId);
     }
   }
+  async hasFeature(identity: Identity, feature: PlanFeature): Promise<boolean> {
+    if (identity.role === 'developer' || identity.role === 'reviewer') return true;
+    const view = await this.view(identity.id);
+    return hasPlanFeature(view.account.plan, feature, identity.role);
+  }
+  async requireFeature(identity: Identity, feature: PlanFeature): Promise<BillingView | null> {
+    if (identity.role === 'developer' || identity.role === 'reviewer') return null;
+    const view = await this.view(identity.id);
+    if (!hasPlanFeature(view.account.plan, feature, identity.role)) {
+      const needed = FEATURE_MIN_PLAN[feature];
+      reject(`此功能需要 ${needed} 或以上套餐，請前往「套餐與帳單」升級`, 403, 'PLAN_REQUIRED');
+    }
+    return view;
+  }
   async view(userId: string): Promise<BillingView> {
     return this.store.transaction(async () => {
       const account = await this.account(userId); await this.recover(userId); const policy = await this.policy(); const rule = policy.plans[account.plan];
@@ -143,10 +221,36 @@ export class Billing {
       })) as Record<ModelPurpose, string>;
       account.model = account.models.chat; // Legacy read-only alias for older clients.
       if (JSON.stringify(account) !== before) await this.saveAccount(userId, account);
-      const ops = await this.operations(userId, account.period), spent = ops.filter(o => o.status === 'charged' && !o.platform).reduce((s, o) => s + o.cost, 0), held = ops.filter(o => o.status === 'held' && !o.platform).reduce((s, o) => s + o.cost, 0);
+      const ops = await this.operations(userId, account.period);
+      const spent = ops.filter(o => o.status === 'charged' && !o.platform).reduce((s, o) => s + o.cost, 0);
+      const held = ops.filter(o => o.status === 'held' && !o.platform).reduce((s, o) => s + o.cost, 0);
+      const carryover = Math.max(0, account.carryover ?? 0);
+      const cap = rule.credits + carryover;
+      const weeklyCap = typeof rule.weeklyCredits === 'number' && rule.weeklyCredits >= 0 ? rule.weeklyCredits : null;
+      const weekCutoff = this.now().getTime() - WEEK_MS;
+      const weekOps = ops.filter(o => !o.platform && Date.parse(o.createdAt) >= weekCutoff);
+      const weeklySpent = weekOps.filter(o => o.status === 'charged').reduce((s, o) => s + o.cost, 0);
+      const weeklyHeld = weekOps.filter(o => o.status === 'held').reduce((s, o) => s + o.cost, 0);
+      const weeklyAvailable = weeklyCap === null ? null : Math.max(0, weeklyCap - weeklySpent - weeklyHeld);
       const orders = (await this.store.db.prepare('SELECT body FROM billing_orders WHERE user_id=? ORDER BY created_at DESC').all(userId)).map(r => JSON.parse(r.body));
       const usage = ops.slice(0, 100).map(({ signature, result, source, platform, ...op }) => op);
-      return { account, policy, spent, held, available: Math.max(0, rule.credits - spent - held), cap: rule.credits, resetsAt: periodEnd(account.period), usage, orders: orders.slice(0, 100) };
+      return {
+        account,
+        policy,
+        spent,
+        held,
+        available: Math.max(0, cap - spent - held),
+        cap,
+        baseCap: rule.credits,
+        carryover,
+        weeklyCap,
+        weeklySpent,
+        weeklyHeld,
+        weeklyAvailable,
+        resetsAt: account.cycleEnd ?? new Date(this.now().getTime() + CYCLE_MS).toISOString(),
+        usage,
+        orders: orders.slice(0, 100),
+      };
     });
   }
   async selectModel(userId: string, model: string, purpose: ModelPurpose = 'chat') {
@@ -165,16 +269,20 @@ export class Billing {
       if (!isAllowedModel(id)) reject('只可使用抗截斷模型；此模型不可用', 403, 'MODEL_NOT_ALLOWED');
       if (id.length > 200 || !Number.isInteger(rule.credits) || rule.credits < 1 || rule.credits > 100000 || typeof rule.enabled !== 'boolean') reject('模型單價需為正整數');
     }
-    for (const id of plans) { const p = input.plans[id]; if (!p || !Number.isInteger(p.credits) || p.credits < 0 || p.credits > 10000000 || !Number.isFinite(p.price) || p.price < 0 || p.price > 100000 || !Array.isArray(p.models) || !p.models.length || p.models.some(m => !input.models[m]?.enabled) || new Set(p.models).size !== p.models.length || !p.models.includes(p.defaultModel)) reject('請檢查套餐額度、價格、開放模型與預設模型'); }
+    for (const id of plans) {
+      const p = input.plans[id];
+      const validWeekly = p?.weeklyCredits === undefined || p.weeklyCredits === null || (Number.isInteger(p.weeklyCredits) && p.weeklyCredits >= 1 && p.weeklyCredits <= 10000000);
+      if (!p || !validWeekly || !Number.isInteger(p.credits) || p.credits < 0 || p.credits > 10000000 || !Number.isFinite(p.price) || p.price < 0 || p.price > 100000 || !Array.isArray(p.models) || !p.models.length || p.models.some(m => !input.models[m]?.enabled) || new Set(p.models).size !== p.models.length || !p.models.includes(p.defaultModel)) reject('請檢查套餐額度、價格、開放模型與預設模型');
+    }
     if (input.plans.Free.price !== 0) reject('Free 套餐價格必須為零');
     if(input.reviewModel!==undefined&&(!isAllowedModel(input.reviewModel)||!input.models[input.reviewModel]?.enabled))reject('請選擇已啟用的練習復核模型');
     for (const id of plans) {
       const rule = input.plans[id];
       if (rule.defaultModels && modelPurposes.some(k => !rule.models.includes(rule.defaultModels![k]))) reject('請為每個用途選擇套餐允許的預設模型');
     }
-    return this.store.transaction(async () => { if(this.store.db.kind==='postgres')await this.store.db.exec('SELECT pg_advisory_xact_lock(1784236904)'); const old = await this.policy(); if (input.version !== old.version) reject('設定已更新，請重新載入', 409, 'STALE_POLICY'); const next = migrateModelPolicy({ version: old.version + 1, plans: input.plans, models: input.models, reviewModel: input.reviewModel ?? old.reviewModel }); await this.store.db.prepare("INSERT INTO settings VALUES('billing-policy',?) ON CONFLICT(id) DO UPDATE SET body=excluded.body").run(JSON.stringify(next)); await this.audit(actor, 'policy', old, next); return next; });
+    return this.store.transaction(async () => { if(this.store.db.kind==='postgres')await this.store.db.exec('SELECT pg_advisory_xact_lock(1784236904)'); const old = await this.policy(); if (input.version !== old.version) reject('設定已更新，請重新載入', 409, 'STALE_POLICY'); const next = migrateModelPolicy({ version: old.version + 1, schemaVersion: CURRENT_POLICY_SCHEMA, plans: input.plans, models: input.models, reviewModel: input.reviewModel ?? old.reviewModel }); await this.store.db.prepare("INSERT INTO settings VALUES('billing-policy',?) ON CONFLICT(id) DO UPDATE SET body=excluded.body").run(JSON.stringify(next)); await this.audit(actor, 'policy', old, next); return next; });
   }
-  async adminAccount(actor: string, userId: string, plan: PlanId) { if (!plans.includes(plan)) reject('套餐無效'); if (!await this.store.db.prepare('SELECT id FROM users WHERE id=?').get(userId)) reject('帳戶不存在', 404); return this.store.transaction(async () => { const before = await this.account(userId), next = { ...before, plan, pendingPlan: null, renewal: true, model: '', models: purposeModels(''), updatedAt: this.now().toISOString() }; await this.saveAccount(userId, next); await this.audit(actor, 'account:' + userId, before, next); return { ok: true }; }); }
+  async adminAccount(actor: string, userId: string, plan: PlanId) { if (!plans.includes(plan)) reject('套餐無效'); if (!await this.store.db.prepare('SELECT id FROM users WHERE id=?').get(userId)) reject('帳戶不存在', 404); return this.store.transaction(async () => { const before = await this.account(userId), next: BillingAccount = { ...before, plan, carryover: plan === 'Free' ? 0 : (before.carryover ?? 0), pendingPlan: null, renewal: true, model: '', models: purposeModels(''), updatedAt: this.now().toISOString() }; await this.saveAccount(userId, next); await this.audit(actor, 'account:' + userId, before, next); return { ok: true }; }); }
   async subscription(userId: string, action: string) { return this.store.transaction(async () => { const a = await this.account(userId); if (action === 'cancel') { a.renewal = false; a.pendingPlan = 'Free'; } else if (action === 'restore') { a.renewal = true; a.pendingPlan = null; } else reject('訂閱操作無效'); a.updatedAt = this.now().toISOString(); await this.saveAccount(userId, a); await this.audit(userId, action, null, a); return { ok: true }; }); }
   async order(userId: string, target: PlanId, requestId: string) {
     if (!plans.includes(target) || !/^[\w-]{8,80}$/.test(requestId)) reject('套餐或訂單請求 ID 無效');
@@ -182,35 +290,83 @@ export class Billing {
       const a = await this.account(userId), policy = await this.policy(), old = await this.store.db.prepare('SELECT body FROM billing_orders WHERE user_id=? AND request_key=?').get(userId, requestId);
       if (old) { const o = JSON.parse(old.body); if (o.target !== target) reject('訂單請求 ID 已被使用', 409); return o; }
       if (a.plan === target) reject('目前已使用此套餐');
-      const now = this.now(), start = new Date(a.period + '-01T00:00:00+08:00').getTime(), end = Date.parse(periodEnd(a.period));
+      const now = this.now();
       const upgrade = plans.indexOf(target) > plans.indexOf(a.plan);
-      const order: BillingOrder = { id: crypto.randomUUID(), requestId, target, from: a.plan, amount: upgrade ? Math.round(Math.max(0, policy.plans[target].price - policy.plans[a.plan].price) * (end - now.getTime()) / (end - start) * 100) / 100 : 0, currency: 'HKD', status: 'pending', channel: null, createdAt: now.toISOString(), period: a.period, effectiveAt: upgrade ? now.toISOString() : periodEnd(a.period), credits: policy.plans[target].credits, policyVersion: policy.version, simulation: true };
+      const ops = await this.operations(userId, a.period);
+      const committed = ops.filter(op => op.status !== 'released' && !op.platform).reduce((s, op) => s + op.cost, 0);
+      const prevCap = policy.plans[a.plan].credits + Math.max(0, a.carryover ?? 0);
+      const carryover = upgrade ? Math.max(0, prevCap - committed) : 0;
+      // Full-price 30-day rolling cycle on upgrade (eliminates end-of-month proration exploit); unused balance stacks cleanly.
+      const order: BillingOrder = {
+        id: crypto.randomUUID(),
+        requestId,
+        target,
+        from: a.plan,
+        amount: upgrade ? policy.plans[target].price : 0,
+        currency: 'HKD',
+        status: 'pending',
+        channel: null,
+        createdAt: now.toISOString(),
+        period: a.period,
+        effectiveAt: upgrade ? now.toISOString() : (a.cycleEnd ?? new Date(now.getTime() + CYCLE_MS).toISOString()),
+        credits: policy.plans[target].credits,
+        carryover,
+        policyVersion: policy.version,
+        simulation: true,
+      };
       await this.store.db.prepare('INSERT INTO billing_orders VALUES(?,?,?,?,?,?)').run(order.id, userId, requestId, order.status, order.createdAt, JSON.stringify(order)); return order;
     });
   }
   async pay(userId: string, id: string, channel: string) {
     if (!['mock-card', 'mock-alipay', 'mock-fps'].includes(channel)) reject('請選擇模擬付款渠道');
     return this.store.transaction(async () => {
-      const a = await this.account(userId), row = await this.store.db.prepare('SELECT body FROM billing_orders WHERE id=? AND user_id=?' + (this.store.db.kind === 'postgres' ? ' FOR UPDATE' : '')).get(id, userId); if (!row) reject('訂單不存在', 404);
+      const a = await this.account(userId), policy = await this.policy(), row = await this.store.db.prepare('SELECT body FROM billing_orders WHERE id=? AND user_id=?' + (this.store.db.kind === 'postgres' ? ' FOR UPDATE' : '')).get(id, userId); if (!row) reject('訂單不存在', 404);
       const o: BillingOrder = JSON.parse(row!.body); if (o.status !== 'pending') return o;
-      if (o.period !== a.period || o.from !== a.plan || Date.parse(o.createdAt) < this.now().getTime() - 30 * 60000 || (await this.policy()).version !== o.policyVersion) reject('訂單已過期或套餐設定已更新，請重新確認', 409, 'STALE_ORDER');
+      if (o.period !== a.period || o.from !== a.plan || Date.parse(o.createdAt) < this.now().getTime() - 30 * 60000 || policy.version !== o.policyVersion) reject('訂單已過期或套餐設定已更新，請重新確認', 409, 'STALE_ORDER');
       const upgrade = plans.indexOf(o.target) > plans.indexOf(a.plan); const before = { ...a };
-      if (upgrade) { a.plan = o.target; a.model = ''; a.models = purposeModels(''); a.pendingPlan = null; a.renewal = true; } else { a.pendingPlan = o.target; a.renewal = true; }
-      a.updatedAt = this.now().toISOString(); o.status = upgrade ? 'mock-paid' : 'scheduled'; o.channel = channel; o.paidAt = a.updatedAt;
+      const now = this.now(), stamp = now.toISOString();
+      if (upgrade) {
+        const ops = await this.operations(userId, a.period);
+        const committed = ops.filter(op => op.status !== 'released' && !op.platform).reduce((s, op) => s + op.cost, 0);
+        const prevCap = policy.plans[a.plan].credits + Math.max(0, a.carryover ?? 0);
+        const remaining = Math.max(0, prevCap - committed);
+        a.plan = o.target;
+        a.cycleStart = stamp;
+        a.cycleEnd = new Date(now.getTime() + CYCLE_MS).toISOString();
+        a.period = stamp;
+        a.carryover = remaining;
+        a.model = '';
+        a.models = purposeModels('');
+        a.pendingPlan = null;
+        a.renewal = true;
+        o.carryover = remaining;
+        o.effectiveAt = stamp;
+      } else {
+        a.pendingPlan = o.target;
+        a.renewal = true;
+      }
+      a.updatedAt = stamp; o.status = upgrade ? 'mock-paid' : 'scheduled'; o.channel = channel; o.paidAt = stamp;
       await this.saveAccount(userId, a); await this.store.db.prepare('UPDATE billing_orders SET status=?,body=? WHERE id=?').run(o.status, JSON.stringify(o), id); await this.audit(userId, 'mock-checkout', before, { account: a, order: o }); return o;
     });
   }
   async reserve(ctx: UsageContext, model: string, snapshot?:Operation): Promise<Operation> {
     return this.store.transaction(async () => {
       if (!isAllowedModel(model)) reject('只可使用抗截斷模型；此模型不可用', 403, 'MODEL_NOT_ALLOWED');
-      const a = await this.account(ctx.identity.id); await this.recover(ctx.identity.id); const p = await this.policy(), rule = p.models[model];
+      const a = await this.account(ctx.identity.id); await this.recover(ctx.identity.id); const p = await this.policy(), rule = p.models[model], planRule = p.plans[a.plan];
       const oldRow = await this.store.db.prepare('SELECT body FROM credit_operations WHERE id=?').get(ctx.id), old: Operation | undefined = oldRow ? JSON.parse(oldRow.body) : undefined;
       if (old && old.signature !== ctx.signature) reject('AI 請求 ID 已用於不同內容', 409, 'REQUEST_CONFLICT');
       if (old?.status === 'held') reject('此 AI 操作仍在處理，請稍候', 409, 'AI_IN_PROGRESS');
       if (old?.status === 'charged') reject('此操作已完成，請重新載入學習記錄', 409, 'AI_ALREADY_DELIVERED');
-      if (!ctx.platform && (!p.plans[a.plan].models.includes(model) || !rule?.enabled)) reject('此套餐未開放這個模型', 403, 'MODEL_NOT_ALLOWED');
+      if (!ctx.platform && (!planRule.models.includes(model) || !rule?.enabled)) reject('此套餐未開放這個模型', 403, 'MODEL_NOT_ALLOWED');
       const cost = ctx.platform ? 0 : snapshot?.cost ?? rule.credits, ops = await this.operations(ctx.identity.id, a.period), committed = ops.filter(o => o.status !== 'released' && !o.platform).reduce((sum, o) => sum + o.cost, 0);
-      if (!ctx.platform && committed + cost > p.plans[a.plan].credits) reject('AI credit 不足；請等待下月重置或選擇其他套餐', 402, 'INSUFFICIENT_CREDITS');
+      const totalCap = planRule.credits + Math.max(0, a.carryover ?? 0);
+      if (!ctx.platform && committed + cost > totalCap) reject('AI credit 不足；請等待下期重置或選擇其他套餐', 402, 'INSUFFICIENT_CREDITS');
+      const weeklyCap = typeof planRule.weeklyCredits === 'number' && planRule.weeklyCredits >= 0 ? planRule.weeklyCredits : null;
+      if (!ctx.platform && weeklyCap !== null) {
+        const weekCutoff = this.now().getTime() - WEEK_MS;
+        const weeklyCommitted = ops.filter(o => o.status !== 'released' && !o.platform && Date.parse(o.createdAt) >= weekCutoff).reduce((sum, o) => sum + o.cost, 0);
+        if (weeklyCommitted + cost > weeklyCap) reject('已達本週（7 天）免費額度上限；可稍後再試或升級 Plus 解除週限額', 402, 'WEEKLY_CREDIT_LIMIT');
+      }
       const stamp = this.now().toISOString(), op: Operation = { id: ctx.id, period: a.period, status: 'held', cost, createdAt: snapshot?.createdAt ?? stamp, updatedAt: stamp, purpose: ctx.source.path, model, plan: ctx.platform ? 'Platform' : snapshot?.plan ?? a.plan, signature: ctx.signature, tokens: emptyTokens(), source: ctx.source, platform: ctx.platform };
       await this.putOperation(op, ctx.identity.id); return op;
     });

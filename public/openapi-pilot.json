@@ -4557,7 +4557,7 @@
     },
     "/studio/quizzes": {
       "post": {
-        "summary": "Fixed or one-call quick exercises; AI assessments alone validate and repair up to three attempts",
+        "summary": "Fixed or one-call quick exercises; Plus+ unlocks AI quizzes with silent performance adaptation; Pro unlocks hybrid AI + teacher quizzes",
         "security": [
           {
             "session": []
@@ -4597,7 +4597,8 @@
                     "enum": [
                       "fixed",
                       "ai",
-                      "auto"
+                      "auto",
+                      "hybrid"
                     ]
                   },
                   "skillId": {
@@ -5810,6 +5811,285 @@
             }
           }
         }
+      }
+    },
+    "/learning/weak-spot-report": {
+      "get": {
+        "summary": "Pro-only diagnostic weak-spot report aggregated from real attempts, hint dependency and unresolved mistakes",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": []
+      }
+    },
+    "/learning/weak-spot-signal": {
+      "get": {
+        "summary": "Pro-only threshold-based weak-spot alert signal for Starbean / floating nudge linkage",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": []
+      }
+    },
+    "/learning/realtime-progress": {
+      "get": {
+        "summary": "Pro-only live progress snapshot with 24h momentum and per-skill score deltas",
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "parameters": []
       }
     },
     "/learning/chats/{id}/questions": {
@@ -11077,7 +11357,7 @@
     },
     "/billing": {
       "get": {
-        "summary": "Own plan, HK monthly balance, recent operations and simulated orders; no provider secrets",
+        "summary": "Own plan, rolling 30-day cycle balance, weekly Free quota, recent operations and simulated orders; no provider secrets",
         "security": [
           {
             "session": []
@@ -11302,7 +11582,7 @@
     },
     "/billing/subscription": {
       "post": {
-        "summary": "Cancel renewal at month end or restore/undo a scheduled change",
+        "summary": "Cancel renewal at cycle end or restore/undo a scheduled change",
         "security": [
           {
             "session": []
@@ -11425,7 +11705,7 @@
     },
     "/billing/orders": {
       "post": {
-        "summary": "Create an owned idempotent simulated order with server-side prorated amount",
+        "summary": "Create an owned idempotent simulated order charging full target price on upgrade with unused-balance carryover",
         "security": [
           {
             "session": []
@@ -13103,7 +13383,7 @@
         "parameters": []
       },
       "post": {
-        "summary": "Create a forum post with optional anonymity, visibility, compressed images, poll or sanitized question reference",
+        "summary": "Create a forum post with optional anonymity, visibility, compressed images, poll, sanitized question reference or Pro 48h hot boost",
         "security": [
           {
             "session": []
@@ -13166,6 +13446,9 @@
                   },
                   "questionRef": {
                     "type": "object"
+                  },
+                  "boost": {
+                    "type": "boolean"
                   }
                 },
                 "required": [

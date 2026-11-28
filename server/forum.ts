@@ -245,11 +245,27 @@ export class ForumService {
     return map;
   }
 
+  private async postBoostsMap(postIds: string[]): Promise<Map<string, string>> {
+    const map = new Map<string, string>();
+    if (!postIds.length) return map;
+    const placeholders = postIds.map(() => '?').join(',');
+    const rows = await this.store.db.prepare(
+      `SELECT post_id, boosted_until FROM forum_post_boosts WHERE post_id IN (${placeholders})`,
+    ).all(...postIds);
+    const now = Date.now();
+    for (const r of rows) {
+      const until = String(r.boosted_until ?? '');
+      if (until && Date.parse(until) > now) map.set(String(r.post_id), until);
+    }
+    return map;
+  }
+
   private formatPostSummary(
     row: Record<string, any>,
     nicknames: Map<string, string>,
     reactions: ForumReactionsSummary,
     viewer: Identity | null,
+    boostedUntil?: string | null,
   ): ForumPostSummary {
     const isOfficial = Number(row.is_official) === 1;
     const isAnonymous = !isOfficial && Number(row.is_anonymous) === 1;
@@ -282,6 +298,8 @@ export class ForumService {
       isOfficial,
       isMine: Boolean(viewer && authorId && viewer.id === authorId),
       pinned: Number(row.pinned) === 1,
+      boosted: Boolean(boostedUntil && Date.parse(boostedUntil) > Date.now()),
+      boostedUntil: boostedUntil && Date.parse(boostedUntil) > Date.now() ? boostedUntil : null,
       locked: Number(row.locked) === 1,
       status: String(row.status) as ForumPostSummary['status'],
       imageIds,
@@ -321,9 +339,11 @@ export class ForumService {
       `SELECT * FROM forum_posts WHERE ${clauses.join(' AND ')} ORDER BY created_at DESC LIMIT 120`,
     ).all(...params);
     const authorIds = rows.filter(r => !Number(r.is_official) && !Number(r.is_anonymous) && r.author_id).map(r => String(r.author_id));
-    const [nicknames, reactionsMap] = await Promise.all([
+    const postIds = rows.map(r => String(r.id));
+    const [nicknames, reactionsMap, boostsMap] = await Promise.all([
       this.nicknamesMap(authorIds),
-      this.postReactionsMap(rows.map(r => String(r.id)), viewer?.id),
+      this.postReactionsMap(postIds, viewer?.id),
+      this.postBoostsMap(postIds),
     ]);
     const summaries = rows.map(r =>
       this.formatPostSummary(
@@ -331,6 +351,7 @@ export class ForumService {
         nicknames,
         reactionsMap.get(String(r.id)) ?? { upvote: 0, same: 0, cheer: 0, useful: 0, myReactions: [] },
         viewer,
+        boostsMap.get(String(r.id)) ?? null,
       ),
     );
     const sort: ForumSort = options.sort === 'new' || options.sort === 'top' ? options.sort : 'hot';
@@ -338,6 +359,7 @@ export class ForumService {
       if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
       if (sort === 'new') return b.createdAt.localeCompare(a.createdAt);
       if (sort === 'top') return b.reactions.upvote - a.reactions.upvote || b.createdAt.localeCompare(a.createdAt);
+      if (Boolean(a.boosted) !== Boolean(b.boosted)) return a.boosted ? -1 : 1;
       return b.hotScore - a.hotScore || b.createdAt.localeCompare(a.createdAt);
     });
     return summaries;
@@ -422,10 +444,11 @@ export class ForumService {
       for (const r of upRows) myCommentUpvotes.add(String(r.target_id));
     }
 
-    const [nicknames, reactionsMap, poll] = await Promise.all([
+    const [nicknames, reactionsMap, poll, boostsMap] = await Promise.all([
       this.nicknamesMap(nonAnonIds),
       this.postReactionsMap([postId], viewer?.id),
       this.buildPollView(postId, row.poll_body ? String(row.poll_body) : null, viewer?.id),
+      this.postBoostsMap([postId]),
     ]);
 
     const summary = this.formatPostSummary(
@@ -433,6 +456,7 @@ export class ForumService {
       nicknames,
       reactionsMap.get(postId) ?? { upvote: 0, same: 0, cheer: 0, useful: 0, myReactions: [] },
       viewer,
+      boostsMap.get(postId) ?? null,
     );
 
     const postAuthorId = row.author_id ? String(row.author_id) : null;
@@ -597,7 +621,7 @@ export class ForumService {
     };
   }
 
-  async createPost(user: Identity, input: Record<string, unknown>): Promise<ForumPostDetail> {
+  async createPost(user: Identity, input: Record<string, unknown>, shouldBoost = false): Promise<ForumPostDetail> {
     await this.assertNotMuted(user);
     this.checkRate(this.postRate, user.id, 6, 10 * 60 * 1000, '發帖');
 
@@ -656,6 +680,12 @@ export class ForumService {
       );
       for (const imgId of uniqueImages) {
         await this.store.db.prepare('UPDATE forum_images SET post_id=? WHERE id=?').run(id, imgId);
+      }
+      if (shouldBoost) {
+        const boostedUntil = new Date(Date.now() + 48 * 3600000).toISOString();
+        await this.store.db.prepare(
+          'INSERT INTO forum_post_boosts (post_id, boosted_until) VALUES (?,?) ON CONFLICT(post_id) DO UPDATE SET boosted_until=excluded.boosted_until',
+        ).run(id, boostedUntil);
       }
     });
 

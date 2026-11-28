@@ -39,6 +39,8 @@ export interface MascotReaction {
   messageKey?: string;
   messageArgs?: unknown[];
   actionRoute?: string;
+  actionEvent?: string;
+  actionDetail?: unknown;
   actionLabelKey?: string;
   expiresAt: number;
   priority: number;
@@ -216,6 +218,8 @@ export function emitMascotReaction(input: {
   messageKey?: string;
   messageArgs?: unknown[];
   actionRoute?: string;
+  actionEvent?: string;
+  actionDetail?: unknown;
   actionLabelKey?: string;
   durationMs?: number;
   priority?: number;
@@ -237,6 +241,8 @@ export function emitMascotReaction(input: {
     messageKey: input.messageKey,
     messageArgs: input.messageArgs,
     actionRoute: input.actionRoute,
+    actionEvent: input.actionEvent,
+    actionDetail: input.actionDetail,
     actionLabelKey: input.actionLabelKey,
     expiresAt: now + durationMs,
     priority,
@@ -355,6 +361,8 @@ export interface ResolvedMascotVisual {
   bubbleKey?: string;
   bubbleArgs?: unknown[];
   actionRoute?: string;
+  actionEvent?: string;
+  actionDetail?: unknown;
   actionLabelKey?: string;
   autoGlasses: boolean;
   aiBusy: boolean;
@@ -388,9 +396,13 @@ export function resolveMascotVisual(input: {
   if (activeReaction && activeReaction.mood === 'sus') {
     return {
       mood: 'sus',
-      statusKey: '專注防分心提醒中',
+      statusKey: activeReaction.actionEvent ? '發現待補強的薄弱環節' : '專注防分心提醒中',
       bubbleKey: activeReaction.messageKey ?? '剛切走囉，回來繼續？',
       bubbleArgs: activeReaction.messageArgs,
+      actionRoute: activeReaction.actionRoute,
+      actionEvent: activeReaction.actionEvent,
+      actionDetail: activeReaction.actionDetail,
+      actionLabelKey: activeReaction.actionLabelKey,
       autoGlasses: false,
       aiBusy,
       wideCanvas: false,
@@ -458,6 +470,8 @@ export function resolveMascotVisual(input: {
       bubbleKey: activeReaction.messageKey,
       bubbleArgs: activeReaction.messageArgs,
       actionRoute: activeReaction.actionRoute,
+      actionEvent: activeReaction.actionEvent,
+      actionDetail: activeReaction.actionDetail,
       actionLabelKey: activeReaction.actionLabelKey,
       autoGlasses: input.focusRunning && activeReaction.mood === 'happy',
       aiBusy: false,

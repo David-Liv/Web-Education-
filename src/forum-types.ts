@@ -94,6 +94,8 @@ export interface ForumPostSummary {
   isOfficial: boolean;
   isMine: boolean;
   pinned: boolean;
+  boosted?: boolean;
+  boostedUntil?: string | null;
   locked: boolean;
   status: 'active' | 'auto_hidden' | 'deleted';
   imageIds: string[];
@@ -155,6 +157,7 @@ export interface ForumProfileView {
   muteReason: string | null;
   canModerate: boolean;
   isDeveloper: boolean;
+  canBoost?: boolean;
 }
 
 export interface ForumNotificationView {

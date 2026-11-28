@@ -2,6 +2,8 @@ import { ui, useInterfaceLanguage } from "../i18n";
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useApp } from '../state';
+import { realMode } from '../api/client';
+import { hasPlanFeature } from '../billing-types';
 import { Badge, Modal, Icon } from '../components';
 import type { Task } from '../types';
 export function StudyReportButton() {
@@ -18,17 +20,18 @@ export function CalendarTools({ date, onSelect }: {
     onSelect: (t: Task) => void;
 }) {
     useInterfaceLanguage();
-    const { db, mutate, toast } = useApp();
+    const { db, billing, mutate, toast } = useApp();
     const [busy, setBusy] = useState(false);
     if (!db.studio)
         return null;
+    const canAdvCalendar = !realMode || hasPlanFeature(billing?.account.plan, 'calendar-advanced', db.pilot?.identity.role);
     const rest = db.profile.restDates?.includes(date), floating = db.tasks.filter(t => t.schedule === 'floating' && t.status === 'pending');
-    return <section className="card pilot-card"><div className="row-between"><div><h3>{rest ? ui("今天先休息，也是一種安排") : ui("清單與日曆，是同一份任務")}</h3><p className="small muted">{ui("待辦保留預計時間，選定時段後才佔用日曆。休息只影響 {0}，不改每週預算。", [date])}</p></div><button className="btn secondary" disabled={busy} onClick={async () => { setBusy(true); try {
+    return <section className="card pilot-card"><div className="row-between"><div><h3>{rest ? ui("今天先休息，也是一種安排") : ui("清單與日曆，是同一份任務")}</h3><p className="small muted">{ui("待辦保留預計時間，選定時段後才佔用日曆。休息只影響 {0}，不改每週預算。", [date])}</p></div>{canAdvCalendar ? <button className="btn secondary" disabled={busy} onClick={async () => { setBusy(true); try {
         await mutate('/studio/rest', 'POST', { date, rest: !rest });
         toast(rest ? '已恢復當天可用時間；待辦可自行重新安排' : '未鎖定待辦已留在清單，沒有追繳到明天');
     }
     catch { }
     finally {
         setBusy(false);
-    } }}>{rest ? ui("恢復安排") : ui("這一天先休息")}</button></div>{floating.length ? floating.map(t => <div className="pilot-list-row" key={t.id}><strong>{ui(t.title)}</strong><small>{ui("{0} · 約{1}分鐘 · 待安排", [t.date, t.minutes])}</small><button className="btn ghost" onClick={() => onSelect(t)}>{ui("安排／調整")}</button><button className="btn ghost" onClick={() => void mutate(`/tasks/${t.id}`, 'PATCH', { status: 'done' }).catch(() => { })}>{ui("已完成")}</button></div>) : <p className="small muted">{ui("暫無待安排任務。新增任務時可選擇「先放清單」。")}</p>}</section>;
+    } }}>{rest ? ui("恢復安排") : ui("這一天先休息")}</button> : <Link className="btn secondary" to="/billing"><Icon name="lock" size={14}/>{ui("這一天先休息")} <Badge tone="green">Plus</Badge></Link>}</div>{floating.length ? floating.map(t => <div className="pilot-list-row" key={t.id}><strong>{ui(t.title)}</strong><small>{ui("{0} · 約{1}分鐘 · 待安排", [t.date, t.minutes])}</small><button className="btn ghost" onClick={() => onSelect(t)}>{ui("安排／調整")}</button><button className="btn ghost" onClick={() => void mutate(`/tasks/${t.id}`, 'PATCH', { status: 'done' }).catch(() => { })}>{ui("已完成")}</button></div>) : <p className="small muted">{ui("暫無待安排任務。新增任務時可選擇「先放清單」。")}</p>}</section>;
 }

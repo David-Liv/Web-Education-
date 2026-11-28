@@ -2,7 +2,7 @@ import { ui, useInterfaceLanguage } from "./i18n";
 import { lazy, Suspense, useEffect, useId, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { BookOpen, CalendarDays, LayoutDashboard, Repeat2, MessageSquareText, MessagesSquare, ThumbsUp, Share2, ShieldAlert, BarChart3, ImagePlus, CornerDownRight, ClipboardCheck, FolderOpen, GraduationCap, Settings, Search, Bell, ChevronDown, ChevronLeft, ChevronRight, ArrowUpRight, ArrowRight, Plus, Check, CheckCircle2, X, Clock, Flame, TrendingUp, Target, MoreHorizontal, Play, Pause, Bookmark, ExternalLink, Filter, SlidersHorizontal, Upload, Mic, Send, Square, RotateCcw, Pin, Lock, AlertCircle, Lightbulb, Leaf, Sparkles, Menu, Layers, FileText, Headphones, Trash2, Pencil, GripVertical, FlaskConical, Calculator, Languages, Compass, Sun, Star, HelpCircle, ListChecks, Flag, CircleHelp, ArrowDown, RefreshCw, Copy, Volume2, Eye, PanelLeftOpen, PanelLeftClose, CreditCard, Maximize2, Minimize2 } from 'lucide-react';
+import { BookOpen, Bot, CalendarDays, LayoutDashboard, Repeat2, MessageSquareText, MessagesSquare, ThumbsUp, Share2, ShieldAlert, BarChart3, ImagePlus, CornerDownRight, ClipboardCheck, FolderOpen, GraduationCap, Settings, Search, Bell, ChevronDown, ChevronLeft, ChevronRight, ArrowUpRight, ArrowRight, Plus, Check, CheckCircle2, X, Clock, Flame, TrendingUp, Target, MoreHorizontal, Play, Pause, Bookmark, ExternalLink, Filter, SlidersHorizontal, Upload, Mic, Send, Square, RotateCcw, Pin, Lock, AlertCircle, Lightbulb, Leaf, Sparkles, Menu, Layers, FileText, Headphones, Trash2, Pencil, GripVertical, FlaskConical, Calculator, Languages, Compass, Sun, Star, HelpCircle, ListChecks, Flag, CircleHelp, ArrowDown, RefreshCw, Copy, Volume2, Eye, PanelLeftOpen, PanelLeftClose, CreditCard, Maximize2, Minimize2 } from 'lucide-react';
 import katex from 'katex';
 import { useApp } from './state';
 import { loadFile, storeFile } from './media';
@@ -10,7 +10,7 @@ import { realMode } from './api/client';
 import { StarBean } from './StarBean';
 import type { Attachment, Subject } from './types';
 const ChatContent = lazy(()=>import('./ChatContent').then(m=>({default:m.ChatContent})));
-const icons = {maximize:Maximize2,minimize:Minimize2,sidebarOpen:PanelLeftOpen,sidebarClose:PanelLeftClose,creditCard:CreditCard, forum: MessagesSquare, thumbsUp: ThumbsUp, share: Share2, shield: ShieldAlert, chart: BarChart3, image: ImagePlus, reply: CornerDownRight, eye: Eye, book: BookOpen, calendar: CalendarDays, dashboard: LayoutDashboard, review: Repeat2, chat: MessageSquareText, quiz: ClipboardCheck, folder: FolderOpen, graduation: GraduationCap, settings: Settings, search: Search, bell: Bell, down: ChevronDown, left: ChevronLeft, right: ChevronRight, arrowUp: ArrowUpRight, arrow: ArrowRight, plus: Plus, check: Check, checkCircle: CheckCircle2, x: X, clock: Clock, flame: Flame, trend: TrendingUp, target: Target, more: MoreHorizontal, play: Play, pause: Pause, bookmark: Bookmark, external: ExternalLink, filter: Filter, sliders: SlidersHorizontal, upload: Upload, mic: Mic, send: Send, square: Square, reset: RotateCcw, pin: Pin, lock: Lock, alert: AlertCircle, bulb: Lightbulb, leaf: Leaf, sparkles: Sparkles, menu: Menu, layers: Layers, file: FileText, headphones: Headphones, trash: Trash2, pencil: Pencil, grip: GripVertical, chem: FlaskConical, maths: Calculator, languages: Languages, compass: Compass, sun: Sun, star: Star, help: HelpCircle, list: ListChecks, flag: Flag, question: CircleHelp, arrowDown: ArrowDown, refresh: RefreshCw, copy: Copy, volume: Volume2, Eye };
+const icons = {maximize:Maximize2,minimize:Minimize2,sidebarOpen:PanelLeftOpen,sidebarClose:PanelLeftClose,creditCard:CreditCard, bot: Bot, forum: MessagesSquare, thumbsUp: ThumbsUp, share: Share2, shield: ShieldAlert, chart: BarChart3, image: ImagePlus, reply: CornerDownRight, eye: Eye, book: BookOpen, calendar: CalendarDays, dashboard: LayoutDashboard, review: Repeat2, chat: MessageSquareText, quiz: ClipboardCheck, folder: FolderOpen, graduation: GraduationCap, settings: Settings, search: Search, bell: Bell, down: ChevronDown, left: ChevronLeft, right: ChevronRight, arrowUp: ArrowUpRight, arrow: ArrowRight, plus: Plus, check: Check, checkCircle: CheckCircle2, x: X, clock: Clock, flame: Flame, trend: TrendingUp, target: Target, more: MoreHorizontal, play: Play, pause: Pause, bookmark: Bookmark, external: ExternalLink, filter: Filter, sliders: SlidersHorizontal, upload: Upload, mic: Mic, send: Send, square: Square, reset: RotateCcw, pin: Pin, lock: Lock, alert: AlertCircle, bulb: Lightbulb, leaf: Leaf, sparkles: Sparkles, menu: Menu, layers: Layers, file: FileText, headphones: Headphones, trash: Trash2, pencil: Pencil, grip: GripVertical, chem: FlaskConical, maths: Calculator, languages: Languages, compass: Compass, sun: Sun, star: Star, help: HelpCircle, list: ListChecks, flag: Flag, question: CircleHelp, arrowDown: ArrowDown, refresh: RefreshCw, copy: Copy, volume: Volume2, Eye };
 export type IconName = keyof typeof icons;
 export function Icon({ name, size = 19, className = '', ...props }: {
     name: IconName;
@@ -89,6 +89,27 @@ export function NetworkError({ error, retry }: {
     error: string;
     retry: () => void;
 }) { useInterfaceLanguage(); return <Empty icon="alert" title={ui("暫時未能載入")} description={ui(error)} action={<button className="btn secondary" onClick={retry}><Icon name="refresh"/>{ui("重新嘗試")}</button>}/>; }
+export function PlanGate({ requiredPlan, title, description, compact = false }: {
+    requiredPlan: 'Plus' | 'Pro';
+    title: string;
+    description: string;
+    compact?: boolean;
+}) {
+    useInterfaceLanguage();
+    return (
+        <section className={`plan-gate ${compact ? 'compact' : ''}`}>
+            <div className="plan-gate-icon"><Icon name="lock" size={compact ? 17 : 22}/></div>
+            <div className="plan-gate-copy">
+                <div className="plan-gate-head">
+                    <Badge tone="green">{requiredPlan}</Badge>
+                    <h3>{ui(title)}</h3>
+                </div>
+                <p>{ui(description)}</p>
+            </div>
+            <Link className="btn primary" to="/billing">{ui("升級至 {0}", [requiredPlan])}<Icon name="arrow" size={14}/></Link>
+        </section>
+    );
+}
 export function Skeleton({ rows = 3 }: {
     rows?: number;
 }) { useInterfaceLanguage(); return <div className="skeleton-block" aria-label={ui("正在載入")}>{Array.from({ length: rows }, (_, i) => <div className="skeleton" key={i}/>)}</div>; }

@@ -33,6 +33,9 @@ test('guarded calendar moves and Undo preserve duration, validate constraints an
  const a=(await call('/tasks',owner.cookie,'POST',{title:'Move me',date:'2028-02-14',start:'18:00',minutes:30,subjectId:'maths'})).data;
  assert.ok(a.id);assert.equal((await call('/tasks',owner.cookie,'POST',{title:'Keep me',date:'2028-02-15',start:'18:30',minutes:30,subjectId:'eng'})).status,201);
  const origin=(t:any)=>({date:t.date,start:t.start,minutes:t.minutes}),move=(from:any,date:string,start:string)=>call('/tasks/'+a.id,owner.cookie,'PATCH',{date,start,moveFrom:origin(from)});
+ assert.equal((await move(a,'2028-02-15','18:00')).status,403);
+ assert.equal((await call(`/admin/billing/users/${owner.id}`,admin,'PATCH',{plan:'Plus'})).status,200);
+ assert.equal((await call(`/admin/billing/users/${other.id}`,admin,'PATCH',{plan:'Plus'})).status,200);
  const moved=await move(a,'2028-02-15','18:00');assert.equal(moved.status,200);assert.equal(moved.data.minutes,30);assert.equal(moved.data.id,a.id);assert.equal(moved.data.moveFrom,undefined);
  assert.equal((await move(a,'2028-02-15','19:00')).status,409);
  const undo=await move(moved.data,a.date,a.start);assert.equal(undo.status,200);assert.equal(undo.data.date,a.date);
@@ -134,7 +137,9 @@ test('ownership, role checks and attachment bytes survive a reload',async()=>{
   assert.equal((await call(`/wrong/${q.questions[0].id}`,a.cookie)).status,404);
 });
 test('previews are exact, stale-aware, capacity constrained and idempotently applied',async()=>{
-  const {cookie}=await student();await call('/profile',cookie,'PATCH',{dailyMinutes:[30,30,30,30,30,30,30]});
+  const s=await student(),{cookie}=s;await call('/profile',cookie,'PATCH',{dailyMinutes:[30,30,30,30,30,30,30]});
+  assert.equal((await call('/plans/preview',cookie,'POST',{})).status,403);
+  assert.equal((await call(`/admin/billing/users/${s.id}`,admin,'PATCH',{plan:'Plus'})).status,200);
   let preview=(await call('/plans/preview',cookie,'POST',{})).data;
   assert.equal((await call('/profile',cookie,'PATCH',{name:'新名字'})).status,200);
   assert.equal((await call('/plans/apply',cookie,'POST',{previewId:preview.previewId})).status,409);

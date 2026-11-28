@@ -74,7 +74,7 @@ test('configurable maxRetries automatically retries transient provider failures 
   const put=await call('/admin/model',ownerCookie,'PUT',{name:'Retry test',baseUrl:upstream,apiKey:'k',model:'gemini-4-hydrogen',protocol:'openai-chat',enabled:true,maxRetries:3});
   assert.equal(put.status,200);assert.equal(put.data.maxRetries,3);
   const billing=new Billing(app.store),p=await billing.policy();
-  p.models['gemini-4-hydrogen']={credits:20,enabled:true};p.reviewModel='gemini-4-hydrogen';
+  p.models['gemini-4-hydrogen']={credits:20,enabled:true};p.reviewModel='gemini-4-hydrogen';p.plans.Free.weeklyCredits=null;
   for(const plan of Object.values(p.plans)){plan.models=['gemini-4-hydrogen'];plan.defaultModel='gemini-4-hydrogen';plan.defaultModels={quiz:'gemini-4-hydrogen',chat:'gemini-4-hydrogen',evaluation:'gemini-4-hydrogen'}}
   await billing.updatePolicy(owner.id,p);
   const chat=(await call('/chats',studentCookie,'POST',{topicId:units[0].topicId,mode:'explain'})).data;
