@@ -40,7 +40,7 @@ import {factorisationCoachingPack} from '../src/data/factorisation-guide.ts';
 import {sanitizeCalculatorState} from '../src/calculator-types.ts';
 
 interface Options { databaseUrl?:string; encryptionKey?:string; database?:string; staticDir?:string; allowSetup?:boolean; secureCookie?:boolean; origin?:string }
-const MIME:Record<string,string>={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json','.csv':'text/csv; charset=utf-8','.svg':'image/svg+xml','.wav':'audio/wav','.png':'image/png','.woff2':'font/woff2'};
+const MIME:Record<string,string>={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json','.csv':'text/csv; charset=utf-8','.svg':'image/svg+xml','.wav':'audio/wav','.png':'image/png','.webp':'image/webp','.jpg':'image/jpeg','.woff':'font/woff','.woff2':'font/woff2','.ttf':'font/ttf'};
 const validRoles=['student','reviewer','developer'];
 
 export function createPilot(options:Options={}){

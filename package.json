@@ -1,6 +1,6 @@
 {
   "name": "hokse-dse-study-studio",
-  "version": "1.10.0",
+  "version": "1.10.6",
   "private": true,
   "type": "module",
   "scripts": {
